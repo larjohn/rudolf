@@ -9,7 +9,7 @@
 namespace App\Model;
 
 
-class Measure
+class Measure extends GenericProperty
 {
     public $column;
 
@@ -23,3 +23,4 @@ class Measure
 
 
 }
+

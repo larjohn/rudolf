@@ -9,7 +9,7 @@
 namespace App\Model;
 
 
-class Attribute
+class Attribute extends GenericProperty
 {
 
     /**

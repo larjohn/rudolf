@@ -9,7 +9,7 @@
 namespace App\Model;
 
 
-class Dimension
+class Dimension extends GenericProperty
 {
 
     /**

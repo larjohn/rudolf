@@ -33,19 +33,45 @@ class BabbageModelResult extends SparqlModel
     public function __construct(string $name)
     {
         parent::__construct();
+        $this->model = new BabbageModel();
+
+        $this->identify($name);
         $this->load($name);
 
         $this->name = $name;
         $this->status = "ok";
     }
 
+    public function identify($name){
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $queryBuilder
+            ->selectDistinct('?dataset', '?dsd')
+            ->where("?dataset", "a", "qb:DataSet")
+            ->where("?dataset","qb:structure", "?dsd" )
+            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', MD5(STR(?dataset))) AS ?name")
+            ->filter("?name = '$name'")
+        ;
+
+//        dd($queryBuilder->getSPARQL());
+        /** @var EasyRdf_Sparql_Result $identifyQueryResult */
+        $identifyQueryResult = $this->sparql->query(
+            $queryBuilder->getSPARQL()
+        );
+        /** @var EasyRdf_Sparql_Result $result */
+
+        $identifyQueryResult = $this->rdfResultsToArray($identifyQueryResult)[0];
+        $this->model->setDataset($identifyQueryResult["dataset"]);
+        $this->model->setDsd($identifyQueryResult["dsd"]);
+    }
+
+
+
 
     public function load($name){
         if(Cache::has($name)){
-            $this->model = Cache::get($name);
+            $this->model =  Cache::get($name);
             return;
         }
-
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
             ->selectDistinct('?attribute', '?label', '(max(?attachment) as ?attachment)', "?propertyType", "?shortName", "(count(distinct ?value) AS ?cardinality)")
@@ -106,6 +132,7 @@ class BabbageModelResult extends SparqlModel
                 /** @var EasyRdf_Sparql_Result $result */
 
                 $subResults = $this->rdfResultsToArray($subResult);
+                $newMeasure->setUri($attribute);
 
                 $newMeasure->ref = $property["shortName"];
                 $newMeasure->column = $attribute;
@@ -141,11 +168,13 @@ class BabbageModelResult extends SparqlModel
                 $subResults = $this->rdfResultsToArray($subResult);
 
                 $newDimension = new Dimension();
-
                 $newDimension->label =  $property["label"];
                 $newDimension->cardinality_class = "someClass";
                 $newDimension->ref= $property["shortName"];
                 $newDimension->orig_dimension= $property["shortName"];
+                $newDimension->setUri($attribute);
+                if(isset($property["attachment"]))
+                    $newDimension->setAttachment($property["attachment"]);
 
 
 
@@ -168,6 +197,7 @@ class BabbageModelResult extends SparqlModel
                     $newAttribute->ref = $property["shortName"].".".$subResult["shortName"];
                     $newAttribute->column = $subResult["extensionProperty"];
                     $newAttribute->datatype = isset($subResult["dataType"])?$this->flatten_data_type($subResult["dataType"]):"";
+                    $newAttribute->setUri($subResult["extensionProperty"]);
                     $newAttribute->label = $subResult["label"];
                     $newAttribute->orig_attribute = $property["shortName"].".".$subResult["shortName"];
 
@@ -204,6 +234,11 @@ class BabbageModelResult extends SparqlModel
             }
         }
 
+        $countAggregate = new Aggregate();
+        $countAggregate->label = "Facts";
+        $countAggregate->function = "count";
+        $countAggregate->ref = "_count";
+        $this->model->aggregates["_count"] = $countAggregate;
         Cache::add($name, $this->model, 10);
 
     }
@@ -213,7 +248,7 @@ class BabbageModelResult extends SparqlModel
      */
     public function getModel()
     {
-        
+
         return $this->model;
     }
 
