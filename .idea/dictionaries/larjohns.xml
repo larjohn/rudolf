@@ -2,6 +2,8 @@
   <dictionary name="larjohns">
     <words>
       <w>datatype</w>
+      <w>drilldown</w>
+      <w>drilldowns</w>
       <w>sparql</w>
     </words>
   </dictionary>

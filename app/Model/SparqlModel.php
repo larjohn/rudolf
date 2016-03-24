@@ -94,16 +94,11 @@ class SparqlModel
             foreach ($model->measures as $name => $attribute) {
                 if($fieldNames[0] == $name){
                     $selectedDimensions[$attribute->getUri()] = [];
-
-
                 }
-
             }
             foreach ($model->dimensions as $name =>$attribute) {
                 //var_dump($fieldNames);
                 if($fieldNames[0] == $name){
-
-
                     if(!isset($selectedDimensions[$attribute->getUri()] )){
                         $selectedDimensions[$attribute->getUri()] = [];
                     }
@@ -133,14 +128,22 @@ class SparqlModel
     protected function rdfResultsToArray3(EasyRdf_Sparql_Result $result, array $attributes, BabbageModel $model, array $selectedFields)
     {
         $results = [];
+        $actualFields = $result->getFields();
         foreach ($result as $row) {
             $added = [];
 
             foreach ($selectedFields as  $selectedFieldName=>$selectedField) {
                 if(count($selectedField)<1) {
+                    $aggregateSuffix = "";
                     if (isset($attributes[$selectedFieldName]["value"])) {
                         $selectedBinding = $attributes[$selectedFieldName]["value"];
-                    } else {
+                    }
+                    else if(isset($attributes[$selectedFieldName]["sum"])){
+                        $selectedBinding = $attributes[$selectedFieldName]["sum"];
+                        $aggregateSuffix = ".sum";
+
+                    }
+                    else {
                         $selectedBinding = $attributes[$selectedFieldName]["uri"];
 
                     }
@@ -159,8 +162,7 @@ class SparqlModel
                         /** @var \EasyRdf_Resource $value */
                         $val = $value->dumpValue('text');
                     }
-                    $finalName = $this->getAttributeRef($model, [$selectedFieldName]);
-
+                    $finalName = $this->getAttributeRef($model, [$selectedFieldName]).$aggregateSuffix;
                     $added[$finalName] = $val;
 
                 }
@@ -168,7 +170,7 @@ class SparqlModel
                 else{
                     foreach ($selectedField as $subPropertyName=>$subProperty){
                         $selectedBinding = $attributes[$selectedFieldName][$subPropertyName];
-
+                        if(!isset($row->$selectedBinding))continue;
                         $value = $row->$selectedBinding;
 
                         if ($value instanceof EasyRdf_Literal ) {
@@ -192,8 +194,10 @@ class SparqlModel
                 }
 
             }
-
-
+            /** @var EasyRdf_Sparql_Result $row */
+            if(in_array("_count", $actualFields)){
+                $added["_count"] = intval($row->_count->getValue());
+            }
             $results[] = $added;
         }
         return $results;

@@ -33,6 +33,7 @@ Route::get("api/cubes", ["as"=>"api.cubes", "uses"=>"Api\\CubesController@index"
 Route::get("api/cubes/{name}/model", ["as"=>"api.cubes.model", "uses"=>"Api\\ModelController@index"]);
 Route::get("api/cubes/{name}/facts", ["as"=>"api.cubes.facts", "uses"=>"Api\\FactsController@index"]);
 Route::get("api/cubes/{name}/members/{dimension}", ["as"=>"api.cubes.members", "uses"=>"Api\\MembersController@index"]);
+Route::get("api/cubes/{name}/aggregate", ["as"=>"api.cubes.aggregates", "uses"=>"Api\\AggregatesController@index"]);
 
 Route::get("start/api/datasets", ["as"=>"start.api.datasets", "uses"=>"StartController@datasets"]);
 Route::get("start/api/dataset/observations/dimensions", ["as"=>"start.api.dataset.observations.dimensions", "uses"=>"StartController@getObservationDimensions"]);
