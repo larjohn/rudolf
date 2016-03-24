@@ -170,7 +170,7 @@ class BabbageModelResult extends SparqlModel
                // var_dump($subResults);
                 $newDimension = new Dimension();
                 $newDimension->label =  $property["label"];
-                $newDimension->cardinality_class = "someClass";
+                $newDimension->cardinality_class = $this->getCardinality($property["cardinality"]);
                 $newDimension->ref= $property["shortName"];
                 $newDimension->orig_dimension= $property["shortName"];
                 $newDimension->setUri($attribute);
@@ -240,7 +240,7 @@ class BabbageModelResult extends SparqlModel
         $countAggregate->function = "count";
         $countAggregate->ref = "_count";
         $this->model->aggregates["_count"] = $countAggregate;
-        Cache::add($name, $this->model, 10);
+        Cache::add($name, $this->model, 100);
 
     }
 
@@ -251,6 +251,20 @@ class BabbageModelResult extends SparqlModel
     {
 
         return $this->model;
+    }
+
+    private function getCardinality($cardinality)
+    {
+        if($cardinality>1000)
+            return 'high';
+        elseif($cardinality>50)
+            return "medium";
+        elseif ($cardinality>7)
+            return "low";
+        else
+            return "tiny";
+
+
     }
 
 }
