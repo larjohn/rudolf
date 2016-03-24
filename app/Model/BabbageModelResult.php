@@ -164,9 +164,10 @@ class BabbageModelResult extends SparqlModel
                 $subResult = $this->sparql->query(
                     $queryBuilder->getSPARQL()
                 );
-
                 $subResults = $this->rdfResultsToArray($subResult);
-
+               // var_dump($property);
+              //  echo($queryBuilder->format());
+               // var_dump($subResults);
                 $newDimension = new Dimension();
                 $newDimension->label =  $property["label"];
                 $newDimension->cardinality_class = "someClass";

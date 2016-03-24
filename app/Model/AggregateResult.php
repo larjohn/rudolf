@@ -37,7 +37,7 @@ class AggregateResult extends SparqlModel
         $this->page_size = $page_size;
         $this->aggregates = $aggregates;
         $this->cell = [];
-
+        $sorters = [];
         foreach ($orders as $order) {
             $newSorter = new Sorter($order);
             $sorters[$newSorter->property] = $newSorter;
@@ -74,6 +74,7 @@ class AggregateResult extends SparqlModel
         $finalFilters = [];
         /** @var Sorter[] $sorterMap */
         $sorterMap = [] ;
+       // dd($sorters);
         foreach ($sorters as $sorter){
             if($sorter->property == "_count") {
                 $finalSorters[] = $sorter;
