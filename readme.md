@@ -1,6 +1,6 @@
 # rudolf
 
-**rudolf** is an HTTP API that wraps a SPARQL endpoint to expose [OpenBudgets.eu RDF-schema](https://github.com/openbudgets/data-model) - compatible datasets, according to OpenSpending's [babbage API](https://github.com/openspending/babbage) specification.
+**rudolf** is an HTTP API that wraps a SPARQL endpoint to expose [OpenBudgets.eu RDF-schema](https://github.com/openbudgets/data-model) - compatible datasets, according to OpenSpending's [babbage API](https://github.com/openspending/babbage) specification. **rudolf**'s name was chosen to remind the letters contained in the RDF acronym.
 
 ## Installation
 
@@ -23,7 +23,7 @@ After setting up your environment, you can install **rudolf**:
     `composer install`
 ## Configuration
 
-After installing rudolf, change the configuration file located at `config/sparql.php` and set the appropriate endpoint URI.
+After installing **rudolf**, change the configuration file located at `config/sparql.php` and set the appropriate endpoint URI.
 
 ## Official API Documentation
 
@@ -35,7 +35,7 @@ Current version:
 * v0.1: Initial version - partial support of the babbage API
 
 Next versions
-* v0.2: Support hierarchical dimensions
+* v0.2: Code cleanup, support hierarchical dimensions
 * v0.3: Support cosmopolitan API equivalents
 ## License
 
