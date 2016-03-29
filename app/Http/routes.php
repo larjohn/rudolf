@@ -11,9 +11,7 @@
 |
 */
 
-Route::get('/', function () {
-    return view('welcome');
-});
+
 
 /*
 |--------------------------------------------------------------------------
@@ -27,7 +25,6 @@ Route::get('/', function () {
 */
 
 
-Route::get("start", "StartController@index");
 Route::get("api", ["as"=>"api.start", "uses"=>"Api\\StatusController@index"]);
 Route::get("api/cubes", ["as"=>"api.cubes", "uses"=>"Api\\CubesController@index"]);
 Route::get("api/cubes/{name}/model", ["as"=>"api.cubes.model", "uses"=>"Api\\ModelController@index"]);
@@ -35,15 +32,3 @@ Route::get("api/cubes/{name}/facts", ["as"=>"api.cubes.facts", "uses"=>"Api\\Fac
 Route::get("api/cubes/{name}/members/{dimension}", ["as"=>"api.cubes.members", "uses"=>"Api\\MembersController@index"]);
 Route::get("api/cubes/{name}/aggregate", ["as"=>"api.cubes.aggregates", "uses"=>"Api\\AggregatesController@index"]);
 
-Route::get("start/api/datasets", ["as"=>"start.api.datasets", "uses"=>"StartController@datasets"]);
-Route::get("start/api/dataset/observations/dimensions", ["as"=>"start.api.dataset.observations.dimensions", "uses"=>"StartController@getObservationDimensions"]);
-Route::get("start/api/dataset/cubes/{alias}/model", ["as"=>"start.api.dataset.observations.model", "uses"=>"StartController@getObservationDimensions2"]);
-Route::get("start/api/dataset/cubes/{alias}/facts", ["as"=>"start.api.dataset.observations.facts2", "uses"=>"StartController@getObservations3"]);
-Route::get("start/api/dataset/observations/measures", ["as"=>"start.api.dataset.observations.measures", "uses"=>"StartController@getObservationMeasures"]);
-Route::get("start/api/dataset/facts", ["as"=>"start.api.dataset.facts", "uses"=>"StartController@getObservations2"]);
-Route::get("start/api/dataset/observations", ["as"=>"start.api.dataset.observations", "uses"=>"StartController@getObservations"]);
-Route::get("start/api/dataset/oneonone", ["as"=>"start.api.dataset.oneonone", "uses"=>"StartController@oneOnOneSlicer"]);
-
-Route::group(['middleware' => ['web']], function () {
-    //
-});

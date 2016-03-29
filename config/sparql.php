@@ -11,6 +11,7 @@ return [
         'rdfs' => 'http://www.w3.org/2000/01/rdf-schema#',
         'qb' => 'http://purl.org/linked-data/cube#',
         'skos'=>'http://www.w3.org/2004/02/skos/core#'
-    ]
+    ],
+    "endpoint" =>'http://localhost:9999/blazegraph/namespace/obeu/sparql'
 
 ];

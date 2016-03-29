@@ -19,7 +19,7 @@ use EasyRdf_Sparql_Result;
 class SparqlModel
 {
     public function  __construct(){
-        $this->sparql = new EasyRdf_Sparql_Client('http://localhost:9999/blazegraph/namespace/obeu/sparql');
+        $this->sparql = new EasyRdf_Sparql_Client(config("sparql.endpoint"));
         foreach (config("sparql.prefixes") as $prefix=>$uri) {
             //dd($prefix);
             EasyRdf_Namespace::set($prefix, $uri);

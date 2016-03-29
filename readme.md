@@ -7,7 +7,7 @@
 **rudolf** is based on Laravel 5.2.
 In order to install **rudolf**, you first have to setup a web server that supports the execution of PHP7 scripts. **rudolf** may also work with PHP >5.5.9, but it has not been yet tested with versions of PHP other than version 7.
 
-To support friendly URL's please make sure you have enabled mod_rewrite in your PHP installation.
+To support friendly URL's please make sure you have enabled `mod_rewrite` in your PHP installation.
 
 After setting up your environment, you can install **rudolf**:
 1. Clone this repository:
@@ -21,6 +21,9 @@ After setting up your environment, you can install **rudolf**:
 3. Run composer to install dependencies:
 
     `composer install`
+## Configuration
+
+After installing rudolf, change the configuration file located at `config/sparql.php` and set the appropriate endpoint URI.
 
 ## Official API Documentation
 

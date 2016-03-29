@@ -19,13 +19,11 @@ class Controller extends BaseController
     use AuthorizesRequests, DispatchesJobs, ValidatesRequests;
 
     public function  __construct(){
-        $this->sparql = new EasyRdf_Sparql_Client('http://localhost:9999/blazegraph/namespace/obeu/sparql');
     }
 
     /**
      * @var EasyRdf_Sparql_Client
      */
-    protected $sparql;
 
     protected function flatten_data_type(string $dataType){
         /*
