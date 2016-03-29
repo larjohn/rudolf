@@ -12,7 +12,7 @@ To support friendly URL's please make sure you have enabled `mod_rewrite` in you
 After setting up your environment, you can install **rudolf**:
 1. Clone this repository:
 
-    `git clone https://github.com/larjohn/rudolf.git`
+    git clone https://github.com/larjohn/rudolf.git 
 
 2. Get into the newly created directory:
 
