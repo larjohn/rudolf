@@ -130,10 +130,10 @@ class FactsResult extends SparqlModel
             $attachment = $dimension->getAttachment();
             if(isset($attachment) && $attachment=="qb:Slice"){
                 $needsSliceSubGraph = true;
-                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$attribute] , true));
+                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$attribute] , false));
             }
             else{
-                $patterns [] = new TriplePattern("?observation", $attribute, $bindings[$attribute], true);
+                $patterns [] = new TriplePattern("?observation", $attribute, $bindings[$attribute], false);
             }
             if(isset($sorterMap[$attribute]) && $sorterMap[$attribute] instanceof Sorter){
                 $sorterMap[$attribute]->binding = $bindings[$attribute];
@@ -210,9 +210,9 @@ class FactsResult extends SparqlModel
         $queryBuilder
             ->orderBy("?observation");
 
-
-
-        // die;
+//echo  $queryBuilder->format();
+//
+      //   die;
         /** @var EasyRdf_Sparql_Result $result */
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()

@@ -22,7 +22,7 @@ class ModelController extends Controller
      * @param $name
      * @return array
      */
-    public function index($name){
+    public function index($ver,$name){
 
 
         return response()->json(new BabbageModelResult($name));

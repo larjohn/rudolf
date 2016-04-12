@@ -12,28 +12,52 @@ namespace App\Model;
 use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use Asparagus\QueryBuilder;
+use Cache;
 
 class MembersResult extends SparqlModel
 {
     public $data;
     public $status;
-    public function __construct($name, $dimension)
+    public $cell =[];
+    public $fields;
+    public $order = [];
+    public $page;
+    public $page_size;
+    public $total_member_count;
+    public function __construct($name, $dimension, $page, $page_size, $order)
     {
         parent::__construct();
 
+        
+        $this->load($name, $dimension,  $page, $page_size, $order);
 
-        $this->load($name, $dimension);
+
+        $this->page = $page;
+        $this->page_size = $page_size;
+        $this->order = $order;
 
         $this->status = "ok";
     }
 
-    private function load($name, $dimension)
+    private function load($name, $attributeShortName,  $page, $page_size, $order)
     {
+
+        if(Cache::has($name.'/'.$attributeShortName)){
+            $this->data =  Cache::get($name.'/'.$attributeShortName);
+          //  return;
+        }
+
         $model = (new BabbageModelResult($name))->model;
+        $this->fields=[];
+        //($model->dimensions[$dimensionShortName]);
+        $dimensionShortName = explode(".",$attributeShortName )[0];
+        foreach ($model->dimensions[$dimensionShortName]->attributes as $att){
+            $this->fields[]=$att->ref;
+        }
         // return $facts;
         $dimensions = $model->dimensions;
 
-        $actualDimension = $model->dimensions[explode('.',$dimension)[0]];
+        $actualDimension = $model->dimensions[explode('.',$dimensionShortName)[0]];
         $selectedPatterns = $this->modelFieldsToPatterns($model,[$actualDimension->label_ref, $actualDimension->key_ref]);
         $selectedDimensions = [];
         $bindings = [];
@@ -59,12 +83,13 @@ class MembersResult extends SparqlModel
 
 
         $needsSliceSubGraph = false;
+        //dd($selectedDimensions);
         foreach ($selectedDimensions as $dimensionName=>$dimension) {
             $attribute = $dimensionName;
             $attachment = $dimension->getAttachment();
             if(isset($attachment) && $attachment=="qb:Slice"){
                 $needsSliceSubGraph = true;
-                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$attribute] , true));
+                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$attribute] , false));
             }
             else{
                 $patterns [] = new TriplePattern("?observation", $attribute, $bindings[$attribute], true);
@@ -86,7 +111,8 @@ class MembersResult extends SparqlModel
                 }
 
 
-
+                //var_dump($dimension->attributes);
+              //  var_dump($dimension->key_attribute);
                 if(isset($attachment) && $attachment=="qb:Slice"){
                     $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->key_attribute]->getUri(),$bindings[$attribute]."_".md5($dimension->key_attribute), true));
                     $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->label_attribute]->getUri(),$bindings[$attribute]."_".md5($dimension->label_attribute), true));
@@ -115,7 +141,8 @@ class MembersResult extends SparqlModel
 
 
         $queryBuilder = $this->build($bindings, $patterns );
-        $queryBuilder->limit(100);
+        $queryBuilder->limit($page_size);
+        $queryBuilder->offset($page* $page_size);
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
@@ -123,6 +150,9 @@ class MembersResult extends SparqlModel
         $results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns);
 
         $this->data = $results;
+
+        Cache::forget($name.'/'.$dimensionShortName);
+        Cache::add($name.'/'.$dimensionShortName, $this->data, 100);
     }
 
 

@@ -26,9 +26,11 @@
 
 
 Route::get("api", ["as"=>"api.start", "uses"=>"Api\\StatusController@index"]);
-Route::get("api/cubes", ["as"=>"api.cubes", "uses"=>"Api\\CubesController@index"]);
-Route::get("api/cubes/{name}/model", ["as"=>"api.cubes.model", "uses"=>"Api\\ModelController@index"]);
-Route::get("api/cubes/{name}/facts", ["as"=>"api.cubes.facts", "uses"=>"Api\\FactsController@index"]);
-Route::get("api/cubes/{name}/members/{dimension}", ["as"=>"api.cubes.members", "uses"=>"Api\\MembersController@index"]);
-Route::get("api/cubes/{name}/aggregate", ["as"=>"api.cubes.aggregates", "uses"=>"Api\\AggregatesController@index"]);
-
+Route::get("api/{ver?}/cubes", ["as"=>"api.cubes", "uses"=>"Api\\CubesController@index"]);
+Route::get("api/{ver?}/cubes/{name}/model", ["as"=>"api.cubes.model", "uses"=>"Api\\ModelController@index"]);
+Route::get("api/{ver?}/cubes/{name}/facts", ["as"=>"api.cubes.facts", "uses"=>"Api\\FactsController@index"]);
+Route::get("api/{ver?}/cubes/{name}/members/{dimension}", ["as"=>"api.cubes.members", "uses"=>"Api\\MembersController@index"]);
+Route::get("api/{ver?}/cubes/{name}/aggregate", ["as"=>"api.cubes.aggregates", "uses"=>"Api\\AggregatesController@index"]);
+Route::get("api/{ver?}/info/{name}/package", ["as"=>"api.info.package", "uses"=>"Api\\PackageController@index"]);
+Route::get("permit/lib", "PermitController@lib" );
+Route::get("search/package", "SearchController@index" );

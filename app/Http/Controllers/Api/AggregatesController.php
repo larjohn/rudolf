@@ -15,7 +15,7 @@ use App\Model\AggregateResult;
 class AggregatesController extends Controller
 {
 
-    public function index($name){
+    public function index($ver, $name){
         
         $aggregates = explode("|",request("aggregates"));
         $drilldown = explode("|", request("drilldown"));
@@ -28,7 +28,7 @@ class AggregatesController extends Controller
             $cuts = explode('|', request('cut'));
         else
             $cuts = [];
-        return response()->json(new AggregateResult($name, intval(request("page")), intval(request("pagesize")), $aggregates, $drilldown, $orders, $cuts));
+        return response()->json(new AggregateResult($name, intval(request("page")), intval(request("pagesize",10000)), $aggregates, $drilldown, $orders, $cuts));
     }
 
 }

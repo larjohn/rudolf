@@ -34,7 +34,7 @@ class AggregateResult extends SparqlModel
         parent::__construct();
 
         $this->page = $page;
-        $this->page_size = $page_size;
+        $this->page_size = min($page_size,1000);
         $this->aggregates = $aggregates;
         $this->cell = [];
         $sorters = [];
@@ -52,6 +52,7 @@ class AggregateResult extends SparqlModel
 
         }
         $this->attributes = $drilldown;
+
         $this->aggregates = $aggregates;
         $this->load($name, $aggregates, $drilldown, $sorters, $filters);
         $this->status = "ok";
@@ -61,6 +62,16 @@ class AggregateResult extends SparqlModel
     private function load($name, $aggregates, $drilldowns, $sorters, $filters)
     {
         $model = (new BabbageModelResult($name))->model;
+
+//dd($aggregates);
+        if(count($aggregates)<1||$aggregates[0]==""){
+            foreach ($model->aggregates as $agg){
+                if($agg->ref!="_count"){
+                    $aggregates[]=$agg->ref;
+                }
+            }
+        }
+
         // return $facts;
         $selectedAggregates = $this->modelFieldsToPatterns($model,$aggregates);
         $selectedDrilldowns = $this->modelFieldsToPatterns($model,$drilldowns);
@@ -145,15 +156,16 @@ class AggregateResult extends SparqlModel
             $attachment = $dimension->getAttachment();
             if(isset($attachment) && $attachment=="qb:Slice"){
                 $needsSliceSubGraph = true;
-                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $drilldownBindings[$attribute] , true));
+                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $drilldownBindings[$attribute] , false));
             }
             else{
-                $patterns [] = new TriplePattern("?observation", $attribute, $drilldownBindings[$attribute], true);
+                $patterns [] = new TriplePattern("?observation", $attribute, $drilldownBindings[$attribute], false);
             }
             if(isset($sorterMap[$attribute]) && $sorterMap[$attribute] instanceof Sorter){
                 $sorterMap[$attribute]->binding = $drilldownBindings[$attribute];
                 $finalSorters[] = $sorterMap[$attribute] ;
             }
+           // dd($filters);
             if(isset($filterMap[$attribute]) && $filterMap[$attribute] instanceof FilterDefinition){
                 $filterMap[$attribute]->binding = $drilldownBindings[$attribute];
                 $finalFilters[] = $filterMap[$attribute];
@@ -175,10 +187,10 @@ class AggregateResult extends SparqlModel
 
                     }
                     if(isset($attachment) && $attachment=="qb:Slice"){
-                        $sliceSubGraph->add(new TriplePattern($drilldownBindings[$attribute],$patternName,$drilldownBindings[$attribute]."_".md5($patternName), true));
+                        $sliceSubGraph->add(new TriplePattern($drilldownBindings[$attribute],$patternName,$drilldownBindings[$attribute]."_".md5($patternName), false));
                     }
                     else{
-                        $patterns [] = new TriplePattern($drilldownBindings[$attribute],$patternName,$drilldownBindings[$attribute]."_".md5($patternName), true);
+                        $patterns [] = new TriplePattern($drilldownBindings[$attribute],$patternName,$drilldownBindings[$attribute]."_".md5($patternName), false);
 
                     }
 
@@ -193,10 +205,10 @@ class AggregateResult extends SparqlModel
             $attachment = $dimension->getAttachment();
             if(isset($attachment) && $attachment=="qb:Slice"){
                 $needsSliceSubGraph = true;
-                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $aggregateBindings[$attribute] , true));
+                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $aggregateBindings[$attribute] , false));
             }
             else{
-                $patterns [] = new TriplePattern("?observation", $attribute, $aggregateBindings[$attribute], true);
+                $patterns [] = new TriplePattern("?observation", $attribute, $aggregateBindings[$attribute], false);
             }
             if(isset($sorterMap[$attribute]) && $sorterMap[$attribute] instanceof Sorter){
                 $sorterMap[$attribute]->binding = $aggregateBindings[$attribute];
@@ -238,7 +250,6 @@ class AggregateResult extends SparqlModel
        $summaryResult = $this->sparql->query(
             $queryBuilderS->getSPARQL()
         );
-
         $this->summary = $this->rdfResultsToArray3($summaryResult,$attributes, $model, array_merge($selectedAggregates))[0];
         $count = $countResult[0]->_count->getValue();
         $queryBuilder = $this->build( $aggregateBindings, $drilldownBindings, $patterns, $finalFilters );
@@ -259,8 +270,8 @@ class AggregateResult extends SparqlModel
             }
             $queryBuilder->orderBy($sorter->binding, strtoupper($sorter->direction));
         }
-        $queryBuilder
-            ->orderBy("?observation");
+       /* $queryBuilder
+            ->orderBy("?observation");*/
 
 
 

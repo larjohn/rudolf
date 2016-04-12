@@ -14,8 +14,13 @@ use App\Model\MembersResult;
 
 class MembersController extends Controller
 {
-    public function index($name, $dimension){
-        return response()->json(new MembersResult($name, $dimension));
+    public function index($ver,$name, $dimension){
+        if(request()->has("order"))
+            $orders = explode(',', request('order'));
+        else
+            $orders = [];
+
+        return response()->json(new MembersResult($name, $dimension, intval(request("page",0)), intval(request("pagesize",100)),$orders));
         
     }
 

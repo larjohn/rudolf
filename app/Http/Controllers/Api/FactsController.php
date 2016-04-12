@@ -14,7 +14,7 @@ use App\Model\FactsResult;
 
 class FactsController extends Controller
 {
-    public function index($name){
+    public function index($ver,$name){
 
         $fields = explode(',', request('fields'));
         if(request()->has("order"))

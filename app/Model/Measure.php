@@ -13,7 +13,7 @@ class Measure extends GenericProperty
 {
     public $column;
 
-    public $currency;
+    public $currency = 'EUR';
 
     public $label;
 

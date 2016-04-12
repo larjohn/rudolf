@@ -14,7 +14,7 @@ use App\Http\Controllers\Controller;
 class StatusController extends Controller
 {
 
-    public function index(){
+    public function index($ver){
         return [
             "status"=>"ok",
             "message" => " Babbage, an OLAP-like, light-weight database analytical engine. ",
