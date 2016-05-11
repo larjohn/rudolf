@@ -85,14 +85,16 @@ class AggregateResult extends SparqlModel
         $finalFilters = [];
         /** @var Sorter[] $sorterMap */
         $sorterMap = [] ;
-       // dd($sorters);
         foreach ($sorters as $sorter){
             if($sorter->property == "_count") {
                 $finalSorters[] = $sorter;
                 continue;
             }
+            if($sorter->property=="")continue;
             $path = explode('.',$sorter->property);
             $fullName = $this->getAttributePathByName($model, $path );
+            if(empty($fullName))continue;
+
             $this->array_set($sorterMap, $fullName, $sorter);
         }
         /** @var FilterDefinition[] $filterMap */
@@ -100,6 +102,7 @@ class AggregateResult extends SparqlModel
         foreach ($filters as $filter){
             $path = explode('.',$filter->property);
             $fullName = $this->getAttributePathByName($model, $path );
+            if(empty($fullName))continue;
             $this->array_set($filterMap, $fullName, $filter);
         }
         $attributes = [];
@@ -114,7 +117,7 @@ class AggregateResult extends SparqlModel
         $aggregateBindings = [];
         foreach ($dimensions as $dimensionName=>$dimension) {
             if(!isset($selectedAggregates[$dimension->getUri()]) && !isset($selectedDrilldowns[$dimension->getUri()])) continue;
-            $bindingName = "binding_" . md5($dimensionName);
+            $bindingName = "binding_" .  substr(md5($dimensionName),0,5);
             $valueAttributeLabel = "uri";
             $attributes[$dimension->getUri()][$valueAttributeLabel] = $bindingName;
 
@@ -132,7 +135,7 @@ class AggregateResult extends SparqlModel
         foreach ($measures as $measureName=>$measure) {
             if(!isset($selectedAggregates[$measure->getUri()]) ) continue;
             $selectedAggregateDimensions[$measure->getUri()] = $measure;
-            $bindingName = "binding_" . md5($measure->getUri());
+            $bindingName = "binding_" .  substr(md5($measure->getUri()),0,5);
             $valueAttributeLabel = "sum";
             $attributes[$measure->getUri()][$valueAttributeLabel] = $bindingName;
             $aggregateBindings[$measure->getUri()] = "?$bindingName";
@@ -146,7 +149,7 @@ class AggregateResult extends SparqlModel
             new TriplePattern("?slice", "a", "qb:Slice"),
             new TriplePattern("?slice", "qb:observation", "?observation"),
 
-        ], true);
+        ], false);
 
 
         $needsSliceSubGraph = false;
@@ -165,8 +168,8 @@ class AggregateResult extends SparqlModel
                 $sorterMap[$attribute]->binding = $drilldownBindings[$attribute];
                 $finalSorters[] = $sorterMap[$attribute] ;
             }
-           // dd($filters);
             if(isset($filterMap[$attribute]) && $filterMap[$attribute] instanceof FilterDefinition){
+                if(!isset($drilldownBindings[$attribute]))continue;
                 $filterMap[$attribute]->binding = $drilldownBindings[$attribute];
                 $finalFilters[] = $filterMap[$attribute];
             }
@@ -174,23 +177,23 @@ class AggregateResult extends SparqlModel
             if($dimension instanceof Dimension){
                 $dimensionPatterns = &$selectedDrilldowns[$attribute];
                 foreach ($dimensionPatterns as $patternName=>$dimensionPattern){
-                    $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_".md5($patternName) ;
-                    $drilldownBindings[] = $drilldownBindings[$attribute]."_".md5($patternName) ;
+                    $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_". substr(md5($patternName),0,5) ;
+                    $drilldownBindings[] = $drilldownBindings[$attribute]."_". substr(md5($patternName),0,5) ;
                     if(isset($sorterMap[$attribute][$patternName])){
-                        $sorterMap[$attribute][$patternName]->binding = $drilldownBindings[$attribute]."_".md5($patternName) ;
+                        $sorterMap[$attribute][$patternName]->binding = $drilldownBindings[$attribute]."_". substr(md5($patternName),0,5) ;
                         $finalSorters[] =  $sorterMap[$attribute][$patternName] ;
 
                     }
                     if(isset($filterMap[$attribute][$patternName])){
-                        $filterMap[$attribute][$patternName]->binding = $drilldownBindings[$attribute]."_".md5($patternName) ;
+                        $filterMap[$attribute][$patternName]->binding = $drilldownBindings[$attribute]."_". substr(md5($patternName),0,5) ;
                         $finalFilters[] = $filterMap[$attribute][$patternName];
 
                     }
                     if(isset($attachment) && $attachment=="qb:Slice"){
-                        $sliceSubGraph->add(new TriplePattern($drilldownBindings[$attribute],$patternName,$drilldownBindings[$attribute]."_".md5($patternName), false));
+                        $sliceSubGraph->add(new TriplePattern($drilldownBindings[$attribute],$patternName,$drilldownBindings[$attribute]."_". substr(md5($patternName),0,5), false));
                     }
                     else{
-                        $patterns [] = new TriplePattern($drilldownBindings[$attribute],$patternName,$drilldownBindings[$attribute]."_".md5($patternName), false);
+                        $patterns [] = new TriplePattern($drilldownBindings[$attribute],$patternName,$drilldownBindings[$attribute]."_". substr(md5($patternName),0,5), false);
 
                     }
 
@@ -281,7 +284,7 @@ class AggregateResult extends SparqlModel
             $queryBuilder->getSPARQL()
         );
 
-       // echo $queryBuilder->format();
+        // $queryBuilder->format();
        // echo($result->dump());
 //dd($selectedPatterns);
         //dd($attributes);
@@ -302,7 +305,7 @@ class AggregateResult extends SparqlModel
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
         foreach ($dimensionPatterns as $dimensionPattern) {
-            if($dimensionPattern instanceof TriplePattern || ($dimensionPattern instanceof SubPattern && !$dimensionPattern->isOptional)){
+            if($dimensionPattern instanceof TriplePattern ){
                 if($dimensionPattern->isOptional){
                     $queryBuilder->optional($dimensionPattern->subject,  self::expand($dimensionPattern->predicate), $dimensionPattern->object);
                 }
@@ -359,7 +362,7 @@ class AggregateResult extends SparqlModel
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
         foreach ($dimensionPatterns as $dimensionPattern) {
-            if($dimensionPattern instanceof TriplePattern || ($dimensionPattern instanceof SubPattern && !$dimensionPattern->isOptional)){
+            if($dimensionPattern instanceof TriplePattern ){
                 if($dimensionPattern->isOptional){
                     $queryBuilder->optional($dimensionPattern->subject,  self::expand($dimensionPattern->predicate), $dimensionPattern->object);
                 }
@@ -412,7 +415,7 @@ class AggregateResult extends SparqlModel
         $subQuery = $queryBuilder->newSubquery();
 
         foreach ($dimensionPatterns as $dimensionPattern) {
-            if($dimensionPattern instanceof TriplePattern || ($dimensionPattern instanceof SubPattern && !$dimensionPattern->isOptional)){
+            if($dimensionPattern instanceof TriplePattern ){
                 if($dimensionPattern->isOptional){
                     $subQuery->optional($dimensionPattern->subject,  self::expand($dimensionPattern->predicate), $dimensionPattern->object);
                 }

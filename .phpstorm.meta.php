@@ -3,7 +3,7 @@ namespace PHPSTORM_META {
 
    /**
     * PhpStorm Meta file, to provide autocomplete information for PhpStorm
-    * Generated on 2016-02-24.
+    * Generated on 2016-04-23.
     *
     * @author Barry vd. Heuvel <barryvdh@gmail.com>
     * @see https://github.com/barryvdh/laravel-ide-helper
@@ -37,6 +37,7 @@ namespace PHPSTORM_META {
             'view.engine.resolver' instanceof \Illuminate\View\Engines\EngineResolver,
             'view.finder' instanceof \Illuminate\View\FileViewFinder,
             'view' instanceof \Illuminate\View\Factory,
+            'Barryvdh\Cors\Stack\CorsService' instanceof \Barryvdh\Cors\Stack\CorsService,
             'Illuminate\Broadcasting\BroadcastManager' instanceof \Illuminate\Broadcasting\BroadcastManager,
             'Illuminate\Bus\Dispatcher' instanceof \Illuminate\Bus\Dispatcher,
             'cache' instanceof \Illuminate\Cache\CacheManager,
@@ -95,6 +96,8 @@ namespace PHPSTORM_META {
             'command.queue.forget' instanceof \Illuminate\Queue\Console\ForgetFailedCommand,
             'command.queue.flush' instanceof \Illuminate\Queue\Console\FlushFailedCommand,
             'hash' instanceof \Illuminate\Hashing\BcryptHasher,
+            'swift.transport' instanceof \Illuminate\Mail\TransportManager,
+            'swift.mailer' instanceof \Swift_Mailer,
             'mailer' instanceof \Illuminate\Mail\Mailer,
             'Illuminate\Contracts\Pipeline\Hub' instanceof \Illuminate\Pipeline\Hub,
             'queue' instanceof \Illuminate\Queue\QueueManager,
@@ -144,6 +147,7 @@ namespace PHPSTORM_META {
             'view.engine.resolver' instanceof \Illuminate\View\Engines\EngineResolver,
             'view.finder' instanceof \Illuminate\View\FileViewFinder,
             'view' instanceof \Illuminate\View\Factory,
+            'Barryvdh\Cors\Stack\CorsService' instanceof \Barryvdh\Cors\Stack\CorsService,
             'Illuminate\Broadcasting\BroadcastManager' instanceof \Illuminate\Broadcasting\BroadcastManager,
             'Illuminate\Bus\Dispatcher' instanceof \Illuminate\Bus\Dispatcher,
             'cache' instanceof \Illuminate\Cache\CacheManager,
@@ -202,6 +206,8 @@ namespace PHPSTORM_META {
             'command.queue.forget' instanceof \Illuminate\Queue\Console\ForgetFailedCommand,
             'command.queue.flush' instanceof \Illuminate\Queue\Console\FlushFailedCommand,
             'hash' instanceof \Illuminate\Hashing\BcryptHasher,
+            'swift.transport' instanceof \Illuminate\Mail\TransportManager,
+            'swift.mailer' instanceof \Swift_Mailer,
             'mailer' instanceof \Illuminate\Mail\Mailer,
             'Illuminate\Contracts\Pipeline\Hub' instanceof \Illuminate\Pipeline\Hub,
             'queue' instanceof \Illuminate\Queue\QueueManager,
@@ -251,6 +257,7 @@ namespace PHPSTORM_META {
             'view.engine.resolver' instanceof \Illuminate\View\Engines\EngineResolver,
             'view.finder' instanceof \Illuminate\View\FileViewFinder,
             'view' instanceof \Illuminate\View\Factory,
+            'Barryvdh\Cors\Stack\CorsService' instanceof \Barryvdh\Cors\Stack\CorsService,
             'Illuminate\Broadcasting\BroadcastManager' instanceof \Illuminate\Broadcasting\BroadcastManager,
             'Illuminate\Bus\Dispatcher' instanceof \Illuminate\Bus\Dispatcher,
             'cache' instanceof \Illuminate\Cache\CacheManager,
@@ -309,6 +316,8 @@ namespace PHPSTORM_META {
             'command.queue.forget' instanceof \Illuminate\Queue\Console\ForgetFailedCommand,
             'command.queue.flush' instanceof \Illuminate\Queue\Console\FlushFailedCommand,
             'hash' instanceof \Illuminate\Hashing\BcryptHasher,
+            'swift.transport' instanceof \Illuminate\Mail\TransportManager,
+            'swift.mailer' instanceof \Swift_Mailer,
             'mailer' instanceof \Illuminate\Mail\Mailer,
             'Illuminate\Contracts\Pipeline\Hub' instanceof \Illuminate\Pipeline\Hub,
             'queue' instanceof \Illuminate\Queue\QueueManager,
@@ -358,6 +367,7 @@ namespace PHPSTORM_META {
             'view.engine.resolver' instanceof \Illuminate\View\Engines\EngineResolver,
             'view.finder' instanceof \Illuminate\View\FileViewFinder,
             'view' instanceof \Illuminate\View\Factory,
+            'Barryvdh\Cors\Stack\CorsService' instanceof \Barryvdh\Cors\Stack\CorsService,
             'Illuminate\Broadcasting\BroadcastManager' instanceof \Illuminate\Broadcasting\BroadcastManager,
             'Illuminate\Bus\Dispatcher' instanceof \Illuminate\Bus\Dispatcher,
             'cache' instanceof \Illuminate\Cache\CacheManager,
@@ -416,6 +426,8 @@ namespace PHPSTORM_META {
             'command.queue.forget' instanceof \Illuminate\Queue\Console\ForgetFailedCommand,
             'command.queue.flush' instanceof \Illuminate\Queue\Console\FlushFailedCommand,
             'hash' instanceof \Illuminate\Hashing\BcryptHasher,
+            'swift.transport' instanceof \Illuminate\Mail\TransportManager,
+            'swift.mailer' instanceof \Swift_Mailer,
             'mailer' instanceof \Illuminate\Mail\Mailer,
             'Illuminate\Contracts\Pipeline\Hub' instanceof \Illuminate\Pipeline\Hub,
             'queue' instanceof \Illuminate\Queue\QueueManager,

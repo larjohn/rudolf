@@ -65,7 +65,7 @@ class MembersResult extends SparqlModel
         foreach ($dimensions as $dimensionName=>$dimension) {
             if(!isset($selectedPatterns[$dimension->getUri()])) continue;
             $selectedDimensions[$dimension->getUri()] = $dimension;
-            $bindingName = "binding_" . md5($dimensionName);
+            $bindingName = "binding_" .  substr(md5($dimensionName),0,5);
             $valueAttributeLabel = "uri";
 
             $attributes[$dimension->getUri()][$valueAttributeLabel] = $bindingName;
@@ -99,29 +99,29 @@ class MembersResult extends SparqlModel
 
 //dd($dimension->attributes[$dimension->key_attribute]->getUri());
                 if($dimension->ref!=$dimension->key_attribute){
-                    $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = $attributes[$attribute]["uri"]."_".md5($dimension->key_attribute) ;
-                    $bindings[] = $bindings[$attribute]."_".md5($dimension->key_attribute) ;
+                    $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = $attributes[$attribute]["uri"]."_". substr(md5($dimension->key_attribute),0,5) ;
+                    $bindings[] = $bindings[$attribute]."_". substr(md5($dimension->key_attribute),0,5) ;
 
                 }
 
                 if($dimension->ref!=$dimension->label_attribute){
-                    $attributes[$attribute][$dimension->attributes[$dimension->label_attribute]->getUri()] = $attributes[$attribute]["uri"]."_".md5($dimension->label_attribute) ;
+                    $attributes[$attribute][$dimension->attributes[$dimension->label_attribute]->getUri()] = $attributes[$attribute]["uri"]."_". substr(md5($dimension->label_attribute),0,5) ;
 
-                    $bindings[] = $bindings[$attribute]."_".md5($dimension->label_attribute) ;
+                    $bindings[] = $bindings[$attribute]."_". substr(md5($dimension->label_attribute),0,5) ;
                 }
 
 
                 //var_dump($dimension->attributes);
               //  var_dump($dimension->key_attribute);
                 if(isset($attachment) && $attachment=="qb:Slice"){
-                    $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->key_attribute]->getUri(),$bindings[$attribute]."_".md5($dimension->key_attribute), true));
-                    $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->label_attribute]->getUri(),$bindings[$attribute]."_".md5($dimension->label_attribute), true));
+                    $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->key_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->key_attribute),0,5), true));
+                    $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->label_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->label_attribute),0,5), true));
                 }
                 else{
                     if($dimension->ref!=$dimension->key_attribute)
-                        $patterns [] = new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->key_attribute]->getUri(),$bindings[$attribute]."_".md5($dimension->key_attribute), true);
+                        $patterns [] = new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->key_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->key_attribute),0,5), true);
                     if($dimension->ref!=$dimension->label_attribute)
-                        $patterns [] = new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->label_attribute]->getUri(),$bindings[$attribute]."_".md5($dimension->label_attribute), true);
+                        $patterns [] = new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->label_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->label_attribute),0,5), true);
 
                 }
 

@@ -62,5 +62,28 @@ class Dimension extends GenericProperty
      */
     public $label_ref;
 
+    public static function getRefFromURI(string $uri){
+        return preg_replace("/^.*(#|\/)/", "", $uri);
+    }
+
+
+    protected $dataSet;
+
+    /**
+     * @return mixed
+     */
+    public function getDataSet()
+    {
+        return $this->dataSet;
+    }
+
+    /**
+     * @param mixed $dataSet
+     */
+    public function setDataSet($dataSet)
+    {
+        $this->dataSet = $dataSet;
+    }
+
 
 }

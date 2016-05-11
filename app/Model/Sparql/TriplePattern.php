@@ -23,4 +23,12 @@ class TriplePattern extends SparqlPattern
         $this->predicate = $predicate;
         $this->object = $object;
     }
+
+    public function sameAs($existing_pattern)
+    {
+        if($existing_pattern instanceof TriplePattern)
+            return $this->subject==$existing_pattern->subject && $this->predicate==$existing_pattern->predicate && $this->object==$existing_pattern->object;
+        else return false;
+    }
+
 }

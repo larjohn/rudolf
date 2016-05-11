@@ -18,5 +18,10 @@ abstract class SparqlPattern
         $this->isOptional = $isOptional;
     }
 
+    public function sameAs($existing_pattern)
+    {
+        return false;
+    }
+
 
 }

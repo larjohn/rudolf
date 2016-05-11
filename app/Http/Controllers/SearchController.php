@@ -10,11 +10,15 @@ namespace App\Http\Controllers;
 
 
 use App\Http\Controllers\Controller;
+use App\Model\SearchResult;
 
 class SearchController extends Controller
 {
     public function index(){
-        return ["data"=>[]];
+        return response()->json((new SearchResult())->packages);
+
     }
 
+
+  
 }

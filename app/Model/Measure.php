@@ -13,13 +13,30 @@ class Measure extends GenericProperty
 {
     public $column;
 
-    public $currency = 'EUR';
+    public $currency;
 
     public $label;
 
     public $ref;
 
     public $orig_measure;
+    protected $dataSet;
+
+    /**
+     * @return mixed
+     */
+    public function getDataSet()
+    {
+        return $this->dataSet;
+    }
+
+    /**
+     * @param mixed $dataSet
+     */
+    public function setDataSet($dataSet)
+    {
+        $this->dataSet = $dataSet;
+    }
 
 
 }

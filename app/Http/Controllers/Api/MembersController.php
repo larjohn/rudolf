@@ -10,6 +10,7 @@ namespace App\Http\Controllers\Api;
 
 
 use App\Http\Controllers\Controller;
+use App\Model\Globals\GlobalMembersResult;
 use App\Model\MembersResult;
 
 class MembersController extends Controller
@@ -23,5 +24,17 @@ class MembersController extends Controller
         return response()->json(new MembersResult($name, $dimension, intval(request("page",0)), intval(request("pagesize",100)),$orders));
         
     }
+
+    public function global($ver, $dimension){
+        if(request()->has("order"))
+            $orders = explode(',', request('order'));
+        else
+            $orders = [];
+
+        return response()->json(new GlobalMembersResult($dimension, intval(request("page",0)), intval(request("pagesize",100)),$orders));
+
+    }
+
+
 
 }

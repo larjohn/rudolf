@@ -33,8 +33,9 @@ class BabbageModelResult extends SparqlModel
     public function __construct(string $name)
     {
         parent::__construct();
-        $this->model = new BabbageModel();
 
+        $this->model = new BabbageModel();
+        if(!isset($name) || $name =="")return;
         $this->identify($name);
         $this->load($name);
 
@@ -42,23 +43,26 @@ class BabbageModelResult extends SparqlModel
         $this->status = "ok";
     }
 
+
+
     public function identify($name){
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
             ->selectDistinct('?dataset', '?dsd')
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset","qb:structure", "?dsd" )
-            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', MD5(STR(?dataset))) AS ?name")
+            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
             ->filter("?name = '$name'")
         ;
 
-        //dd($queryBuilder->getSPARQL());
+       // echo ($queryBuilder->format());
         /** @var EasyRdf_Sparql_Result $identifyQueryResult */
         $identifyQueryResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
         /** @var EasyRdf_Sparql_Result $result */
 //dd($identifyQueryResult);
+        //dd($identifyQueryResult);
         $identifyQueryResult = $this->rdfResultsToArray($identifyQueryResult)[0];
         $this->model->setDataset($identifyQueryResult["dataset"]);
         $this->model->setDsd($identifyQueryResult["dsd"]);
@@ -70,11 +74,14 @@ class BabbageModelResult extends SparqlModel
     public function load($name){
         if(Cache::has($name)){
             $this->model =  Cache::get($name);
-              return;
+            return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+
+
+
         $queryBuilder
-            ->selectDistinct('?attribute', '?label', '?attachment', "?propertyType", "?shortName"/*, "(count(distinct ?value) AS ?cardinality)"*/)
+            ->selectDistinct('?attribute', '?label', '?attachment', "?propertyType", "?shortName")
             ->where("?dsd", 'qb:component', '?component')
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset","qb:structure", "?dsd" )
@@ -83,15 +90,12 @@ class BabbageModelResult extends SparqlModel
             ->optional('?attribute', 'rdfs:label', '?label')
             ->bind("REPLACE(str(?attribute), '^.*(#|/)', \"\") AS ?shortName")
             ->optional('?component', 'qb:componentAttachment', '?attachment')
-            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', MD5(STR(?dataset))) AS ?name")
+
+            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
             ->filter("?name = '$name'")
- /*            ->optional($queryBuilder->newSubgraph()
-                ->where("?slice", "qb:observation", "?observation")
-               ->where("?slice",  "?attribute", "?value"))*//*
-            ->optional("?observation", "?attribute" ,"?value")*/
             ->optional($queryBuilder->newSubgraph()
                 ->where("?attribute", "a", "?propertyType")->filter("?propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"))
-            ->filterNotExists('?component', 'qb:componentAttachment', 'qb:DataSet')
+/*            ->filterNotExists('?component', 'qb:componentAttachment', 'qb:DataSet')*/
             ->groupBy('?attribute', '?label', "?propertyType", "?shortName", "?attachment");
         ;
 
@@ -119,6 +123,10 @@ class BabbageModelResult extends SparqlModel
                 $subSubQuery
                     ->where("?slice", "qb:observation", "?observation")
                     ->where("?slice",  "<$attribute>", "?value");
+            }
+            elseif(isset($property["attachment"]) &&  $property["attachment"]=="qb:DataSet"){
+                continue;
+                
             }
             else{
                 $subSubQuery->where("?observation", "<$attribute>" ,"?value");
@@ -241,6 +249,7 @@ class BabbageModelResult extends SparqlModel
             }
 
         }
+
         foreach ($this->model->dimensions as $dimension) {
             $newHierarchy = new Hierarchy();
             $newHierarchy->label = $dimension->label;
@@ -251,7 +260,41 @@ class BabbageModelResult extends SparqlModel
         }
 
 
-       // dd($this->model->dimensions);
+        $datasetDimensionsQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $datasetDimensionsQueryBuilder->selectDistinct('?attribute', '?value',  "?shortName")
+            ->where("?dsd", 'qb:component', '?component')
+            ->where("?dataset", "a", "qb:DataSet")
+            ->where("?dataset","qb:structure", "?dsd" )
+            ->where('?component', '?componentProperty', '?attribute')
+            ->where('?componentProperty', 'rdfs:subPropertyOf', 'qb:componentProperty')
+            ->bind("REPLACE(str(?attribute), '^.*(#|/)', \"\") AS ?shortName")
+            ->where('?component', 'qb:componentAttachment', 'qb:DataSet')
+            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
+            ->where("?dataset", "?attribute", "?value")
+            ->filter("?name = '$name'")
+            ->optional($queryBuilder->newSubgraph()
+                ->where("?attribute", "a", "?propertyType")->filter("?propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"))
+            ->groupBy('?attribute', '?value', "?shortName");
+        $dimensionsResult = $this->sparql->query(
+            $datasetDimensionsQueryBuilder->getSPARQL()
+        );
+        $datasetDimensionsResults = $this->rdfResultsToArray($dimensionsResult);
+//dd($datasetDimensionsResults);
+        foreach ($datasetDimensionsResults as $datasetDimensionsResult) {
+            $property = $datasetDimensionsResult["shortName"];
+            $this->model->$property = $datasetDimensionsResult["value"];
+            if($datasetDimensionsResult["shortName"]=="currency"){
+                $currency = $this->convertCurrency($datasetDimensionsResult["value"]);
+                foreach ($this->model->measures as $measure) {
+                    $measure->currency = $currency;
+                }
+            }
+        }
+
+
+
+
+        // dd($this->model->dimensions);
         $countAggregate = new Aggregate();
         $countAggregate->label = "Facts";
         $countAggregate->function = "count";
@@ -283,6 +326,14 @@ class BabbageModelResult extends SparqlModel
             return "tiny";
 
 
+    }
+
+    private function convertCurrency($value)
+    {
+        switch ($value){
+            case "http://data.openbudgets.eu/resource/codelist/currency/EUR":
+                return "EUR";
+        }
     }
 
 }

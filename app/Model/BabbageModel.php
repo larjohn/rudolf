@@ -77,5 +77,7 @@ class BabbageModel
         return $this->dsd;
     }
 
+    public $currency;
+    public $fiscalYear;
 
 }

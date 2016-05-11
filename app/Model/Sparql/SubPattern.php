@@ -22,6 +22,9 @@ class SubPattern extends SparqlPattern
 
 
     public function add(SparqlPattern $pattern){
+        foreach ($this->patterns as $existing_pattern) {
+            if($pattern->sameAs($existing_pattern)) return;
+        }
         $this->patterns[] = $pattern;
     }
 

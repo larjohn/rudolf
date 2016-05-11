@@ -9,6 +9,7 @@
 namespace App\Model;
 
 
+use App\Model\Globals\GlobalDimension;
 use EasyRdf_Literal;
 use EasyRdf_Literal_Decimal;
 use EasyRdf_Literal_Integer;
@@ -47,10 +48,11 @@ class SparqlModel
         $results = [];
         foreach ($result as $row) {
             $added = [];
-            foreach ($result->getFields() as $field) {
+            $fields = $result->getFields() ;
+            foreach ($fields as $field) {
                 if(!isset($row->$field))continue;
                 $value = $row->$field;
-                if (get_class($value) == EasyRdf_Literal::class || is_subclass_of($value, EasyRdf_Literal::class)) {
+                if ($value instanceof EasyRdf_Literal) {
                     /** @var EasyRdf_Literal $value */
                     $val  = $value->getValue();
                     if($value instanceof EasyRdf_Literal_Decimal)
@@ -279,9 +281,28 @@ class SparqlModel
                     return $dimensionName.".".$dimensionName;
                 }
             }
+            elseif($dimension instanceof GlobalDimension){
+
+                /** @var Dimension $inner */
+                foreach ($dimension->getInnerDimensions() as $innerName=>$inner) {
+                    if($path[0]==$inner->getUri()){
+                        if(count($path)>1){
+                            foreach ($inner->attributes as $attribute){
+                                if($attribute->getUri()== $path[1]){
+                                    return $attribute->ref;
+                                }
+                            }
+                        }
+                        else{
+                            return $innerName.".".$innerName;
+                        }
+                    }
+                }
+            }
         }
 
         foreach ($model->measures as $measureName => $measure){
+
             if($measure->getUri() == $path[0]){
                 return $measure->ref;
             }

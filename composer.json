@@ -10,7 +10,8 @@
         "benestar/asparagus": "dev-obeuviz",
         "barryvdh/laravel-ide-helper": "^2.1",
         "easyrdf/easyrdf": "~0.9.1",
-        "danielstjules/stringy": "~2.2"
+        "danielstjules/stringy": "~2.2",
+        "barryvdh/laravel-cors": "^0.8.0"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",

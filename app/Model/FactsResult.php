@@ -100,7 +100,7 @@ class FactsResult extends SparqlModel
         foreach ($dimensions as $dimensionName=>$dimension) {
             if(!isset($selectedPatterns[$dimension->getUri()])) continue;
             $selectedDimensions[$dimension->getUri()] = $dimension;
-            $bindingName = "binding_" . md5($dimensionName);
+            $bindingName = "binding_" . substr(md5($dimensionName),0,5);
             $valueAttributeLabel = "uri";
 
             $attributes[$dimension->getUri()][$valueAttributeLabel] = $bindingName;
@@ -109,7 +109,7 @@ class FactsResult extends SparqlModel
         foreach ($measures as $measureName=>$measure) {
             if(!isset($selectedPatterns[$measure->getUri()])) continue;
             $selectedDimensions[$measure->getUri()] = $measure;
-            $bindingName = "binding_" . md5($measure->getUri());
+            $bindingName = "binding_" .  substr(md5($measure->getUri()),0,5);
             $valueAttributeLabel = "value";
 
             $attributes[$measure->getUri()][$valueAttributeLabel] = $bindingName;
@@ -147,23 +147,23 @@ class FactsResult extends SparqlModel
             if($dimension instanceof Dimension){
                 $dimensionPatterns = &$selectedPatterns[$attribute];
                 foreach ($dimensionPatterns as $patternName=>$dimensionPattern){
-                    $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_".md5($patternName) ;
-                    $bindings[] = $bindings[$attribute]."_".md5($patternName) ;
+                    $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_". substr(md5($patternName),0,5) ;
+                    $bindings[] = $bindings[$attribute]."_". substr(md5($patternName),0,5) ;
                     if(isset($sorterMap[$attribute][$patternName])){
-                        $sorterMap[$attribute][$patternName]->binding = $bindings[$attribute]."_".md5($patternName) ;
+                        $sorterMap[$attribute][$patternName]->binding = $bindings[$attribute]."_". substr(md5($patternName),0,5) ;
                         $finalSorters[] =  $sorterMap[$attribute][$patternName] ;
 
                     }
                     if(isset($filterMap[$attribute][$patternName])){
-                        $filterMap[$attribute][$patternName]->binding = $bindings[$attribute]."_".md5($patternName) ;
+                        $filterMap[$attribute][$patternName]->binding = $bindings[$attribute]."_". substr(md5($patternName),0,5) ;
                         $finalFilters[] = $filterMap[$attribute][$patternName];
 
                     }
                     if(isset($attachment) && $attachment=="qb:Slice"){
-                        $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$patternName,$bindings[$attribute]."_".md5($patternName), true));
+                        $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$patternName,$bindings[$attribute]."_". substr(md5($patternName),0,5), true));
                     }
                     else{
-                        $patterns [] = new TriplePattern($bindings[$attribute],$patternName,$bindings[$attribute]."_".md5($patternName), true);
+                        $patterns [] = new TriplePattern($bindings[$attribute],$patternName,$bindings[$attribute]."_". substr(md5($patternName),0,5), true);
 
 
                     }
@@ -176,7 +176,8 @@ class FactsResult extends SparqlModel
         }
         // echo($queryBuilder->format());
         $bindings[] = "?observation";
-
+//dd($bindings);
+        //dd($patterns);
         if($needsSliceSubGraph){
             $patterns[] = $sliceSubGraph;
 
@@ -212,6 +213,7 @@ class FactsResult extends SparqlModel
 
 //echo  $queryBuilder->format();
 //
+     //   dd($bindings);
       //   die;
         /** @var EasyRdf_Sparql_Result $result */
         $result = $this->sparql->query(

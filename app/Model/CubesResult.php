@@ -26,9 +26,11 @@ class CubesResult extends SparqlModel
     private function load()
     {
         $queryBuilder = new QueryBuilder( config("sparql.prefixes"));
-        $queryBuilder->select('?name')
+        $queryBuilder->select('(SAMPLE(?name) AS ?name)')
             ->where('?dataset', 'a', 'qb:DataSet')
-            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', MD5(STR(?dataset))) AS ?name");
+            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
+            ->groupBy("?dataset")
+        ;
 
         ;
 
@@ -39,6 +41,7 @@ class CubesResult extends SparqlModel
         );
 
         $results = $this->rdfResultsToArray($result);
+        $results[] = ["name"=>"global"];
         $this->data = $results;
         $this->status = "ok";
     }

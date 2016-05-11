@@ -11,6 +11,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Model\AggregateResult;
+use App\Model\Globals\GlobalAggregateResult;
 
 class AggregatesController extends Controller
 {
@@ -29,6 +30,21 @@ class AggregatesController extends Controller
         else
             $cuts = [];
         return response()->json(new AggregateResult($name, intval(request("page")), intval(request("pagesize",10000)), $aggregates, $drilldown, $orders, $cuts));
+    }
+  public function global($ver){
+
+        $aggregates = explode("|",request("aggregates"));
+        $drilldown = explode("|", request("drilldown"));
+        if(request()->has("order"))
+            $orders = explode(',', request('order'));
+        else
+            $orders = [];
+
+        if(request()->has("cut"))
+            $cuts = explode('|', request('cut'));
+        else
+            $cuts = [];
+        return response()->json(new GlobalAggregateResult(intval(request("page")), intval(request("pagesize",10000)), $aggregates, $drilldown, $orders, $cuts));
     }
 
 }
