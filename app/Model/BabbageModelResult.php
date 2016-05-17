@@ -223,7 +223,7 @@ class BabbageModelResult extends SparqlModel
                 if(!isset($newDimension->label_ref) || !isset($newDimension->key_ref)){
 
                     $selfAttribute = new Attribute();
-
+                    $selfAttribute->setVirtual(true);
                     $selfAttribute->ref = $property["shortName"].".".$property["shortName"];
                     $selfAttribute->column = $attribute;
                     $selfAttribute->datatype = isset($property["dataType"])? $this->flatten_data_type($property["dataType"]):"string";
@@ -244,7 +244,7 @@ class BabbageModelResult extends SparqlModel
                 }
 
                 $this->model->dimensions[$property["shortName"]] = $newDimension;
-                //dd($newDimension);
+                //bdd($newDimension);
 
             }
 

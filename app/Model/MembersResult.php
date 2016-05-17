@@ -146,7 +146,7 @@ class MembersResult extends SparqlModel
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
-       // dd($selectedPatterns);
+        //dd($selectedPatterns);
         $results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns);
 
         $this->data = $results;

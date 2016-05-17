@@ -37,4 +37,25 @@ class Attribute extends GenericProperty
      */
     public $datatype;
 
+    /**
+     * @var boolean
+     */
+    private $virtual = false;
+
+    /**
+     * @return mixed
+     */
+    public function getVirtual()
+    {
+        return $this->virtual;
+    }
+
+    /**
+     * @param mixed $virtual
+     */
+    public function setVirtual($virtual)
+    {
+        $this->virtual = $virtual;
+    }
+
 }

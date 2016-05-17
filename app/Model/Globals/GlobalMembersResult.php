@@ -35,6 +35,7 @@ class GlobalMembersResult extends SparqlModel
     public $order;
     public $status;
     public $data;
+    protected $fields;
 
     public function __construct($dimension, $page, $page_size, $orders)
     {
@@ -59,10 +60,13 @@ class GlobalMembersResult extends SparqlModel
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $subQueryBuilders = [];
         $model = (new BabbageGlobalModelResult())->model;
+        
         $this->fields = [];
         //($model->dimensions[$dimensionShortName]);
         $dimensionShortName = explode(".", $attributeShortName)[0];
+
         foreach ($model->dimensions[$dimensionShortName]->attributes as $att) {
+           // dd($model->dimensions[$dimensionShortName]->attributes );
             $this->fields[] = $att->ref;
         }
         // return $facts;
@@ -86,7 +90,7 @@ class GlobalMembersResult extends SparqlModel
             $bindingName = "binding_" . substr(md5($innerDimension->ref), 0, 5);
             $valueAttributeLabel = "uri";
 
-            $attributes[$innerDimension->getUri()][$valueAttributeLabel] = $bindingName;
+            $attributes[$innerDimension->getUri()][$valueAttributeLabel] = "key";
             $bindings[$innerDimension->getUri()] = "?$bindingName";
 
 
@@ -126,7 +130,7 @@ class GlobalMembersResult extends SparqlModel
 
 
                     if ($dimension->orig_dimension != $dimension->label_attribute) {
-                        $attributes[$attribute][$dimension->attributes[$dimension->label_attribute]->getUri()] = $attributes[$attribute]["uri"] . "_" . substr(md5($dimension->label_attribute), 0, 5);
+                        $attributes[$attribute][$dimension->attributes[$dimension->label_attribute]->getUri()] = "value";
 
                         $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5);
                     }
@@ -138,7 +142,7 @@ class GlobalMembersResult extends SparqlModel
                         $sliceSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
                         $sliceSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false));
                         if ($dimension->ref != $dimension->key_attribute) {
-                            $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = $attributes[$attribute]["uri"] . "_" . substr(md5($dimension->key_attribute), 0, 5);
+                            $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = "value";
                             $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5);
 
                         }
@@ -149,7 +153,7 @@ class GlobalMembersResult extends SparqlModel
                         if ($dimension->orig_dimension != $dimension->label_attribute)
                             $dataSetSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false));
                         if ($dimension->orig_dimension != $dimension->key_attribute) {
-                            $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = $attributes[$attribute]["uri"] . "_" . substr(md5($dimension->key_attribute), 0, 5);
+                            $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] =  "value";
                             $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5);
 
                         }
@@ -181,7 +185,7 @@ class GlobalMembersResult extends SparqlModel
 
             $subQueryBuilders[] = $subQueryBuilder;
             //echo $subQueryBuilder->format();die;
-
+            $selectedPatterns = array_merge_recursive($selectedPatterns, $this->modelFieldsToPatterns($model,[$innerDimension->label_ref, $innerDimension->key_ref]));
         }
         /** @var QueryBuilder $subQueryBuilder */
 
@@ -195,20 +199,24 @@ class GlobalMembersResult extends SparqlModel
         $queryBuilder->select(["?key", "(GROUP_CONCAT(?value, '/') AS ?value)"]);
         $queryBuilder->limit($page_size);
         $queryBuilder->offset($page * $page_size);
-        //echo $queryBuilder->format();die;
+       // echo $queryBuilder->format();die;
 
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
 
+
+
+        //$results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns);
         //return $result;
       // dd($result);
         // dd($selectedPatterns);
         // dd($selectedPatterns);
         $results = [];
+        //dd($actualDimension);
         foreach ($result as $row){
             if(!isset($row->key))continue;
-            $results[$row->key->dumpValue('text')]=$row->value->getValue();
+            $results[]=[$actualDimension->key_ref=> $row->key->dumpValue('text'),$actualDimension->label_ref=> $row->value->getValue()];
         }
 
 
@@ -294,7 +302,7 @@ if(count($bindings)==1){
 $bindings  = array_slice($bindings, 0,2);
     // dd($bindings);
         $myQueryBuilder
-            ->selectDistinct(array_map(function($key, $value){ return "(".$value . " AS ". $key.")";}, ["?key", "?value"], $bindings))->limit($this->page_size)->offset($this->page*$this->page_size);
+            ->selectDistinct(array_map(function($key, $value){ return "(".$value . " AS ". $key.")";}, ["?key", "?value"], $bindings));
 
 
         return $myQueryBuilder ;

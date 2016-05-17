@@ -97,6 +97,7 @@ class AggregateResult extends SparqlModel
 
             $this->array_set($sorterMap, $fullName, $sorter);
         }
+        //dd($sorterMap);
         /** @var FilterDefinition[] $filterMap */
         $filterMap = [] ;
         foreach ($filters as $filter){
@@ -179,7 +180,7 @@ class AggregateResult extends SparqlModel
                 foreach ($dimensionPatterns as $patternName=>$dimensionPattern){
                     $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_". substr(md5($patternName),0,5) ;
                     $drilldownBindings[] = $drilldownBindings[$attribute]."_". substr(md5($patternName),0,5) ;
-                    if(isset($sorterMap[$attribute][$patternName])){
+                    if( isset($sorterMap[$attribute])&& is_array($sorterMap[$attribute]) && isset($sorterMap[$attribute][$patternName])){
                         $sorterMap[$attribute][$patternName]->binding = $drilldownBindings[$attribute]."_". substr(md5($patternName),0,5) ;
                         $finalSorters[] =  $sorterMap[$attribute][$patternName] ;
 

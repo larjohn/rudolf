@@ -39,8 +39,9 @@ class BabbageGlobalModelResult extends BabbageModelResult
     {
 
         if(Cache::has("global")){
-           // $this->model =  Cache::get("global");
-           // return;
+            $this->model =  Cache::get("global");//dd($this->model);
+
+            return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
@@ -131,7 +132,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
             }
             else{
-                if(Cache::has($property["datasetName"]."__".$property["shortName"])){
+               if(Cache::has($property["datasetName"]."__".$property["shortName"])){
 
                     $newDimension = Cache::get($property["datasetName"] . "__" . $property["shortName"]);
 
@@ -169,6 +170,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
 
                     foreach ($subResults as $subResult) {
+
                         // dd($subResults);
                         // if(!isset($subResult["dataType"]))continue;
 
@@ -205,6 +207,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $selfAttribute->label = $property["label"];
                         $selfAttribute->orig_attribute =  /*$property["shortName"].".".*/$property["shortName"];
                         $selfAttribute->setUri($attribute);
+                        $selfAttribute->setVirtual(true);
                         $newDimension->attributes[$property["shortName"]] = $selfAttribute;
 
                     }
@@ -266,7 +269,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     if(!isset($globalDimensions[$ref])){
                         $globalDimensions[$ref] = $newGlobalDimension;
                         $globalDimensions[$ref]->ref = $ref ;
-                        $globalDimensions[$ref]->orig_dimension = $globalTuple["originalName"] ;
+                        $globalDimensions[$ref]->orig_dimension = $ref ;
                         $globalDimensions[$ref]->setUri($globalTuple["parent"]);
                         $globalDimensions[$ref]->label = "Global ". $globalTuple["parentLabel"];
 
@@ -281,7 +284,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $globalDimensions[$ref] = $newGlobalDimension;
                         $globalDimensions[$ref]->ref = "global__". preg_replace("/^.*(#|\/)/", "", $globalTuple["attribute"])."__" . substr(md5($globalTuple["attribute"]),0,5) ;
                         $globalDimensions[$ref]->setUri($globalTuple["attribute"]);
-                        $globalDimensions[$ref]->orig_dimension = $globalTuple["originalName"] ;
+                        $globalDimensions[$ref]->orig_dimension = $ref ;
 
                         $globalDimensions[$ref]->label ="Global ". $globalTuple["label"];
 
@@ -289,11 +292,11 @@ class BabbageGlobalModelResult extends BabbageModelResult
 //dd($this->model->dimensions);
                     $existingInnerDimension = $this->model->dimensions[$globalTuple["shortName"]];
                     $globalDimensions[$ref]->addInnerDimension($existingInnerDimension);
-
-
-
+                    $globalDimensions[$ref]->setAttachment($existingInnerDimension->getAttachment());
 
                 }
+
+
             }
             //dd($globalDimensions);
 
@@ -317,7 +320,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     $globalMeasures[$ref]->addInnerMeasure($existingInnerMeasure);
                 }
                 else{
-                    $ref = preg_replace("/^.*(#|\/)/", "", $globalTuple["attribute"]) ;
+                    $ref =  preg_replace("/^.*(#|\/)/", "", $globalTuple["attribute"])."__" . substr(md5($globalTuple["attribute"]),0,5) ;
                     if(!isset($globalMeasures[$ref])){
                         $globalMeasures[$ref] = $newGlobalMeasure;
                         $globalMeasures[$ref]->ref = $ref ;
@@ -339,9 +342,84 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 }
             }
 
-
-
             foreach ($globalDimensions as $key=>&$globalDimensionGroup) {
+
+                $attachment = $globalDimensionGroup->getAttachment();
+
+
+                if (isset($attachment) && $attachment == "qb:DataSet") {
+
+
+                    /** @var Dimension $innerDimension */
+                    foreach ($globalDimensionGroup->getInnerDimensions() as &$innerDimension) {
+                        $dataset = $innerDimension->getDataSet();
+                        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+                        $attr = $globalDimensionGroup->getUri();
+                        $subQuery = $queryBuilder->newSubquery();
+                        $subSubQuery = $subQuery->newSubquery();
+                        $subSubQuery->where("<$dataset>", 'a', 'qb:DataSet');
+                        $subSubQuery->where("<$dataset>", "<$attr>", "?value");
+                        $subSubQuery->select("?value");
+                        $subQuery->where("?value", "?extensionProperty", "?extension");
+                        $subQuery->subquery($subSubQuery);
+                        $subQuery->selectDistinct("?extensionProperty", "?extension");
+                        $queryBuilder->selectDistinct("?extensionProperty", "?shortName", "?dataType", "?label")
+                            ->subquery($subQuery)
+                            ->where("?extensionProperty", "rdfs:label", "?label")
+                            ->bind("datatype(?extension) AS ?dataType")
+                            ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
+                      //  echo $queryBuilder->format();
+                        $subResult = $this->sparql->query(
+                            $queryBuilder->getSPARQL()
+                        );
+                        $subResults = $this->rdfResultsToArray($subResult);
+                        // var_dump($property);
+                        //dd($subResults);
+                        //$newDimension->cardinality_class = $this->getCardinality($property["cardinality"]);
+                        foreach ($subResults as $subResult) {
+
+                            // dd($subResults);
+                            // if(!isset($subResult["dataType"]))continue;
+
+                            $newAttribute = new Attribute();
+                            if ($subResult["extensionProperty"] == "skos:prefLabel") {
+                                $innerDimension->label_ref = $innerDimension->orig_dimension . "." . $subResult["shortName"];
+                                $innerDimension->label_attribute = $subResult["shortName"];
+
+                            }
+                            if ($subResult["extensionProperty"] == "skos:notation") {
+                                $innerDimension->key_ref = $innerDimension->orig_dimension . "." . $subResult["shortName"];
+                                $innerDimension->key_attribute = $subResult["shortName"];
+                                unset($innerDimension->attributes[$key]);
+
+                            }
+
+
+                            $newAttribute->ref = $innerDimension->orig_dimension . "." . $subResult["shortName"];
+                            $newAttribute->column = $subResult["extensionProperty"];
+                            $newAttribute->datatype = isset($subResult["dataType"]) ? $this->flatten_data_type($subResult["dataType"]) : "string";
+                            $newAttribute->setUri($subResult["extensionProperty"]);
+                            $newAttribute->label = $subResult["label"];
+                            $newAttribute->orig_attribute =                           $subResult["shortName"];
+                            $innerDimension->attributes[$subResult["shortName"]] = $newAttribute;
+                            //var_dump($globalDimensionGroup);
+
+
+
+                        }
+                    }
+
+
+                }
+
+
+            }
+//die;
+    //  dd($globalDimensions);
+    //  dd($globalDimensions);
+            foreach ($globalDimensions as $key=>&$globalDimensionGroup) {
+
+
                 if(count($globalDimensionGroup->getInnerDimensions())<2){
                     unset($globalDimensions[$key]);
                 }
@@ -353,38 +431,74 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         return $value->attributes;
                     },  $innerDimensions);
 
-                    //dd($innerDimensionAttributes);
+                    //var_dump($innerDimensionAttributes);
+                    $attributes = [];
+                    $candidate_attributes = call_user_func_array("array_intersect_key",$innerDimensionAttributes);
+                    foreach ($candidate_attributes as $att_key =>&$attribute) {
+                        /** @var Attribute $attribute */
+                        $glob_att = clone $attribute;
+                        $glob_att->ref = $key.'.'. $attribute->orig_attribute;
+                        $attributes[$att_key] = $glob_att;
+                    }
+                    if(empty($attributes)){
+                        $newAttribute = new Attribute();
+                        $newAttribute->ref = $key.'.'.$key;
+                        $newAttribute->label = $globalDimensionGroup->label;
+                        $newAttribute->setUri($globalDimensionGroup->getUri());
+                        $newAttribute->setVirtual(true);
+                        $newAttribute->orig_attribute = $globalDimensionGroup->ref;
 
-                    $attributes = call_user_func_array("array_intersect_key",$innerDimensionAttributes);
+                        $attributes[$key] = $newAttribute;
+                    }
+                    //dd($innerDimensionAttributes);
                     $globalDimensionGroup->attributes = $attributes;
-                    $firstDimension = reset($innerDimensions);
-                    /** @var Dimension $firstDimension */
-                   // if(isset($attributes[$firstDimension->key_attribute])){
-                        $globalDimensionGroup->key_attribute = $firstDimension->key_attribute;
-                        $globalDimensionGroup->key_ref = $firstDimension->key_ref;
-                   /* }
+
+
+                    $allKeys = array_unique($innerDimensionAttributes = array_map(function( $value){
+                        /** @var Dimension $value */
+                        return $value->key_attribute;
+                    },  $innerDimensions));
+
+                    if(count($allKeys)>1){
+                        /** @var Attribute $firstAttribute */
+                        $firstAttribute = reset($globalDimensionGroup->attributes);
+                        $globalDimensionGroup->key_attribute = $firstAttribute->orig_attribute;
+                        $globalDimensionGroup->key_ref = $firstAttribute->ref;
+                    }
                     else{
-                        unset($globalDimensions[$key]);
-                        continue;
-                    }*/
-                    /*if(isset($attributes[$firstDimension->label_attribute])){*/
-                        $globalDimensionGroup->label_attribute = $firstDimension->label_attribute;
-                        $globalDimensionGroup->label_ref = $firstDimension->label_ref;
-                   /* }
+                        $keyAttribute = $globalDimensionGroup->attributes[reset($allKeys)];
+                        $globalDimensionGroup->key_attribute = $keyAttribute->orig_attribute;
+                        $globalDimensionGroup->key_ref = $keyAttribute->ref;
+                    }
+
+                    $allLabels = array_unique($innerDimensionAttributes = array_map(function( $value){
+                        /** @var Dimension $value */
+                        return $value->label_attribute;
+                    },  $innerDimensions));
+
+                    if(count($allLabels)>1){
+                        /** @var Attribute $firstAttribute */
+                        $firstAttribute = reset($globalDimensionGroup->attributes);
+                        $globalDimensionGroup->label_attribute = $firstAttribute->orig_attribute;
+                        $globalDimensionGroup->label_ref = $firstAttribute->ref;
+                    }
                     else{
-                        unset($globalDimensionGroup[$key]);
-                        continue;
-                    }*/
+                        $keyAttribute = $globalDimensionGroup->attributes[reset($allLabels)];
+                        $globalDimensionGroup->label_attribute = $keyAttribute->orig_attribute;
+                        $globalDimensionGroup->label_ref = $keyAttribute->ref;
+                    }
+
+
+
 
                 }
+                //if($key=="global__currency__1a842")dd($attributes);
 
             }
+
             //dd($globalDimensions);
 
-
-
           //  dd($globalsResults);
-           // dd($globalDimensions);
             $this->model->dimensions  = $globalDimensions;
             $this->model->measures =$globalMeasures ;// array_merge($this->model->measures, $globalMeasures);
 
@@ -393,9 +507,10 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
         }
 
+        /** @var GlobalMeasure $measure */
         foreach ($this->model->measures as $measure) {
             //dd($this->model->aggregates);
-
+            $datasets = array_map(function (Measure $measure){return $measure->getDataSet();}, $measure->getInnerMeasures());
             foreach (Aggregate::$functions as $function) {
                 if($measure instanceof GlobalMeasure){
                     $newAggregate = new GlobalAggregate();
@@ -404,10 +519,12 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     $newAggregate = new Aggregate();
 
                 }
+
                 $newAggregate->label = $measure->ref . ' ' . $function;
                 $newAggregate->ref = $measure->ref.'.'.$function;
                 $newAggregate->measure = $measure->ref;
                 $newAggregate->function = $function;
+                $newAggregate->setDataSets($datasets);
                 $this->model->aggregates[$newAggregate->ref] = $newAggregate;
 
             }
@@ -421,7 +538,6 @@ class BabbageGlobalModelResult extends BabbageModelResult
             $dimension->hierarchy = $newHierarchy->ref;
             $this->model->hierarchies[$newHierarchy->ref] = $newHierarchy;
         }
-
 
         $countAggregate = new Aggregate();
         $countAggregate->label = "Facts";

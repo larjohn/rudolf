@@ -93,7 +93,6 @@ class SparqlModel
 
     protected function modelFieldsToPatterns(BabbageModel $model, $fields){
         $selectedDimensions = [];
-
         foreach ($fields as $field) {
             $fieldNames = explode(".", $field);
             foreach ($model->measures as $name => $attribute) {
@@ -110,10 +109,13 @@ class SparqlModel
                     $currentAttribute = $attribute;
                     for ($i=1;$i<count($fieldNames);$i++){
                         foreach ($currentAttribute->attributes as $innerAttributeName=> $innerAttribute) {
+                           // dd($model);
+                         /*   var_dump($innerAttributeName);
+                            var_dump($innerAttribute->getVirtual());*/
+                            if($innerAttribute->getVirtual())continue;
                             if($fieldNames[$i]==$fieldNames[$i-1])continue;
 
                             if($fieldNames[$i]==$innerAttributeName) {
-
                                 $selectedDimensions[$attribute->getUri()][$innerAttribute->getUri()] = [];
                                 break;
 
@@ -152,7 +154,8 @@ class SparqlModel
                         $selectedBinding = $attributes[$selectedFieldName]["uri"];
 
                     }
-                    $value = $row->$selectedBinding;
+                    if(isset($row->$selectedBinding))$value = $row->$selectedBinding;
+                    else continue;
 
                     if ($value instanceof EasyRdf_Literal ) {
                         /** @var EasyRdf_Literal $value */
@@ -201,10 +204,13 @@ class SparqlModel
             }
             /** @var EasyRdf_Sparql_Result $row */
             if(in_array("_count", $actualFields)){
-                $added["_count"] = intval($row->_count->getValue());
+                if(isset($row->_count))
+                    $added["_count"] = intval($row->_count->getValue());
             }
-            $results[] = $added;
+            if(!empty($added))
+                $results[] = $added;
         }
+
         return $results;
     }
 
@@ -278,23 +284,28 @@ class SparqlModel
                     }
                 }
                 else{
-                    return $dimensionName.".".$dimensionName;
+                    return $dimension->key_ref;
                 }
             }
             elseif($dimension instanceof GlobalDimension){
-
                 /** @var Dimension $inner */
                 foreach ($dimension->getInnerDimensions() as $innerName=>$inner) {
                     if($path[0]==$inner->getUri()){
                         if(count($path)>1){
                             foreach ($inner->attributes as $attribute){
                                 if($attribute->getUri()== $path[1]){
-                                    return $attribute->ref;
+                                    if($attribute->ref == $inner->label_ref){
+                                        return $dimension->label_ref;
+                                    }
+                                    else{
+                                        return $dimension->key_ref;
+
+                                    }
                                 }
                             }
                         }
                         else{
-                            return $innerName.".".$innerName;
+                            return $dimension->key_ref;
                         }
                     }
                 }

@@ -26,7 +26,7 @@ class PackageResult extends SparqlModel
         parent::__construct();
 
         $this->model = [
-            "dimensions" => [
+            /*"dimensions" => [
                 "economicClassification"=>[
                     "classificationType"=>"administrative",
                     "dimensionType"=>"classification",
@@ -39,7 +39,7 @@ class PackageResult extends SparqlModel
                         ]
                     ]
                 ]
-            ],
+            ],*/
             "measures" => [
                 "amount"=>[
                     "currency"=>"EUR",
@@ -48,6 +48,9 @@ class PackageResult extends SparqlModel
                 ]
             ]
         ];
+        
+        
+        
 
     }
 
