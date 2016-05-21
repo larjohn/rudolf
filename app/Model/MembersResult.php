@@ -42,9 +42,9 @@ class MembersResult extends SparqlModel
     private function load($name, $attributeShortName,  $page, $page_size, $order)
     {
 
-        if(Cache::has($name.'/'.$attributeShortName)){
+        if(Cache::has($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order))){
             $this->data =  Cache::get($name.'/'.$attributeShortName);
-          //  return;
+            return;
         }
 
         $model = (new BabbageModelResult($name))->model;
@@ -92,7 +92,7 @@ class MembersResult extends SparqlModel
                 $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$attribute] , false));
             }
             else{
-                $patterns [] = new TriplePattern("?observation", $attribute, $bindings[$attribute], true);
+                $patterns [] = new TriplePattern("?observation", $attribute, $bindings[$attribute], false);
             }
 
             if($dimension instanceof Dimension){
@@ -143,6 +143,7 @@ class MembersResult extends SparqlModel
         $queryBuilder = $this->build($bindings, $patterns );
         $queryBuilder->limit($page_size);
         $queryBuilder->offset($page* $page_size);
+      //  echo $queryBuilder->format();die;
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
@@ -151,8 +152,8 @@ class MembersResult extends SparqlModel
 
         $this->data = $results;
 
-        Cache::forget($name.'/'.$dimensionShortName);
-        Cache::add($name.'/'.$dimensionShortName, $this->data, 100);
+        Cache::forget($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order));
+        Cache::add($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order), $this->data, 100);
     }
 
 
@@ -188,7 +189,7 @@ class MembersResult extends SparqlModel
         }
 
         $queryBuilder
-            ->selectDistinct($bindings)
+            ->selectDistinct(array_unique($bindings))
 
         ;
 

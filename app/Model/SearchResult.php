@@ -243,7 +243,7 @@ class SearchResult extends SparqlModel
         $globalModel = new BabbageGlobalModelResult();
         $globalModel->id = "global";
         $globalModel->load2();
-        $globalModel->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>"global"];
+        $globalModel->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>"global", "countryCode"=>"GR"];
 
         $this->packages[] = $globalModel;
 

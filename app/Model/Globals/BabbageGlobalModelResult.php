@@ -40,7 +40,6 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
         if(Cache::has("global")){
             $this->model =  Cache::get("global");//dd($this->model);
-
             return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
@@ -175,7 +174,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         // if(!isset($subResult["dataType"]))continue;
 
                         $newAttribute = new Attribute();
-                        if($subResult["extensionProperty"] == "skos:prefLabel"){
+                        if($subResult["extensionProperty"] == "skos:prefLabel" || $subResult["extensionProperty"] == "rdfs:label"){
                             $newDimension->label_ref =  $property["shortName"].".".$subResult["shortName"];
                             $newDimension->label_attribute = $subResult["shortName"];
 
@@ -368,7 +367,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                             ->where("?extensionProperty", "rdfs:label", "?label")
                             ->bind("datatype(?extension) AS ?dataType")
                             ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
-                      //  echo $queryBuilder->format();
+                       // echo $queryBuilder->format();
                         $subResult = $this->sparql->query(
                             $queryBuilder->getSPARQL()
                         );
@@ -382,7 +381,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                             // if(!isset($subResult["dataType"]))continue;
 
                             $newAttribute = new Attribute();
-                            if ($subResult["extensionProperty"] == "skos:prefLabel") {
+                            if ($subResult["extensionProperty"] == "skos:prefLabel"|| $subResult["extensionProperty"] == "rdfs:label") {
                                 $innerDimension->label_ref = $innerDimension->orig_dimension . "." . $subResult["shortName"];
                                 $innerDimension->label_attribute = $subResult["shortName"];
 

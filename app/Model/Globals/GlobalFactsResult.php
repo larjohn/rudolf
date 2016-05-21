@@ -57,6 +57,18 @@ class GlobalFactsResult extends FactsResult
     {
         $model = (new BabbageGlobalModelResult())->model;
         // return $facts;
+
+        if(empty($fields)||$fields[0]==""){
+            foreach ($model->dimensions as $dimension) {
+                $fields[]=$dimension->ref;
+            }
+
+            foreach ($model->measures as $measure) {
+                $fields[]=$measure->ref;
+            }
+        }
+
+
         $selectedPatterns = $this->modelFieldsToPatterns($model, $fields);;
         $offset = $page_size * $page;
 
@@ -344,10 +356,21 @@ class GlobalFactsResult extends FactsResult
         );
         //   echo($result->dump());
 //dd($selectedPatterns);
-
-        $mergedAttributes = call_user_func_array("array_merge_recursive",$attributes);
-        $mergedDimensions = call_user_func_array("array_merge_recursive",$selectedDimensions);
-        $mergedMeasures = call_user_func_array("array_merge_recursive",$selectedMeasures);
+        if(count($attributes)>0)
+            $mergedAttributes = call_user_func_array("array_merge_recursive",$attributes);
+        else{
+            $mergedAttributes = $attributes;
+        }
+        if(count($selectedDimensions)>0)
+            $mergedDimensions = call_user_func_array("array_merge_recursive",$selectedDimensions);
+        else{
+            $mergedDimensions = $selectedDimensions;
+        }
+        if(count($selectedMeasures)>0)
+            $mergedMeasures = call_user_func_array("array_merge_recursive",$selectedMeasures);
+        else{
+            $mergedMeasures=$selectedMeasures;
+        }
         // dd($selectedDrilldowns);
         //dd($selectedDimensions);
 //dd($selectedMeasures);
@@ -400,6 +423,7 @@ class GlobalFactsResult extends FactsResult
         $queryBuilder = $midGraph->newSubquery();
 //dd($dimensionPatterns);
         $datasetQueries = [];
+        //dd($dimensionPatterns);
         foreach ($dimensionPatterns as $dataset => $dimensionPatternGroup) {
             $datasetQuery = $queryBuilder->newSubquery();
             foreach ($dimensionPatternGroup as $uri => $dimensions) {
@@ -427,7 +451,7 @@ class GlobalFactsResult extends FactsResult
                     }
                 }
             }
-            $datasetQuery->selectDistinct(array_merge(["?observation"], array_values($bindings[$dataset])));
+            $datasetQuery->selectDistinct(array_unique(array_merge(["?observation"], array_values($bindings[$dataset]))));
 
             $datasetQuery->where("?observation", "a", "qb:Observation");
             $datasetQuery->where("?observation", "qb:dataSet", "<$dataset>");

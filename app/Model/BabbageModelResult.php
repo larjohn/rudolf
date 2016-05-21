@@ -117,7 +117,7 @@ class BabbageModelResult extends SparqlModel
             $subSubQuery = $subQuery->newSubquery();
             $subSubQuery->where('?observation', 'a', 'qb:Observation');
             $subSubQuery->select("?value");
-            $subSubQuery->limit(1);
+            $subSubQuery->limit(20);
 
             if(isset($property["attachment"]) &&  $property["attachment"]=="qb:Slice"){
                 $subSubQuery
@@ -174,13 +174,13 @@ class BabbageModelResult extends SparqlModel
                     ->where("?extensionProperty", "rdfs:label", "?label")
                     ->bind("datatype(?extension) AS ?dataType")
                     ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
+                //echo($queryBuilder->format());
 
                 $subResult = $this->sparql->query(
                     $queryBuilder->getSPARQL()
                 );
                 $subResults = $this->rdfResultsToArray($subResult);
                // var_dump($property);
-               //echo($queryBuilder->format());
 
                 $newDimension = new Dimension();
                 $newDimension->label =  $property["label"];
@@ -233,15 +233,17 @@ class BabbageModelResult extends SparqlModel
                     $newDimension->attributes[$property["shortName"]] = $selfAttribute;
 
                 }
-                if(!isset($newDimension->label_ref)){
-                    $newDimension->label_ref = $property["shortName"].".".$property["shortName"];
-                    $newDimension->label_attribute = $property["shortName"];
-                }
 
                 if(!isset($newDimension->key_ref)){
                     $newDimension->key_ref = $property["shortName"].".".$property["shortName"];
                     $newDimension->key_attribute = $property["shortName"];
                 }
+
+                if(!isset($newDimension->label_ref)){
+                    $newDimension->label_ref = $newDimension->key_ref ;
+                    $newDimension->label_attribute =   $newDimension->key_attribute ;
+                }
+
 
                 $this->model->dimensions[$property["shortName"]] = $newDimension;
                 //bdd($newDimension);
