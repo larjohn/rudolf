@@ -41,11 +41,11 @@ class MembersResult extends SparqlModel
 
     private function load($name, $attributeShortName,  $page, $page_size, $order)
     {
-
+/*
         if(Cache::has($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order))){
             $this->data =  Cache::get($name.'/'.$attributeShortName);
             return;
-        }
+        }*/
 
         $model = (new BabbageModelResult($name))->model;
         $this->fields=[];
@@ -149,12 +149,14 @@ class MembersResult extends SparqlModel
         );
         //dd($selectedPatterns);
         $results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns);
+        if($results!=null)
+            $this->data = $results;
+        else $this->data = [];
 
-        $this->data = $results;
-
-        Cache::forget($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order));
-        Cache::add($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order), $this->data, 100);
-    }
+       /* Cache::forget($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order));
+        Cache::add($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order), $this->data, 100);*/
+    }/* Cache::forget($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order));
+        Cache::add($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order), $this->data, 100);*/
 
 
     private function build(array $bindings, array $filters){

@@ -340,7 +340,6 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
                 }
             }
-
             foreach ($globalDimensions as $key=>&$globalDimensionGroup) {
 
                 $attachment = $globalDimensionGroup->getAttachment();
@@ -367,7 +366,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                             ->where("?extensionProperty", "rdfs:label", "?label")
                             ->bind("datatype(?extension) AS ?dataType")
                             ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
-                       // echo $queryBuilder->format();
+                      //     echo $queryBuilder->format();
                         $subResult = $this->sparql->query(
                             $queryBuilder->getSPARQL()
                         );

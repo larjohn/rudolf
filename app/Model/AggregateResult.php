@@ -114,10 +114,14 @@ class AggregateResult extends SparqlModel
         $selectedAggregateDimensions= [];
         /** @var GenericProperty[] $selectedDrilldownDimensions */
         $selectedDrilldownDimensions= [];
+        $selectedFilterDimensions = [];
+        $selectedSorterDimensions = [];
         $drilldownBindings = [];
         $aggregateBindings = [];
+        $filterBindings = [];
+        $sorterBindings = [];
         foreach ($dimensions as $dimensionName=>$dimension) {
-            if(!isset($selectedAggregates[$dimension->getUri()]) && !isset($selectedDrilldowns[$dimension->getUri()])) continue;
+            if(!isset($selectedAggregates[$dimension->getUri()]) && !isset($selectedDrilldowns[$dimension->getUri()])  && !isset($filterMap[$dimension->getUri()])  && !isset($sorterMap[$dimension->getUri()])) continue;
             $bindingName = "binding_" .  substr(md5($dimensionName),0,5);
             $valueAttributeLabel = "uri";
             $attributes[$dimension->getUri()][$valueAttributeLabel] = $bindingName;
@@ -126,9 +130,20 @@ class AggregateResult extends SparqlModel
                 $selectedAggregateDimensions[$dimension->getUri()] = $dimension;
                 $aggregateBindings[$dimension->getUri()] = "?$bindingName";
             }
-            else{
+            if(isset($selectedDrilldowns[$dimension->getUri()])){
                 $selectedDrilldownDimensions[$dimension->getUri()] = $dimension;
                 $drilldownBindings[$dimension->getUri()] = "?$bindingName";
+
+            }
+            if(isset($filterMap[$dimension->getUri()])){
+                $selectedFilterDimensions[$dimension->getUri()] = $dimension;
+                $filterBindings[$dimension->getUri()] = "?$bindingName";
+
+            }
+
+            if(isset($sorterMap[$dimension->getUri()])){
+                $selectedSorterDimensions[$dimension->getUri()] = $dimension;
+                $sorterBindings[$dimension->getUri()] = "?$bindingName";
 
             }
 
@@ -165,31 +180,16 @@ class AggregateResult extends SparqlModel
             else{
                 $patterns [] = new TriplePattern("?observation", $attribute, $drilldownBindings[$attribute], false);
             }
-            if(isset($sorterMap[$attribute]) && $sorterMap[$attribute] instanceof Sorter){
-                $sorterMap[$attribute]->binding = $drilldownBindings[$attribute];
-                $finalSorters[] = $sorterMap[$attribute] ;
-            }
-            if(isset($filterMap[$attribute]) && $filterMap[$attribute] instanceof FilterDefinition){
-                if(!isset($drilldownBindings[$attribute]))continue;
-                $filterMap[$attribute]->binding = $drilldownBindings[$attribute];
-                $finalFilters[] = $filterMap[$attribute];
-            }
+
 
             if($dimension instanceof Dimension){
                 $dimensionPatterns = &$selectedDrilldowns[$attribute];
                 foreach ($dimensionPatterns as $patternName=>$dimensionPattern){
                     $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_". substr(md5($patternName),0,5) ;
                     $drilldownBindings[] = $drilldownBindings[$attribute]."_". substr(md5($patternName),0,5) ;
-                    if( isset($sorterMap[$attribute])&& is_array($sorterMap[$attribute]) && isset($sorterMap[$attribute][$patternName])){
-                        $sorterMap[$attribute][$patternName]->binding = $drilldownBindings[$attribute]."_". substr(md5($patternName),0,5) ;
-                        $finalSorters[] =  $sorterMap[$attribute][$patternName] ;
 
-                    }
-                    if(isset($filterMap[$attribute][$patternName])){
-                        $filterMap[$attribute][$patternName]->binding = $drilldownBindings[$attribute]."_". substr(md5($patternName),0,5) ;
-                        $finalFilters[] = $filterMap[$attribute][$patternName];
 
-                    }
+
                     if(isset($attachment) && $attachment=="qb:Slice"){
                         $sliceSubGraph->add(new TriplePattern($drilldownBindings[$attribute],$patternName,$drilldownBindings[$attribute]."_". substr(md5($patternName),0,5), false));
                     }
@@ -202,6 +202,85 @@ class AggregateResult extends SparqlModel
 
             }
         }
+
+        foreach ($selectedFilterDimensions as $dimensionName=>$dimension) {
+            $attribute = $dimensionName;
+            $attachment = $dimension->getAttachment();
+            if(isset($attachment) && $attachment=="qb:Slice"){
+                $needsSliceSubGraph = true;
+                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $filterBindings[$attribute] , false));
+            }
+            else{
+                $patterns [] = new TriplePattern("?observation", $attribute, $filterBindings[$attribute], false);
+            }
+
+
+           // $finalFilters[] = $filterMap[$attribute];
+
+            if($dimension instanceof Dimension){
+                $dimensionPatterns = &$filterMap[$attribute];
+                foreach ($dimensionPatterns as $patternName=>$dimensionPattern){
+                    $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_". substr(md5($patternName),0,5) ;
+                    $filterBindings[] = $filterBindings[$attribute]."_". substr(md5($patternName),0,5) ;
+
+                    if(isset($filterMap[$attribute][$patternName])){
+                        $filterMap[$attribute][$patternName]->binding = $filterBindings[$attribute]."_". substr(md5($patternName),0,5) ;
+                        $finalFilters[] = $filterMap[$attribute][$patternName];
+
+                    }
+                    if(isset($attachment) && $attachment=="qb:Slice"){
+                        $sliceSubGraph->add(new TriplePattern($filterBindings[$attribute],$patternName,$filterBindings[$attribute]."_". substr(md5($patternName),0,5), false));
+                    }
+                    else{
+                        $patterns [] = new TriplePattern($filterBindings[$attribute],$patternName,$filterBindings[$attribute]."_". substr(md5($patternName),0,5), false);
+
+                    }
+
+                }
+
+            }
+        }
+
+
+
+        foreach ($selectedSorterDimensions as $dimensionName=>$dimension) {
+            $attribute = $dimensionName;
+            $attachment = $dimension->getAttachment();
+            if(isset($attachment) && $attachment=="qb:Slice"){
+                $needsSliceSubGraph = true;
+                $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $sorterBindings[$attribute] , false));
+            }
+            else{
+                $patterns [] = new TriplePattern("?observation", $attribute, $sorterBindings[$attribute], false);
+            }
+
+
+            // $finalFilters[] = $filterMap[$attribute];
+
+            if($dimension instanceof Dimension){
+                $dimensionPatterns = &$sorterMap[$attribute];
+                foreach ($dimensionPatterns as $patternName=>$dimensionPattern){
+                    $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_". substr(md5($patternName),0,5) ;
+                    $sorterBindings[] = $sorterBindings[$attribute]."_". substr(md5($patternName),0,5) ;
+
+                    if(isset($sorterMap[$attribute][$patternName])){
+                        $sorterMap[$attribute][$patternName]->binding = $sorterBindings[$attribute]."_". substr(md5($patternName),0,5) ;
+                        $finalSorters[] = $sorterMap[$attribute][$patternName];
+
+                    }
+                    if(isset($attachment) && $attachment=="qb:Slice"){
+                        $sliceSubGraph->add(new TriplePattern($sorterBindings[$attribute],$patternName,$sorterBindings[$attribute]."_". substr(md5($patternName),0,5), false));
+                    }
+                    else{
+                        $patterns [] = new TriplePattern($sorterBindings[$attribute],$patternName,$sorterBindings[$attribute]."_". substr(md5($patternName),0,5), false);
+
+                    }
+
+                }
+
+            }
+        }
+
 
 
         foreach ($selectedAggregateDimensions as $dimensionName=>$dimension) {
@@ -225,6 +304,7 @@ class AggregateResult extends SparqlModel
 
 
         }
+        //dd($model);
         // echo($queryBuilder->format());
         $bindings[] = "?observation";
 
@@ -266,7 +346,6 @@ class AggregateResult extends SparqlModel
             ->limit($this->page_size )
             ->offset($offset);
 
-
         foreach ($finalSorters as $sorter) {
             if($sorter->property == "_count"){
                 $queryBuilder->orderBy("?".$sorter->property, strtoupper($sorter->direction));
@@ -285,7 +364,7 @@ class AggregateResult extends SparqlModel
             $queryBuilder->getSPARQL()
         );
 
-        // $queryBuilder->format();
+       // echo $queryBuilder->format();DIE;
        // echo($result->dump());
 //dd($selectedPatterns);
         //dd($attributes);
@@ -332,6 +411,9 @@ class AggregateResult extends SparqlModel
         }
 
         foreach ($filterMap as $filter) {
+            $filter->value = trim($filter->value,'"');
+            $filter->value = trim($filter->value,"'");
+
             $queryBuilder->filter("str(".$filter->binding.")='".$filter->value."'");
         }
 
@@ -389,6 +471,8 @@ class AggregateResult extends SparqlModel
         }
 
         foreach ($filterMap as $filter) {
+            $filter->value = trim($filter->value,'"');
+            $filter->value = trim($filter->value,"'");
             $queryBuilder->filter("str(".$filter->binding.")='".$filter->value."'");
         }
 
@@ -440,8 +524,10 @@ class AggregateResult extends SparqlModel
                 $subQuery->optional($subGraph);
             }
         }
-
         foreach ($filterMap as $filter) {
+            $filter->value = trim($filter->value,'"');
+            $filter->value = trim($filter->value,"'");
+
             $subQuery->filter("str(".$filter->binding.")='".$filter->value."'");
         }
 

@@ -59,7 +59,7 @@ class GlobalFactsResult extends FactsResult
         // return $facts;
 
         if(empty($fields)||$fields[0]==""){
-            foreach ($model->dimensions as $dimension) {
+            foreach ($model->dimensions as $dimensionName => $dimension) {
                 $fields[]=$dimension->ref;
             }
 

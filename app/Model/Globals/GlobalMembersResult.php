@@ -14,20 +14,21 @@ use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use App\Model\SparqlModel;
 use Asparagus\QueryBuilder;
+use EasyRdf_Resource;
 
 class GlobalMembersResult extends SparqlModel
 {
 
     /**
      * PREFIX skos: <http://testSkos/>
-
-    select distinct ?elem  where {
-    ?elem ?p ?o.
-    filter not exists {
-    ?elem (skos:similar|^skos:similar)* ?elem_
-    filter( str(?elem_) < str(?elem) )
-    }
-    }
+     *
+     * select distinct ?elem  where {
+     * ?elem ?p ?o.
+     * filter not exists {
+     * ?elem (skos:similar|^skos:similar)* ?elem_
+     * filter( str(?elem_) < str(?elem) )
+     * }
+     * }
      */
 
     public $page;
@@ -41,8 +42,6 @@ class GlobalMembersResult extends SparqlModel
     {
 
         parent::__construct();
-
-
 
 
         $this->page = intval($page);
@@ -60,13 +59,13 @@ class GlobalMembersResult extends SparqlModel
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $subQueryBuilders = [];
         $model = (new BabbageGlobalModelResult())->model;
-        
+
         $this->fields = [];
         //($model->dimensions[$dimensionShortName]);
         $dimensionShortName = explode(".", $attributeShortName)[0];
 
         foreach ($model->dimensions[$dimensionShortName]->attributes as $att) {
-           // dd($model->dimensions[$dimensionShortName]->attributes );
+            // dd($model->dimensions[$dimensionShortName]->attributes );
             $this->fields[] = $att->ref;
         }
         // return $facts;
@@ -78,9 +77,8 @@ class GlobalMembersResult extends SparqlModel
         /** @var Dimension $innerDimension */
         foreach ($actualDimension->getInnerDimensions() as $innerDimension) {
 
-            $myPatterns = $this->globalDimensionToPatterns([$innerDimension], [$actualDimension->label_ref, $actualDimension->key_ref]);
+            $myPatterns = $this->globalDimensionToPatterns([$innerDimension], [$innerDimension->label_ref, $innerDimension->key_ref]);
             $selectedPatterns[$innerDimension->ref] = $myPatterns;
-
             $selectedDimensions = [];
             $bindings = [];
             $attributes = [];
@@ -88,9 +86,8 @@ class GlobalMembersResult extends SparqlModel
 
             $selectedDimensions[$innerDimension->getUri()] = $innerDimension;
             $bindingName = "binding_" . substr(md5($innerDimension->ref), 0, 5);
-            $valueAttributeLabel = "uri";
 
-            $attributes[$innerDimension->getUri()][$valueAttributeLabel] = "key";
+
             $bindings[$innerDimension->getUri()] = "?$bindingName";
 
 
@@ -104,7 +101,7 @@ class GlobalMembersResult extends SparqlModel
                 new TriplePattern("?dataset", "a", "qb:DataSet"),
                 new TriplePattern("?observation", "qb:dataSet", "?dataset"),
 
-                ], true);
+            ], true);
 
             $patterns = [];
             $needsSliceSubGraph = false;
@@ -115,12 +112,10 @@ class GlobalMembersResult extends SparqlModel
                 if (isset($attachment) && $attachment == "qb:Slice") {
                     $needsSliceSubGraph = true;
                     $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$attribute], false));
-                }
-                elseif(isset($attachment) && $attachment == "qb:DataSet"){
+                } elseif (isset($attachment) && $attachment == "qb:DataSet") {
                     $needsDataSetSubGraph = true;
                     $dataSetSubGraph->add(new TriplePattern("?dataset", $attribute, $bindings[$attribute], false));
-                }
-                else {
+                } else {
                     $patterns [] = new TriplePattern("?observation", $attribute, $bindings[$attribute], false);
                 }
 
@@ -136,7 +131,6 @@ class GlobalMembersResult extends SparqlModel
                     }
 
 
-
                     //var_dump($dimension->attributes);
                     if (isset($attachment) && $attachment == "qb:Slice") {
                         $sliceSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
@@ -146,19 +140,17 @@ class GlobalMembersResult extends SparqlModel
                             $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5);
 
                         }
-                    }
-                    elseif(isset($attachment) && $attachment == "qb:DataSet"){
+                    } elseif (isset($attachment) && $attachment == "qb:DataSet") {
                         if ($dimension->orig_dimension != $dimension->key_attribute)
                             $dataSetSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
                         if ($dimension->orig_dimension != $dimension->label_attribute)
                             $dataSetSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false));
                         if ($dimension->orig_dimension != $dimension->key_attribute) {
-                            $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] =  "value";
+                            $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = "value";
                             $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5);
 
                         }
-                    }
-                    else {
+                    } else {
                         if ($dimension->orig_dimension != $dimension->label_attribute)
                             $patterns [] = new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false);
 
@@ -184,39 +176,48 @@ class GlobalMembersResult extends SparqlModel
             $subQueryBuilder = $this->build($bindings, $patterns, $queryBuilder);
 
             $subQueryBuilders[] = $subQueryBuilder;
-            //echo $subQueryBuilder->format();die;
-            $selectedPatterns = array_merge_recursive($selectedPatterns, $this->modelFieldsToPatterns($model,[$innerDimension->label_ref, $innerDimension->key_ref]));
+           // echo $subQueryBuilder->format();die;
+            $selectedPatterns = array_merge_recursive($selectedPatterns, $this->modelFieldsToPatterns($model, [$innerDimension->label_ref, $innerDimension->key_ref]));
         }
         /** @var QueryBuilder $subQueryBuilder */
 
         $innerQuery = $queryBuilder->newSubquery();
-        $innerQuery->union(array_map(function (QueryBuilder $subQueryBuilder) use($innerQuery) {
+        $innerQuery->union(array_map(function (QueryBuilder $subQueryBuilder) use ($innerQuery) {
             return $innerQuery->newSubgraph()->subquery($subQueryBuilder);
         }, $subQueryBuilders));
-        $innerQuery->selectDistinct(["?key", "?value"]);
+        $innerQuery->selectDistinct(["?key", "?value", "?notation"]);
         $innerQuery->filterNotExists($innerQuery->newSubgraph()->where("?key", "(skos:similar|^skos:similar)*", "?elem_")->filter("str(?elem_) < str(?key )"));
         $queryBuilder->subquery($innerQuery);
-        $queryBuilder->select(["?key", "(GROUP_CONCAT(?value, '/') AS ?value)"]);
+        $queryBuilder->select(["?key", "(GROUP_CONCAT(?value, '/') AS ?value)", "(GROUP_CONCAT(?notation, '/') AS ?notation)"]);
         $queryBuilder->limit($page_size);
         $queryBuilder->offset($page * $page_size);
-       // echo $queryBuilder->format();die;
+        // echo $queryBuilder->format();die;
 
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
 
 
-
         //$results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns);
         //return $result;
-      // dd($result);
+        // dd($result);
         // dd($selectedPatterns);
         // dd($selectedPatterns);
         $results = [];
         //dd($actualDimension);
-        foreach ($result as $row){
-            if(!isset($row->key))continue;
-            $results[]=[$actualDimension->key_ref=> $row->key->dumpValue('text'),$actualDimension->label_ref=> $row->value->getValue()];
+        foreach ($result as $row) {
+            if (!isset($row->key)) continue;
+            if(isset($row->notation)){
+                if($row->notation instanceof EasyRdf_Resource){
+                    $key = $row->notation->dumpValue("text");
+                }
+                else{
+                    $key = $row->notation->getValue();
+
+                }
+            }
+            else $key = $row->key;
+            $results[] = [$actualDimension->key_ref => $key, $actualDimension->label_ref => $row->value->getValue()];
         }
 
 
@@ -296,19 +297,25 @@ class GlobalMembersResult extends SparqlModel
 
 
 //dd(array_map(function($key, $value){ return $value . " AS ". $key;}, ["key", "value"], $bindings) );
-if(count($bindings)==1){
-    $bindings[] = "STR(".reset($bindings).")";
-}
-$bindings  = array_slice($bindings, 0,2);
-    // dd($bindings);
-        $myQueryBuilder
-            ->selectDistinct(array_map(function($key, $value){ return "(".$value . " AS ". $key.")";}, ["?key", "?value"], $bindings));
+        if (count($bindings) == 1) {
+            $bindings[] = "STR(" . reset($bindings) . ")";
+        }
+       // $bindings = array_slice($bindings, 0, 3);
+        //dd($bindings);
+        if(count($bindings)==2) {
+            $bindings[1] = reset($bindings);
+        }
+            $myQueryBuilder
+                ->selectDistinct(array_map(function ($key, $value) {
+                    return "(" . $value . " AS " . $key . ")";
+                }, ["?key", "?value", "?notation"], $bindings));
 
 
-        return $myQueryBuilder ;
+
+
+        return $myQueryBuilder;
 
     }
-
 
 
 }
