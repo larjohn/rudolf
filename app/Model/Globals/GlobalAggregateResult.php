@@ -15,7 +15,10 @@ use App\Model\BabbageModel;
 use App\Model\Dimension;
 use App\Model\FilterDefinition;
 use App\Model\GenericProperty;
+use App\Model\Measure;
 use App\Model\Sorter;
+use App\Model\Sparql\BindPattern;
+use App\Model\Sparql\SparqlPattern;
 use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use App\Model\SparqlModel;
@@ -102,7 +105,6 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 
-
         //dd($selectedAggregates);
 
         $offset = $this->page_size * $this->page;
@@ -159,7 +161,7 @@ class GlobalAggregateResult extends AggregateResult
 
                 continue;
             }
-   
+
             if ($sorter->property == "") continue;
 
             $sorterElements = explode(".", $sorterName);
@@ -253,6 +255,7 @@ class GlobalAggregateResult extends AggregateResult
                         $sorterMap[$datasetURI][$attribute][$patternName]->binding = $sorterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
                         $finalSorters[$sorterName] = $sorterMap[$datasetURI][$attribute][$patternName];
                         if (isset($attachment) && $attachment == "qb:Slice") {
+
                             $sliceSubGraph->add(new TriplePattern($sorterBindings[$datasetURI][$attribute], $patternName, $sorterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false));
                         } elseif (isset($attachment) && $attachment == "qb:DataSet") {
                             $dataSetSubGraph->add(new TriplePattern($sorterBindings[$datasetURI][$attribute], $patternName, $sorterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false));
@@ -505,33 +508,63 @@ class GlobalAggregateResult extends AggregateResult
             return $agg->ref;
         }, $filteredAggregates);
 
-        $selectedAggregates = $this->modelFieldsToPatterns($model, $mergedAggregateRefs);
 
-        $alreadyRestrictedDatasets = array_keys(array_merge_recursive($sliceSubGraphs, $patterns, $dataSetSubGraphs));
-        foreach ($measures as $measureName => $measure) {
-            if (!isset($selectedAggregates[$measure->getUri()])) continue;
-            $selectedAggregateDimensions[$measure->getUri()] = $measure;
-            $bindingName = "binding_" . substr(md5($measure->getUri()), 0, 5);
-            $valueAttributeLabel = "sum";
-            $attributes["_"][$measure->getUri()][$valueAttributeLabel] = $bindingName;
-            $aggregateBindings[$measure->getUri()] = "?$bindingName";
+        $selectedAggregates =  $this->modelFieldsToPatterns($model, $mergedAggregateRefs);
+        $extraAggregates = [];
+
+        foreach ($selectedAggregates as $uri=>$selectedAggregate) {
+            /** @var GlobalMeasure[] $measures */
+            foreach ($measures as $measure) {
+                if($measure->getUri() == $uri){
+                    $extraAggregates[$measure->getSpecialUri()] = $selectedAggregate;
+                }
+            }
         }
 
+        $selectedAggregates = array_merge($selectedAggregates,$extraAggregates);
+
+        $alreadyRestrictedDatasets = array_keys(array_merge_recursive($sliceSubGraphs, $patterns, $dataSetSubGraphs));
+        /** @var GlobalMeasure[] $measures */
+        foreach ($measures as $measureName => $measure) {
+            if (!isset($selectedAggregates[$measure->getUri()])) continue;
+            $selectedAggregateDimensions[$measure->getSpecialUri()] = $measure;
+            $bindingName = "binding_" . substr(md5($measure->getSpecialUri()), 0, 5);
+            $valueAttributeLabel = "sum";
+            $attributes["_"][$measure->getSpecialUri()][$valueAttributeLabel] = $bindingName;
+            $aggregateBindings[$measure->getSpecialUri()] = "?$bindingName";
+        }
+     //   dd($selectedAggregateDimensions);
         foreach ($selectedAggregateDimensions as $measureName => $measure) {
+            /** @var GlobalMeasure $measure */
+            $currency = $measure->currency;
             if ($measure instanceof GlobalMeasure) {
+                /** @var Measure $innerMeasureName */
                 foreach ($measure->getInnerMeasures() as $innerMeasureName => $innerMeasure) {
                     if (!empty($alreadyRestrictedDatasets) && !in_array($innerMeasure->getDataSet(), $alreadyRestrictedDatasets)) continue; ///should not include this dataset, as aggregates have been selected that are specific NOT to this dataset
-                    $attribute = $measureName;
+                    $attribute = $measure->getUri();
                     $attachment = $innerMeasure->getAttachment();
+                    /** @var Measure $innerMeasure */
+                    //var_dump($innerMeasure->currency);
                     if (isset($attachment) && $attachment == "qb:Slice") {
                         $needsSliceSubGraph = true;
-                        $sliceSubGraphs[$innerMeasure->getDataSet()]->add(new TriplePattern("?slice", $attribute, $aggregateBindings[$attribute], false));
+                        $sliceSubGraphs[$innerMeasure->getDataSet()]->addMany($this->currencyMagicTriples("?slice", $attribute , $aggregateBindings[$measure->getSpecialUri()],$innerMeasure->currency , $measure->currency , $innerMeasure->getDataSetFiscalYear() ));
+
+                     //   $sliceSubGraphs[$innerMeasure->getDataSet()]->add(new TriplePattern("?slice", $attribute, $aggregateBindings[$attribute], false));
+
                     }
                     if (isset($attachment) && $attachment == "qb:DataSet") {
                         $needsDataSetSubGraph = true;
-                        $dataSetSubGraphs[$innerMeasure->getDataSet()]->add(new TriplePattern("?dataSet", $attribute, $aggregateBindings[$attribute], false));
+
+                        $dataSetSubGraphs[$innerMeasure->getDataSet()]->addMany($this->currencyMagicTriples("?dataSet", $attribute , $aggregateBindings[$measure->getSpecialUri()],$innerMeasure->currency , $measure->currency , $innerMeasure->getDataSetFiscalYear() ));
+
                     } else {
-                        $patterns [$innerMeasure->getDataSet()][$attribute][] = new TriplePattern("?observation", $attribute, $aggregateBindings[$attribute], false);
+                        /** @var Measure $innerMeasure */
+
+                        $triples = $this->currencyMagicTriples("?observation", $attribute , $aggregateBindings[$measure->getSpecialUri()],$innerMeasure->currency , $measure->currency , $innerMeasure->getDataSetFiscalYear() );
+                        foreach ($triples as $triple) $patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = $triple;
+
+                       // $patterns [$innerMeasure->getDataSet()][$attribute][] = new TriplePattern("?observation", $attribute, $aggregateBindings[$attribute], false);
+
                     }
                     if (isset($sorterMap[$attribute]) && $sorterMap[$attribute] instanceof Sorter) {
                         $sorterMap[$attribute]->binding = $aggregateBindings[$attribute];
@@ -598,9 +631,8 @@ class GlobalAggregateResult extends AggregateResult
                 $queryBuilder->orderBy($sorter->binding, strtoupper($sorter->direction));
             }
         }
-
-        //   dd($selectedAggregates);
-        //   echo  $queryBuilder->format();die;
+//dd($selectedAggregates);
+         // echo  $queryBuilder->format();die;
         /* $queryBuilder
              ->orderBy("?observation");*/
 
@@ -669,15 +701,24 @@ class GlobalAggregateResult extends AggregateResult
                         $subGraph = $datasetQuery->newSubgraph();
 
                         foreach ($dimensionPattern->patterns as $pattern) {
-
-                            if ($pattern->isOptional) {
-                                $datasetQuery->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                            } else {
-                                $datasetQuery->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                            if($pattern instanceof TriplePattern){
+                                if ($pattern->isOptional) {
+                                    $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                } else {
+                                    $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                }
                             }
+                            else if($pattern instanceof BindPattern){
+                                $subGraph->bind($pattern->expression);
+                            }
+
                         }
 
                         $datasetQuery->optional($subGraph);
+                    }
+                    elseif ($dimensionPattern instanceof BindPattern){
+                        $datasetQuery->bind($dimensionPattern->expression);
+
                     }
                 }
             }
@@ -720,12 +761,11 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
         if (count($dimensionPatterns) > 0) {
-
             $innerGraph
-                ->selectDistinct(array_merge($agBindings, $allSelectedFields));
-
+                ->selectDistinct(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
             if (count($drilldownBindings) > 0) {
-                $innerGraph->groupBy($allSelectedFields);
+
+                $innerGraph->groupBy(array_unique(array_merge($allSelectedFields, array_flatten($sorterBindings))));
             }
         }
 
@@ -756,7 +796,7 @@ class GlobalAggregateResult extends AggregateResult
         $outerSelections[] = "(SUM(?_count) AS ?_count)";
         $queryBuilder->selectDistinct($outerSelections);
         if (!empty($outerGroupings))
-            $queryBuilder->groupBy($outerGroupings);
+            $queryBuilder->groupBy(array_unique(array_merge($outerGroupings, array_flatten($sorterBindings))));
         $queryBuilder->subquery($innerGraph);
 
         //echo $queryBuilder->format();die;
@@ -766,6 +806,7 @@ class GlobalAggregateResult extends AggregateResult
 
     private function buildS(array $aggregateBindings, array $dimensionPatterns, array $filterBindings = [], array $filterMap = [])
     {
+      //  dd($dimensionPatterns);
         //  dd($aggregateBindings);
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $datasetQueries = [];
@@ -785,15 +826,27 @@ class GlobalAggregateResult extends AggregateResult
                         $subGraph = $datasetQuery->newSubgraph();
 
                         foreach ($dimensionPattern->patterns as $pattern) {
+                            if($pattern instanceof TriplePattern) {
 
-                            if ($pattern->isOptional) {
-                                $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                            } else {
-                                $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                if ($pattern->isOptional) {
+                                    $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                } else {
+                                    $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                }
+                            }
+                            else if($pattern instanceof BindPattern){
+                          //      dd($pattern->expression);
+                                $subGraph->bind($pattern->expression);
                             }
                         }
 
                         $datasetQuery->optional($subGraph);
+                    }
+                    elseif ($dimensionPattern instanceof BindPattern){
+                        //dd($pattern->expression);
+
+                        $datasetQuery->bind($dimensionPattern->expression);
+
                     }
                 }
             }
@@ -961,10 +1014,6 @@ class GlobalAggregateResult extends AggregateResult
 
                 }
 
-                //  var_dump($fieldNames);
-                //  var_dump($attribute->orig_dimension);
-
-
             }
 
 
@@ -995,10 +1044,79 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 
-
-
         return $result;
 
+    }
+
+    /**
+     * @return SparqlPattern[]
+     */
+    private function currencyMagicTriples($subjectBinding,  $attributePredicate, $objectBinding, $sourceCurrency, $targetCurrency, $year){
+        /** @var SparqlPattern $patterns */
+        $patterns = [];
+
+        if($sourceCurrency == 'EUR' && $targetCurrency == 'EUR'){
+            $patterns[] = new TriplePattern($subjectBinding, $attributePredicate, $objectBinding, false);
+        }
+        elseif ($sourceCurrency== 'EUR' && $targetCurrency !='EUR'){
+            $patterns[] = new TriplePattern($subjectBinding, $attributePredicate, "{$objectBinding}__$sourceCurrency", false);
+            $patterns[] = new TriplePattern("?xroInfo", 'a', 'xro:ExchangeRateInfo');
+            $patterns[] = new TriplePattern("?xroInfo", 'xro:yearOfConversion', intval($year));
+            $patterns[] = new TriplePattern("?xroInfo", 'xro:source', "<http://data.openbudgets.eu/codelist/currency/{$sourceCurrency}>");
+            $patterns[] = new TriplePattern("?xroInfo", 'xro:target', "<http://data.openbudgets.eu/codelist/currency/{$targetCurrency}>");
+            $patterns[] = new TriplePattern("?xroInfo", 'xro:rate', "?rate");
+            $patterns[] = new BindPattern("?rate*{$objectBinding}__$sourceCurrency AS $objectBinding");
+        }
+        elseif ($sourceCurrency!='EUR' && $targetCurrency == 'EUR'){
+            $patterns[] = new TriplePattern($subjectBinding, $attributePredicate, "{$objectBinding}__$sourceCurrency", false);
+            $patterns[] = new TriplePattern("?xroInfo", 'a', 'xro:ExchangeRateInfo');
+            $patterns[] = new TriplePattern("?xroInfo", 'xro:yearOfConversion', intval($year));
+            $patterns[] = new TriplePattern("?xroInfo", 'xro:source', "<http://data.openbudgets.eu/codelist/currency/{$targetCurrency}>");
+            $patterns[] = new TriplePattern("?xroInfo", 'xro:target', "<http://data.openbudgets.eu/codelist/currency/{$sourceCurrency}>");
+            $patterns[] = new TriplePattern("?xroInfo", 'xro:rate', "?rate");
+            $patterns[] = new BindPattern("(1/?rate)*{$objectBinding}__$sourceCurrency AS $objectBinding");
+
+        }
+        elseif ($sourceCurrency!='EUR'  && $targetCurrency!= 'EUR'){
+            $patterns[] = new TriplePattern($subjectBinding, $attributePredicate, "{$objectBinding}__$sourceCurrency", false);
+            $patterns[] = new TriplePattern("?xroInfo_source", 'a', 'xro:ExchangeRateInfo');
+            $patterns[] = new TriplePattern("?xroInfo_source", 'xro:yearOfConversion', intval($year));
+            $patterns[] = new TriplePattern("?xroInfo_source", 'xro:source', "<http://data.openbudgets.eu/codelist/currency/EUR>");
+            $patterns[] = new TriplePattern("?xroInfo_source", 'xro:target', "<http://data.openbudgets.eu/codelist/currency/{$sourceCurrency}>");
+            $patterns[] = new TriplePattern("?xroInfo_source", 'xro:rate', "?rate_source");
+
+            $patterns[] = new TriplePattern("?xroInfo_target", 'a', 'xro:ExchangeRateInfo');
+            $patterns[] = new TriplePattern("?xroInfo_target", 'xro:yearOfConversion', intval($year));
+            $patterns[] = new TriplePattern("?xroInfo_target", 'xro:source', "<http://data.openbudgets.eu/codelist/currency/EUR>");
+            $patterns[] = new TriplePattern("?xroInfo_target", 'xro:target', "<http://data.openbudgets.eu/codelist/currency/{$targetCurrency}>");
+            $patterns[] = new TriplePattern("?xroInfo_target", 'xro:rate', "?rate_target");
+
+            $patterns[] = new BindPattern("(?rate_target/?rate_source)*{$objectBinding}__$sourceCurrency AS $objectBinding");
+
+        }
+
+
+        /*
+         *  if (isset($attachment) && $attachment == "qb:Slice") {
+                        $needsSliceSubGraph = true;
+                        $sliceSubGraphs[$innerMeasure->getDataSet()]->add(new
+        TriplePattern("?slice", $attribute, $aggregateBindings[$attribute], false));
+
+                    }
+                    if (isset($attachment) && $attachment == "qb:DataSet") {
+                        $needsDataSetSubGraph = true;
+                        $dataSetSubGraphs[$innerMeasure->getDataSet()]->add(new
+        TriplePattern("?dataSet", $attribute, $aggregateBindings[$attribute], false));
+                    } else {
+
+        $patterns [$innerMeasure->getDataSet()][$attribute][] = new
+        TriplePattern("?observation", $attribute, $aggregateBindings[$attribute], false);
+
+    }
+         */
+//dd($patterns);
+
+        return  $patterns;
     }
 
 }

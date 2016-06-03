@@ -330,8 +330,11 @@ class BabbageModelResult extends SparqlModel
 
     }
 
-    private function convertCurrency($value)
+    protected function convertCurrency($value)
     {
+        $value = str_replace("http://data.openbudgets.eu/resource/codelist/currency/", "", $value );
+        return str_replace("http://data.openbudgets.eu/codelist/currency/", "", $value );
+
         switch ($value){
             case "http://data.openbudgets.eu/resource/codelist/currency/EUR":
                 return "EUR";

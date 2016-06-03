@@ -253,17 +253,22 @@ class AggregateResult extends SparqlModel
             else{
                 $patterns [] = new TriplePattern("?observation", $attribute, $sorterBindings[$attribute], false);
             }
+            if(isset($sorterMap[$attribute]) &&$sorterMap[$attribute] instanceof Sorter){
+                $sorterMap[$attribute]->binding = $sorterBindings[$attribute] ;
+                $finalSorters[] = $sorterMap[$attribute];
 
+            }
 
             // $finalFilters[] = $filterMap[$attribute];
 
             if($dimension instanceof Dimension){
                 $dimensionPatterns = &$sorterMap[$attribute];
+                if(!is_array($dimensionPatterns)) continue;
                 foreach ($dimensionPatterns as $patternName=>$dimensionPattern){
                     $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_". substr(md5($patternName),0,5) ;
                     $sorterBindings[] = $sorterBindings[$attribute]."_". substr(md5($patternName),0,5) ;
 
-                    if(isset($sorterMap[$attribute][$patternName])){
+                    if(is_array($sorterMap[$attribute])&&  isset($sorterMap[$attribute][$patternName])){
                         $sorterMap[$attribute][$patternName]->binding = $sorterBindings[$attribute]."_". substr(md5($patternName),0,5) ;
                         $finalSorters[] = $sorterMap[$attribute][$patternName];
 
@@ -336,7 +341,8 @@ class AggregateResult extends SparqlModel
         );
         $this->summary = $this->rdfResultsToArray3($summaryResult,$attributes, $model, array_merge($selectedAggregates))[0];
         $count = $countResult[0]->_count->getValue();
-        $queryBuilder = $this->build( $aggregateBindings, $drilldownBindings, $patterns, $finalFilters );
+        //dd($drilldownBindings);
+        $queryBuilder = $this->build( $aggregateBindings, $drilldownBindings, $sorterBindings, $patterns, $finalFilters );
 
 
 
@@ -351,6 +357,7 @@ class AggregateResult extends SparqlModel
                 $queryBuilder->orderBy("?".$sorter->property, strtoupper($sorter->direction));
                 continue;
             }
+
             $queryBuilder->orderBy($sorter->binding, strtoupper($sorter->direction));
         }
        /* $queryBuilder
@@ -375,15 +382,19 @@ class AggregateResult extends SparqlModel
         $this->total_cell_count = $count;
 
     }
+
     /**
-     * @param array $bindings
+     * @param array $aggregateBindings
+     * @param array $drilldownBindings
+     * @param array $sorterBindings
      * @param Dimension[] $dimensionPatterns
      * @param FilterDefinition[] $filterMap
      * @return QueryBuilder
+     * @internal param array $bindings
      */
-    private function build( array $aggregateBindings, array $drilldownBindings, array $dimensionPatterns, array $filterMap =[]){
+    private function build( array $aggregateBindings, array $drilldownBindings, array $sorterBindings, array $dimensionPatterns, array $filterMap =[]){
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
-
+//dd($dimensionPatterns);
         foreach ($dimensionPatterns as $dimensionPattern) {
             if($dimensionPattern instanceof TriplePattern ){
                 if($dimensionPattern->isOptional){
@@ -435,9 +446,8 @@ class AggregateResult extends SparqlModel
             ->selectDistinct(array_merge($agBindings, $drldnBindings))
         ;
         if(count($drilldownBindings)>0){
-            $queryBuilder->groupBy($drldnBindings);
+            $queryBuilder->groupBy(array_unique(array_merge($drldnBindings, $sorterBindings)));
         }
-
         return $queryBuilder;
 
     }

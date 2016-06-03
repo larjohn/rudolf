@@ -39,6 +39,9 @@ class GlobalMeasure extends Measure
     public function addInnerMeasure(Measure $innerMeasure){
         $this->innerMeasures[$innerMeasure->ref]=$innerMeasure;
     }
+    public function addInnerMeasures(array $innerMeasures){
+        $this->innerMeasures = array_merge($this->innerMeasures,$innerMeasures);
+    }
 
     /**
      * @return mixed
@@ -54,6 +57,24 @@ class GlobalMeasure extends Measure
     public function setOriginalMeasure($originalMeasure)
     {
         $this->originalMeasure = $originalMeasure;
+    }
+
+    protected $specialUri= "";
+
+    /**
+     * @return string
+     */
+    public function getSpecialUri()
+    {
+        return $this->specialUri;
+    }
+
+    /**
+     * @param string $specialUri
+     */
+    public function setSpecialUri($specialUri)
+    {
+        $this->specialUri = $specialUri;
     }
 
 }

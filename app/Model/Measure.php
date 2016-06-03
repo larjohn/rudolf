@@ -39,5 +39,24 @@ class Measure extends GenericProperty
     }
 
 
+    protected $dataSetFiscalYear;
+
+    /**
+     * @return mixed
+     */
+    public function getDataSetFiscalYear()
+    {
+        return $this->dataSetFiscalYear;
+    }
+
+    /**
+     * @param mixed $dataSetFiscalYear
+     */
+    public function setDataSetFiscalYear($dataSetFiscalYear)
+    {
+        $this->dataSetFiscalYear = $dataSetFiscalYear;
+    }
+
+
 }
 

@@ -28,4 +28,13 @@ class SubPattern extends SparqlPattern
         $this->patterns[] = $pattern;
     }
 
+    /**
+     * @param SparqlPattern[] $patterns
+     */
+    public function addMany(array $patterns){
+        foreach ($patterns as $pattern) {
+           $this->add($pattern);
+       }
+    }
+
 }

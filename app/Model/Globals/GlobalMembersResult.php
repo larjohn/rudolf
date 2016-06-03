@@ -305,6 +305,9 @@ class GlobalMembersResult extends SparqlModel
         if(count($bindings)==2) {
             $bindings[1] = reset($bindings);
         }
+
+
+        
             $myQueryBuilder
                 ->selectDistinct(array_map(function ($key, $value) {
                     return "(" . $value . " AS " . $key . ")";

@@ -10,6 +10,7 @@ namespace App\Model;
 
 
 use App\Model\Globals\GlobalDimension;
+use App\Model\Globals\GlobalMeasure;
 use EasyRdf_Literal;
 use EasyRdf_Literal_Decimal;
 use EasyRdf_Literal_Integer;
@@ -92,11 +93,13 @@ class SparqlModel
     }
 
     protected function modelFieldsToPatterns(BabbageModel $model, $fields){
+        //dd($model);
         $selectedDimensions = [];
         foreach ($fields as $field) {
             $fieldNames = explode(".", $field);
             foreach ($model->measures as $name => $attribute) {
                 if($fieldNames[0] == $name){
+
                     $selectedDimensions[$attribute->getUri()] = [];
                 }
             }
@@ -134,6 +137,7 @@ class SparqlModel
 
     protected function rdfResultsToArray3(EasyRdf_Sparql_Result $result, array $attributes, BabbageModel $model, array $selectedFields)
     {
+
         $results = [];
         $actualFields = $result->getFields();
         foreach ($result as $row) {
@@ -313,10 +317,17 @@ class SparqlModel
         }
 
         foreach ($model->measures as $measureName => $measure){
-
-            if($measure->getUri() == $path[0]){
-                return $measure->ref;
+            if($measure instanceof GlobalMeasure){
+                if($measure->getUri() == $path[0] || $measure->getSpecialUri() == $path[0]){
+                    return $measure->ref;
+                }
             }
+            else {
+                if($measure->getUri() == $path[0]){
+                    return $measure->ref;
+                }
+            }
+
         }
 
     }
