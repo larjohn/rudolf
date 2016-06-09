@@ -20,7 +20,7 @@ After setting up your environment, you can install **rudolf**:
 
 3. Run composer to install dependencies:
 
-    `composer install`
+    `composer install --no-scripts`
 ## Configuration
 
 After installing **rudolf**, change the configuration file located at `config/sparql.php` and set the appropriate endpoint URI.
