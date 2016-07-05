@@ -43,7 +43,7 @@ class PackageResult extends SparqlModel
             "measures" => [
                 "amount"=>[
                     "currency"=>"EUR",
-                    "resource"=>"thessaloniki",
+                    "resource"=>"model",
                     "source"=>"amount"
                 ]
             ]

@@ -1,7 +1,7 @@
 <?php
 /**
  * A helper file for Laravel 5, to provide autocomplete information to your IDE
- * Generated for Laravel 5.2.26 on 2016-04-23.
+ * Generated for Laravel 5.2.39 on 2016-07-05.
  *
  * @author Barry vd. Heuvel <barryvdh@gmail.com>
  * @see https://github.com/barryvdh/laravel-ide-helper
@@ -1125,6 +1125,18 @@ namespace {
         }
         
         /**
+         * Register the given command with the console application.
+         *
+         * @param \Symfony\Component\Console\Command\Command $command
+         * @return void 
+         * @static 
+         */
+        public static function registerCommand($command){
+            //Method inherited from \Illuminate\Foundation\Console\Kernel            
+            \App\Console\Kernel::registerCommand($command);
+        }
+        
+        /**
          * Run an Artisan console command by name.
          *
          * @param string $command
@@ -1547,11 +1559,11 @@ namespace {
          * Set the current user.
          *
          * @param \Illuminate\Contracts\Auth\Authenticatable $user
-         * @return void 
+         * @return $this 
          * @static 
          */
         public static function setUser($user){
-            \Illuminate\Auth\SessionGuard::setUser($user);
+            return \Illuminate\Auth\SessionGuard::setUser($user);
         }
         
         /**
@@ -1633,6 +1645,17 @@ namespace {
          */
         public static function guest(){
             return \Illuminate\Auth\SessionGuard::guest();
+        }
+        
+        /**
+         * Determine if the current user is authenticated.
+         *
+         * @return \App\User 
+         * @throws \Illuminate\Auth\AuthenticationException
+         * @static 
+         */
+        public static function authenticate(){
+            return \Illuminate\Auth\SessionGuard::authenticate();
         }
         
     }
@@ -2765,6 +2788,20 @@ namespace {
         }
         
         /**
+         * Run a select statement against the database and returns a generator.
+         *
+         * @param string $query
+         * @param array $bindings
+         * @param bool $useReadPdo
+         * @return \Generator 
+         * @static 
+         */
+        public static function cursor($query, $bindings = array(), $useReadPdo = true){
+            //Method inherited from \Illuminate\Database\Connection            
+            return \Illuminate\Database\MySqlConnection::cursor($query, $bindings, $useReadPdo);
+        }
+        
+        /**
          * Run an insert statement against the database.
          *
          * @param string $query
@@ -2870,6 +2907,7 @@ namespace {
          * Start a new database transaction.
          *
          * @return void 
+         * @throws Exception
          * @static 
          */
         public static function beginTransaction(){
@@ -3390,6 +3428,16 @@ namespace {
         }
         
         /**
+         * Get an array of global scopes that were removed from the query.
+         *
+         * @return array 
+         * @static 
+         */
+        public static function removedScopes(){
+            return \Illuminate\Database\Eloquent\Builder::removedScopes();
+        }
+        
+        /**
          * Find a model by its primary key.
          *
          * @param mixed $id
@@ -3402,7 +3450,7 @@ namespace {
         }
         
         /**
-         * Find a model by its primary key.
+         * Find multiple models by their primary keys.
          *
          * @param array $ids
          * @param array $columns
@@ -3518,6 +3566,16 @@ namespace {
         }
         
         /**
+         * Get a generator for the given query.
+         *
+         * @return \Generator 
+         * @static 
+         */
+        public static function cursor(){
+            return \Illuminate\Database\Eloquent\Builder::cursor();
+        }
+        
+        /**
          * Chunk the results of the query.
          *
          * @param int $count
@@ -3527,6 +3585,19 @@ namespace {
          */
         public static function chunk($count, $callback){
             return \Illuminate\Database\Eloquent\Builder::chunk($count, $callback);
+        }
+        
+        /**
+         * Chunk the results of a query by comparing numeric IDs.
+         *
+         * @param int $count
+         * @param callable $callback
+         * @param string $column
+         * @return bool 
+         * @static 
+         */
+        public static function chunkById($count, $callback, $column = 'id'){
+            return \Illuminate\Database\Eloquent\Builder::chunkById($count, $callback, $column);
         }
         
         /**
@@ -3587,11 +3658,12 @@ namespace {
          * @param int $perPage
          * @param array $columns
          * @param string $pageName
+         * @param int|null $page
          * @return \Illuminate\Contracts\Pagination\Paginator 
          * @static 
          */
-        public static function simplePaginate($perPage = null, $columns = array(), $pageName = 'page'){
-            return \Illuminate\Database\Eloquent\Builder::simplePaginate($perPage, $columns, $pageName);
+        public static function simplePaginate($perPage = null, $columns = array(), $pageName = 'page', $page = null){
+            return \Illuminate\Database\Eloquent\Builder::simplePaginate($perPage, $columns, $pageName, $page);
         }
         
         /**
@@ -3625,6 +3697,29 @@ namespace {
          */
         public static function eagerLoadRelations($models){
             return \Illuminate\Database\Eloquent\Builder::eagerLoadRelations($models);
+        }
+        
+        /**
+         * Get the deeply nested relations for a given top-level relation.
+         *
+         * @param string $relation
+         * @return array 
+         * @static 
+         */
+        public static function nestedRelations($relation){
+            return \Illuminate\Database\Eloquent\Builder::nestedRelations($relation);
+        }
+        
+        /**
+         * Apply the callback's query changes if the given "value" is true.
+         *
+         * @param bool $value
+         * @param \Closure $callback
+         * @return $this 
+         * @static 
+         */
+        public static function when($value, $callback){
+            return \Illuminate\Database\Eloquent\Builder::when($value, $callback);
         }
         
         /**
@@ -3733,6 +3828,39 @@ namespace {
          */
         public static function orWhereHas($relation, $callback, $operator = '>=', $count = 1){
             return \Illuminate\Database\Eloquent\Builder::orWhereHas($relation, $callback, $operator, $count);
+        }
+        
+        /**
+         * Merge the constraints from a relation query to the current query.
+         *
+         * @param \Illuminate\Database\Eloquent\Builder $relation
+         * @return \Illuminate\Database\Eloquent\Builder|static 
+         * @static 
+         */
+        public static function mergeModelDefinedRelationConstraints($relation){
+            return \Illuminate\Database\Eloquent\Builder::mergeModelDefinedRelationConstraints($relation);
+        }
+        
+        /**
+         * Prevent the specified relations from being eager loaded.
+         *
+         * @param mixed $relations
+         * @return $this 
+         * @static 
+         */
+        public static function without($relations){
+            return \Illuminate\Database\Eloquent\Builder::without($relations);
+        }
+        
+        /**
+         * Add subselect queries to count the relations.
+         *
+         * @param mixed $relations
+         * @return $this 
+         * @static 
+         */
+        public static function withCount($relations){
+            return \Illuminate\Database\Eloquent\Builder::withCount($relations);
         }
         
         /**
@@ -3994,6 +4122,47 @@ namespace {
          */
         public static function rightJoinWhere($table, $one, $operator, $two){
             return \Illuminate\Database\Query\Builder::rightJoinWhere($table, $one, $operator, $two);
+        }
+        
+        /**
+         * Add a "cross join" clause to the query.
+         *
+         * @param string $table
+         * @param string $first
+         * @param string $operator
+         * @param string $second
+         * @return \Illuminate\Database\Query\Builder|static 
+         * @static 
+         */
+        public static function crossJoin($table, $first = null, $operator = null, $second = null){
+            return \Illuminate\Database\Query\Builder::crossJoin($table, $first, $operator, $second);
+        }
+        
+        /**
+         * Add a "where" clause comparing two columns to the query.
+         *
+         * @param string|array $first
+         * @param string|null $operator
+         * @param string|null $second
+         * @param string|null $boolean
+         * @return \Illuminate\Database\Query\Builder|static 
+         * @static 
+         */
+        public static function whereColumn($first, $operator = null, $second = null, $boolean = 'and'){
+            return \Illuminate\Database\Query\Builder::whereColumn($first, $operator, $second, $boolean);
+        }
+        
+        /**
+         * Add an "or where" clause comparing two columns to the query.
+         *
+         * @param string|array $first
+         * @param string|null $operator
+         * @param string|null $second
+         * @return \Illuminate\Database\Query\Builder|static 
+         * @static 
+         */
+        public static function orWhereColumn($first, $operator = null, $second = null){
+            return \Illuminate\Database\Query\Builder::orWhereColumn($first, $operator, $second);
         }
         
         /**
@@ -4444,6 +4613,17 @@ namespace {
         }
         
         /**
+         * Put the query's results in random order.
+         *
+         * @param string $seed
+         * @return $this 
+         * @static 
+         */
+        public static function inRandomOrder($seed = ''){
+            return \Illuminate\Database\Query\Builder::inRandomOrder($seed);
+        }
+        
+        /**
          * Add a raw "order by" clause to the query.
          *
          * @param string $sql
@@ -4509,6 +4689,19 @@ namespace {
          */
         public static function forPage($page, $perPage = 15){
             return \Illuminate\Database\Query\Builder::forPage($page, $perPage);
+        }
+        
+        /**
+         * Constrain the query to the next "page" of results after a given ID.
+         *
+         * @param int $perPage
+         * @param int $lastId
+         * @param string $column
+         * @return \Illuminate\Database\Query\Builder|static 
+         * @static 
+         */
+        public static function forPageAfterId($perPage = 15, $lastId = 0, $column = 'id'){
+            return \Illuminate\Database\Query\Builder::forPageAfterId($perPage, $lastId, $column);
         }
         
         /**
@@ -5311,11 +5504,12 @@ namespace {
          * Get all of the files from the given directory (recursive).
          *
          * @param string $directory
+         * @param bool $hidden
          * @return array 
          * @static 
          */
-        public static function allFiles($directory){
-            return \Illuminate\Filesystem\Filesystem::allFiles($directory);
+        public static function allFiles($directory, $hidden = false){
+            return \Illuminate\Filesystem\Filesystem::allFiles($directory, $hidden);
         }
         
         /**
@@ -6987,6 +7181,17 @@ namespace {
         }
         
         /**
+         * Intersect an array of items with the input data.
+         *
+         * @param array|mixed $keys
+         * @return array 
+         * @static 
+         */
+        public static function intersect($keys){
+            return \Illuminate\Http\Request::intersect($keys);
+        }
+        
+        /**
          * Retrieve a query string item from the request.
          *
          * @param string $key
@@ -7052,6 +7257,17 @@ namespace {
          */
         public static function hasFile($key){
             return \Illuminate\Http\Request::hasFile($key);
+        }
+        
+        /**
+         * Determine if a header is set on the request.
+         *
+         * @param string $key
+         * @return bool 
+         * @static 
+         */
+        public static function hasHeader($key){
+            return \Illuminate\Http\Request::hasHeader($key);
         }
         
         /**
@@ -7283,7 +7499,7 @@ namespace {
          * @param array $cookies The COOKIE parameters
          * @param array $files The FILES parameters
          * @param array $server The SERVER parameters
-         * @return \Symfony\Component\HttpFoundation\Request The duplicated request
+         * @return \Request The duplicated request
          * @static 
          */
         public static function duplicate($query = null, $request = null, $attributes = null, $cookies = null, $files = null, $server = null){
@@ -7453,7 +7669,7 @@ namespace {
         /**
          * Creates a new request with values from PHP's super globals.
          *
-         * @return \Symfony\Component\HttpFoundation\Request A new request
+         * @return \Request A new request
          * @static 
          */
         public static function createFromGlobals(){
@@ -7474,7 +7690,7 @@ namespace {
          * @param array $files The request files ($_FILES)
          * @param array $server The server parameters ($_SERVER)
          * @param string $content The raw body data
-         * @return \Symfony\Component\HttpFoundation\Request A Request instance
+         * @return \Request A Request instance
          * @static 
          */
         public static function create($uri, $method = 'GET', $parameters = array(), $cookies = array(), $files = array(), $server = array(), $content = null){
@@ -7526,7 +7742,7 @@ namespace {
         /**
          * Gets the list of trusted proxies.
          *
-         * @return array An array of trusted proxies.
+         * @return array An array of trusted proxies
          * @static 
          */
         public static function getTrustedProxies(){
@@ -7550,7 +7766,7 @@ namespace {
         /**
          * Gets the list of trusted host patterns.
          *
-         * @return array An array of trusted host patterns.
+         * @return array An array of trusted host patterns
          * @static 
          */
         public static function getTrustedHosts(){
@@ -7647,7 +7863,7 @@ namespace {
          * Order of precedence: PATH (routing placeholders or custom attributes), GET, BODY
          *
          * @param string $key the key
-         * @param mixed $default the default value
+         * @param mixed $default the default value if the parameter key does not exist
          * @return mixed 
          * @static 
          */
@@ -8099,7 +8315,7 @@ namespace {
          * Here is the process to determine the format:
          * 
          *  * format defined by the user (with setRequestFormat())
-         *  * _format request parameter
+         *  * _format request attribute
          *  * $default
          *
          * @param string $default The default format
@@ -8114,7 +8330,7 @@ namespace {
         /**
          * Sets the request format.
          *
-         * @param string $format The request format.
+         * @param string $format The request format
          * @static 
          */
         public static function setRequestFormat($format){
@@ -8180,7 +8396,7 @@ namespace {
         /**
          * Checks if the request method is of specified type.
          *
-         * @param string $method Uppercase request method (GET, POST etc).
+         * @param string $method Uppercase request method (GET, POST etc)
          * @return bool 
          * @static 
          */
@@ -8204,7 +8420,7 @@ namespace {
          * Returns the request body content.
          *
          * @param bool $asResource If true, a resource will be returned
-         * @return string|resource The request body content or a resource to read the body stream.
+         * @return string|resource The request body content or a resource to read the body stream
          * @throws \LogicException
          * @static 
          */
@@ -9013,7 +9229,7 @@ namespace {
         }
         
         /**
-         * Alias for the "currentRouteNamed" method.
+         * Alias for the "currentRouteName" method.
          *
          * @param mixed  string
          * @return bool 
@@ -9260,6 +9476,28 @@ namespace {
         }
         
         /**
+         * Enable foreign key constraints.
+         *
+         * @return bool 
+         * @static 
+         */
+        public static function enableForeignKeyConstraints(){
+            //Method inherited from \Illuminate\Database\Schema\Builder            
+            return \Illuminate\Database\Schema\MySqlBuilder::enableForeignKeyConstraints();
+        }
+        
+        /**
+         * Disable foreign key constraints.
+         *
+         * @return bool 
+         * @static 
+         */
+        public static function disableForeignKeyConstraints(){
+            //Method inherited from \Illuminate\Database\Schema\Builder            
+            return \Illuminate\Database\Schema\MySqlBuilder::disableForeignKeyConstraints();
+        }
+        
+        /**
          * Get the database connection instance.
          *
          * @return \Illuminate\Database\Connection 
@@ -9369,7 +9607,7 @@ namespace {
         /**
          * Starts the session storage.
          *
-         * @return bool True if session started.
+         * @return bool True if session started
          * @throws \RuntimeException If session fails to start.
          * @static 
          */
@@ -9380,7 +9618,7 @@ namespace {
         /**
          * Returns the session ID.
          *
-         * @return string The session ID.
+         * @return string The session ID
          * @static 
          */
         public static function getId(){
@@ -9411,7 +9649,7 @@ namespace {
         /**
          * Returns the session name.
          *
-         * @return mixed The session name.
+         * @return mixed The session name
          * @static 
          */
         public static function getName(){
@@ -9438,7 +9676,7 @@ namespace {
          *                      will leave the system settings unchanged, 0 sets the cookie
          *                      to expire with browser session. Time is in seconds, and is
          *                      not a Unix timestamp.
-         * @return bool True if session invalidated, false if error.
+         * @return bool True if session invalidated, false if error
          * @static 
          */
         public static function invalidate($lifetime = null){
@@ -9449,12 +9687,12 @@ namespace {
          * Migrates the current session to a new session id while maintaining all
          * session attributes.
          *
-         * @param bool $destroy Whether to delete the old session or leave it to garbage collection.
+         * @param bool $destroy Whether to delete the old session or leave it to garbage collection
          * @param int $lifetime Sets the cookie lifetime for the session cookie. A null value
          *                       will leave the system settings unchanged, 0 sets the cookie
          *                       to expire with browser session. Time is in seconds, and is
          *                       not a Unix timestamp.
-         * @return bool True if session migrated, false if error.
+         * @return bool True if session migrated, false if error
          * @static 
          */
         public static function migrate($destroy = false, $lifetime = null){
@@ -9510,7 +9748,7 @@ namespace {
          * Returns an attribute.
          *
          * @param string $name The attribute name
-         * @param mixed $default The default value if not found.
+         * @param mixed $default The default value if not found
          * @return mixed 
          * @static 
          */
@@ -9860,7 +10098,7 @@ namespace {
          * Get a filesystem instance.
          *
          * @param string $name
-         * @return \Illuminate\Contracts\Filesystem\Filesystem 
+         * @return \Illuminate\Filesystem\FilesystemAdapter 
          * @static 
          */
         public static function drive($name = null){
@@ -9871,7 +10109,7 @@ namespace {
          * Get a filesystem instance.
          *
          * @param string $name
-         * @return \Illuminate\Contracts\Filesystem\Filesystem 
+         * @return \Illuminate\Filesystem\FilesystemAdapter 
          * @static 
          */
         public static function disk($name = null){
@@ -9881,7 +10119,7 @@ namespace {
         /**
          * Get a default cloud filesystem instance.
          *
-         * @return \Illuminate\Contracts\Filesystem\Filesystem 
+         * @return \Illuminate\Filesystem\FilesystemAdapter 
          * @static 
          */
         public static function cloud(){
@@ -9892,7 +10130,7 @@ namespace {
          * Create an instance of the local driver.
          *
          * @param array $config
-         * @return \Illuminate\Contracts\Filesystem\Filesystem 
+         * @return \Illuminate\Filesystem\FilesystemAdapter 
          * @static 
          */
         public static function createLocalDriver($config){
@@ -9903,7 +10141,7 @@ namespace {
          * Create an instance of the ftp driver.
          *
          * @param array $config
-         * @return \Illuminate\Contracts\Filesystem\Filesystem 
+         * @return \Illuminate\Filesystem\FilesystemAdapter 
          * @static 
          */
         public static function createFtpDriver($config){
@@ -9962,6 +10200,246 @@ namespace {
          */
         public static function extend($driver, $callback){
             return \Illuminate\Filesystem\FilesystemManager::extend($driver, $callback);
+        }
+        
+        /**
+         * Determine if a file exists.
+         *
+         * @param string $path
+         * @return bool 
+         * @static 
+         */
+        public static function exists($path){
+            return \Illuminate\Filesystem\FilesystemAdapter::exists($path);
+        }
+        
+        /**
+         * Get the contents of a file.
+         *
+         * @param string $path
+         * @return string 
+         * @throws \Illuminate\Contracts\Filesystem\FileNotFoundException
+         * @static 
+         */
+        public static function get($path){
+            return \Illuminate\Filesystem\FilesystemAdapter::get($path);
+        }
+        
+        /**
+         * Write the contents of a file.
+         *
+         * @param string $path
+         * @param string|resource $contents
+         * @param string $visibility
+         * @return bool 
+         * @static 
+         */
+        public static function put($path, $contents, $visibility = null){
+            return \Illuminate\Filesystem\FilesystemAdapter::put($path, $contents, $visibility);
+        }
+        
+        /**
+         * Get the visibility for the given path.
+         *
+         * @param string $path
+         * @return string 
+         * @static 
+         */
+        public static function getVisibility($path){
+            return \Illuminate\Filesystem\FilesystemAdapter::getVisibility($path);
+        }
+        
+        /**
+         * Set the visibility for the given path.
+         *
+         * @param string $path
+         * @param string $visibility
+         * @return void 
+         * @static 
+         */
+        public static function setVisibility($path, $visibility){
+            \Illuminate\Filesystem\FilesystemAdapter::setVisibility($path, $visibility);
+        }
+        
+        /**
+         * Prepend to a file.
+         *
+         * @param string $path
+         * @param string $data
+         * @return int 
+         * @static 
+         */
+        public static function prepend($path, $data, $separator = ''){
+            return \Illuminate\Filesystem\FilesystemAdapter::prepend($path, $data, $separator);
+        }
+        
+        /**
+         * Append to a file.
+         *
+         * @param string $path
+         * @param string $data
+         * @return int 
+         * @static 
+         */
+        public static function append($path, $data, $separator = ''){
+            return \Illuminate\Filesystem\FilesystemAdapter::append($path, $data, $separator);
+        }
+        
+        /**
+         * Delete the file at a given path.
+         *
+         * @param string|array $paths
+         * @return bool 
+         * @static 
+         */
+        public static function delete($paths){
+            return \Illuminate\Filesystem\FilesystemAdapter::delete($paths);
+        }
+        
+        /**
+         * Copy a file to a new location.
+         *
+         * @param string $from
+         * @param string $to
+         * @return bool 
+         * @static 
+         */
+        public static function copy($from, $to){
+            return \Illuminate\Filesystem\FilesystemAdapter::copy($from, $to);
+        }
+        
+        /**
+         * Move a file to a new location.
+         *
+         * @param string $from
+         * @param string $to
+         * @return bool 
+         * @static 
+         */
+        public static function move($from, $to){
+            return \Illuminate\Filesystem\FilesystemAdapter::move($from, $to);
+        }
+        
+        /**
+         * Get the file size of a given file.
+         *
+         * @param string $path
+         * @return int 
+         * @static 
+         */
+        public static function size($path){
+            return \Illuminate\Filesystem\FilesystemAdapter::size($path);
+        }
+        
+        /**
+         * Get the mime-type of a given file.
+         *
+         * @param string $path
+         * @return string|false 
+         * @static 
+         */
+        public static function mimeType($path){
+            return \Illuminate\Filesystem\FilesystemAdapter::mimeType($path);
+        }
+        
+        /**
+         * Get the file's last modification time.
+         *
+         * @param string $path
+         * @return int 
+         * @static 
+         */
+        public static function lastModified($path){
+            return \Illuminate\Filesystem\FilesystemAdapter::lastModified($path);
+        }
+        
+        /**
+         * Get the URL for the file at the given path.
+         *
+         * @param string $path
+         * @return string 
+         * @static 
+         */
+        public static function url($path){
+            return \Illuminate\Filesystem\FilesystemAdapter::url($path);
+        }
+        
+        /**
+         * Get an array of all files in a directory.
+         *
+         * @param string|null $directory
+         * @param bool $recursive
+         * @return array 
+         * @static 
+         */
+        public static function files($directory = null, $recursive = false){
+            return \Illuminate\Filesystem\FilesystemAdapter::files($directory, $recursive);
+        }
+        
+        /**
+         * Get all of the files from the given directory (recursive).
+         *
+         * @param string|null $directory
+         * @return array 
+         * @static 
+         */
+        public static function allFiles($directory = null){
+            return \Illuminate\Filesystem\FilesystemAdapter::allFiles($directory);
+        }
+        
+        /**
+         * Get all of the directories within a given directory.
+         *
+         * @param string|null $directory
+         * @param bool $recursive
+         * @return array 
+         * @static 
+         */
+        public static function directories($directory = null, $recursive = false){
+            return \Illuminate\Filesystem\FilesystemAdapter::directories($directory, $recursive);
+        }
+        
+        /**
+         * Get all (recursive) of the directories within a given directory.
+         *
+         * @param string|null $directory
+         * @return array 
+         * @static 
+         */
+        public static function allDirectories($directory = null){
+            return \Illuminate\Filesystem\FilesystemAdapter::allDirectories($directory);
+        }
+        
+        /**
+         * Create a directory.
+         *
+         * @param string $path
+         * @return bool 
+         * @static 
+         */
+        public static function makeDirectory($path){
+            return \Illuminate\Filesystem\FilesystemAdapter::makeDirectory($path);
+        }
+        
+        /**
+         * Recursively delete a directory.
+         *
+         * @param string $directory
+         * @return bool 
+         * @static 
+         */
+        public static function deleteDirectory($directory){
+            return \Illuminate\Filesystem\FilesystemAdapter::deleteDirectory($directory);
+        }
+        
+        /**
+         * Get the Flysystem driver.
+         *
+         * @return \League\Flysystem\FilesystemInterface 
+         * @static 
+         */
+        public static function getDriver(){
+            return \Illuminate\Filesystem\FilesystemAdapter::getDriver();
         }
         
     }
@@ -10538,6 +11016,41 @@ namespace {
          */
         public static function yieldContent($section, $default = ''){
             return \Illuminate\View\Factory::yieldContent($section, $default);
+        }
+        
+        /**
+         * Start injecting content into a push section.
+         *
+         * @param string $section
+         * @param string $content
+         * @return void 
+         * @static 
+         */
+        public static function startPush($section, $content = ''){
+            \Illuminate\View\Factory::startPush($section, $content);
+        }
+        
+        /**
+         * Stop injecting content into a push section.
+         *
+         * @return string 
+         * @throws \InvalidArgumentException
+         * @static 
+         */
+        public static function stopPush(){
+            return \Illuminate\View\Factory::stopPush();
+        }
+        
+        /**
+         * Get the string contents of a push section.
+         *
+         * @param string $section
+         * @param string $default
+         * @return string 
+         * @static 
+         */
+        public static function yieldPushContent($section, $default = ''){
+            return \Illuminate\View\Factory::yieldPushContent($section, $default);
         }
         
         /**

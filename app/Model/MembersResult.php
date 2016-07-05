@@ -13,6 +13,7 @@ use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use Asparagus\QueryBuilder;
 use Cache;
+use Log;
 
 class MembersResult extends SparqlModel
 {
@@ -141,9 +142,17 @@ class MembersResult extends SparqlModel
 
 
         $queryBuilder = $this->build($bindings, $patterns );
+        $queryBuilderC = $this->buildC($bindings, $patterns );
+        $resultC = $this->sparql->query(
+            $queryBuilderC->getSPARQL()
+        );
+        $this->total_member_count = $resultC[0]->count->getValue();
+
         $queryBuilder->limit($page_size);
         $queryBuilder->offset($page* $page_size);
-      //  echo $queryBuilder->format();die;
+        Log::info($queryBuilder->format());
+
+        //  echo $queryBuilder->format();die;
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
@@ -192,6 +201,46 @@ class MembersResult extends SparqlModel
 
         $queryBuilder
             ->selectDistinct(array_unique($bindings))
+
+        ;
+
+
+        return $queryBuilder;
+
+    }
+
+  private function buildC(array $bindings, array $filters){
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+
+        foreach ($filters as $filter) {
+            if($filter instanceof TriplePattern || ($filter instanceof SubPattern && !$filter->isOptional)){
+                if($filter->isOptional){
+                    $queryBuilder->optional($filter->subject,  self::expand($filter->predicate), $filter->object);
+                }
+                else{
+                    $queryBuilder->where($filter->subject,  self::expand($filter->predicate), $filter->object);
+                }
+            }
+            elseif($filter instanceof SubPattern){
+                $subGraph = $queryBuilder->newSubgraph();
+
+                foreach($filter->patterns as $pattern){
+
+                    if($pattern->isOptional){
+                        $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                    }
+                    else{
+                        $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                    }
+                }
+
+                $queryBuilder->optional($subGraph);
+
+
+            }
+        }
+        $queryBuilder
+            ->select("(count  (*) AS ?count)")
 
         ;
 

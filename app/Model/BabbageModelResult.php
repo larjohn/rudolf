@@ -12,6 +12,7 @@ namespace App\Model;
 use Asparagus\QueryBuilder;
 use Cache;
 use EasyRdf_Sparql_Result;
+use Log;
 
 class BabbageModelResult extends SparqlModel
 {
@@ -105,6 +106,7 @@ class BabbageModelResult extends SparqlModel
             $queryBuilder->getSPARQL()
         );
         /** @var EasyRdf_Sparql_Result $result */
+        Log::info($queryBuilder->format());
 
         $propertiesSparqlResult = $this->rdfResultsToArray($propertiesSparqlResult);
         //dd($propertiesSparqlResult);
@@ -179,6 +181,8 @@ class BabbageModelResult extends SparqlModel
                 $subResult = $this->sparql->query(
                     $queryBuilder->getSPARQL()
                 );
+                Log::info($queryBuilder->format());
+
                 $subResults = $this->rdfResultsToArray($subResult);
                // var_dump($property);
 
@@ -251,7 +255,6 @@ class BabbageModelResult extends SparqlModel
             }
 
         }
-
         foreach ($this->model->dimensions as $dimension) {
             $newHierarchy = new Hierarchy();
             $newHierarchy->label = $dimension->label;

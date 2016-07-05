@@ -11,6 +11,7 @@ namespace App\Model;
 
 use Asparagus\QueryBuilder;
 use EasyRdf_Sparql_Result;
+use Log;
 
 class CubesResult extends SparqlModel
 {
@@ -26,13 +27,14 @@ class CubesResult extends SparqlModel
     private function load()
     {
         $queryBuilder = new QueryBuilder( config("sparql.prefixes"));
-        $queryBuilder->select('(SAMPLE(?name) AS ?name)')
+        $queryBuilder->select('(SAMPLE(?_name) AS ?name)')
             ->where('?dataset', 'a', 'qb:DataSet')
-            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
+            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?_name")
             ->groupBy("?dataset")
         ;
 
         ;
+        Log::info($queryBuilder->format());
 
         //   echo $queryBuilder->format();
         /** @var EasyRdf_Sparql_Result $result */

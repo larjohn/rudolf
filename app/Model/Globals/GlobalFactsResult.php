@@ -394,12 +394,12 @@ class GlobalFactsResult extends FactsResult
         $queryBuilderC =new QueryBuilder(config("sparql.prefixes"));
 
         $queryBuilderC->subquery($this->build(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs),array_merge_recursive($dimensionBindings, $measureBindings), $finalFilters));
-        $queryBuilderC->selectDistinct("(count(?observation) as ?observation)");
+        $queryBuilderC->selectDistinct("(count(?observation) as ?_count)");
         /** @var EasyRdf_Sparql_Result $countResult */
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()
         );
-        $count = $countResult[0]->observation->getValue();
+        $count = $countResult[0]->_count->getValue();
 
 
         $this->data = $results;

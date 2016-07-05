@@ -362,7 +362,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                             }
 
                             $newAttribute->ref = $innerDimension->orig_dimension . "." . $subResult["shortName"];
-                            $newAttribute->column = $subResult["extensionProperty"];
+                            $newAttribute->column = $subResult["shortName"];
                             $newAttribute->datatype = isset($subResult["dataType"]) ? $this->flatten_data_type($subResult["dataType"]) : "string";
                             $newAttribute->setUri($subResult["extensionProperty"]);
                             $newAttribute->label = $subResult["label"];
@@ -401,6 +401,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $newAttribute->setUri($globalDimensionGroup->getUri());
                         $newAttribute->setVirtual(true);
                         $newAttribute->orig_attribute = $globalDimensionGroup->ref;
+                        $newAttribute->column = $key;
 
                         $attributes[$key] = $newAttribute;
                     }

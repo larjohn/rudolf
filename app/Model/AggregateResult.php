@@ -13,6 +13,7 @@ use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use Asparagus\QueryBuilder;
 use EasyRdf_Sparql_Result;
+use Log;
 
 class AggregateResult extends SparqlModel
 {
@@ -202,7 +203,6 @@ class AggregateResult extends SparqlModel
 
             }
         }
-
         foreach ($selectedFilterDimensions as $dimensionName=>$dimension) {
             $attribute = $dimensionName;
             $attachment = $dimension->getAttachment();
@@ -214,16 +214,15 @@ class AggregateResult extends SparqlModel
                 $patterns [] = new TriplePattern("?observation", $attribute, $filterBindings[$attribute], false);
             }
 
-
            // $finalFilters[] = $filterMap[$attribute];
 
             if($dimension instanceof Dimension){
                 $dimensionPatterns = &$filterMap[$attribute];
+                if(!is_array($dimensionPatterns)) continue;
                 foreach ($dimensionPatterns as $patternName=>$dimensionPattern){
                     $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_". substr(md5($patternName),0,5) ;
                     $filterBindings[] = $filterBindings[$attribute]."_". substr(md5($patternName),0,5) ;
-
-                    if(isset($filterMap[$attribute][$patternName])){
+                    if(is_array($filterMap[$attribute]) && isset($filterMap[$attribute][$patternName])){
                         $filterMap[$attribute][$patternName]->binding = $filterBindings[$attribute]."_". substr(md5($patternName),0,5) ;
                         $finalFilters[] = $filterMap[$attribute][$patternName];
 
@@ -370,6 +369,7 @@ class AggregateResult extends SparqlModel
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
+        Log::info($queryBuilder->format());
 
        // echo $queryBuilder->format();DIE;
        // echo($result->dump());
@@ -506,7 +506,6 @@ class AggregateResult extends SparqlModel
     }
   private function buildC( array $drilldownBindings, array $dimensionPatterns, array $filterMap =[]){
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
-
         $subQuery = $queryBuilder->newSubquery();
 
         foreach ($dimensionPatterns as $dimensionPattern) {
@@ -551,7 +550,7 @@ class AggregateResult extends SparqlModel
 
 
       $subQuery
-            ->selectDistinct( $drldnBindings)
+            ->selectDistinct(array_unique($drldnBindings))
         ;
 
       $queryBuilder->subquery($subQuery);

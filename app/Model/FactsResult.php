@@ -16,6 +16,7 @@ use EasyRdf_Literal;
 use EasyRdf_Literal_Decimal;
 use EasyRdf_Literal_Integer;
 use EasyRdf_Sparql_Result;
+use Log;
 
 class FactsResult extends SparqlModel
 {
@@ -188,12 +189,12 @@ class FactsResult extends SparqlModel
         $patterns[] = new TriplePattern('?observation', 'qb:dataSet', "<$dataset>");
 
 
-        $queryBuilderC = $this->build(["(count(?observation) as ?observation)"], $patterns,$finalFilters );
+        $queryBuilderC = $this->build(["(count(?observation) as ?_count)"], $patterns,$finalFilters );
         /** @var EasyRdf_Sparql_Result $countResult */
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()
         );
-        $count = $countResult[0]->observation->getValue();
+        $count = $countResult[0]->_count->getValue();
         $queryBuilder = $this->build($bindings, $patterns, $finalFilters );
 
 
@@ -210,6 +211,7 @@ class FactsResult extends SparqlModel
         }
         $queryBuilder
             ->orderBy("?observation");
+        Log::info($queryBuilder->format());
 
 //echo  $queryBuilder->format();
 //
