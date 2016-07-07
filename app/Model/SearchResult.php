@@ -47,7 +47,7 @@ class SearchResult extends SparqlModel
             ->optional($queryBuilder->newSubgraph()
                 ->where("?attribute", "a", "?propertyType")->filter("?propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"))
             ->filterNotExists('?component', 'qb:componentAttachment', 'qb:DataSet')
-            ->groupBy('?attribute', '?label', "?propertyType", "?shortName", "?attachment");
+            ->groupBy('?attribute', '?label', "?propertyType", "?shortName", "?attachment", "?dataset");
         ;
         //echo($queryBuilder->format());die;
         /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
