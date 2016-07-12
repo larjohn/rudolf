@@ -23,7 +23,7 @@ class SparqlModel
     public function  __construct(){
         \EasyRdf_Http::setDefaultHttpClient(new \EasyRdf_Http_Client(null, ['maxredirects'    => 5,
             'useragent'       => 'EasyRdf_Http_Client',
-            'timeout'         => 100]));
+            'timeout'         => 150]));
         $this->sparql = new EasyRdf_Sparql_Client(config("sparql.endpoint"));
         foreach (config("sparql.prefixes") as $prefix=>$uri) {
             //dd($prefix);
@@ -150,7 +150,7 @@ class SparqlModel
                         $selectedBinding = $attributes[$selectedFieldName]["value"];
                     }
                     else if(isset($attributes[$selectedFieldName]["sum"])){
-                        $selectedBinding = $attributes[$selectedFieldName]["sum"];
+                        $selectedBinding = $attributes[$selectedFieldName]["sum"]."__";
                         $aggregateSuffix = ".sum";
 
                     }

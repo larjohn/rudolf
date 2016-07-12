@@ -1,0 +1,154 @@
+# -----DSD-specific namespaces
+@prefix bbg:           	<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/> .
+@prefix bbg-dsd:           	<http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> .
+#@prefix bbg-slice: 		<http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra/slice/> .
+@prefix bbg-dimension: 	<http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra/dimension/> .
+@prefix bbg-observation:<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/observation/> .
+
+# ----- CODE LISTS
+@prefix bbg-codelist: <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/> .
+@prefix bbg-cap-or-cur:   <http://data.openbudgets.eu/resource/codelist/cap-or-cur/> .
+@prefix bbg-partners:   <http://data.openbudgets.eu/resource/codelist/partners/> .
+@prefix bbg-departments:   <http://data.openbudgets.eu/resource/codelist/departments/> .
+@prefix bbg-pog:   <http://data.openbudgets.eu/resource/codelist/pog/> .
+
+
+# COFOG?
+
+# -----OpenBudgets.eu namespaces -----
+@prefix obeu:             <http://data.openbudgets.eu/ontology/> .
+@prefix obeu-attribute:   <http://data.openbudgets.eu/ontology/dsd/attribute/> .
+@prefix obeu-dimension:   <http://data.openbudgets.eu/ontology/dsd/dimension/>.
+@prefix obeu-measure:     <http://data.openbudgets.eu/ontology/dsd/measure/> .
+@prefix obeu-budgetphase: <http://data.openbudgets.eu/resource/codelist/budget-phase/> .
+@prefix obeu-codelist:    <http://data.openbudgets.eu/resource/codelist/> .
+@prefix obeu-optional:  <http://data.openbudgets.eu/ontology/dsd/optional/> .
+
+# -----Generic namespaces ------
+@prefix qb:               <http://purl.org/linked-data/cube#> .
+@prefix rdf:              <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs:             <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix skos:             <http://www.w3.org/2004/02/skos/core#> .
+@prefix xsd:              <http://www.w3.org/2001/XMLSchema#> .
+
+
+# DSD 
+<http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra>  a 
+  qb:DataStructureDefinition ;
+	rdfs:label "Data structure definition for the CRA babbage test dataset"@en ;
+  qb:component
+	[ qb:dimension bbg-dimension:organization ;
+		qb:componentAttachment qb:Observation ],
+	[ qb:dimension bbg-dimension:partner ;
+		qb:componentAttachment qb:Observation ],
+	[ qb:dimension obeu-dimension:fiscalYear;
+		qb:componentAttachment qb:Observation ],
+	[ qb:dimension bbg-dimension:programmeClassification ;
+             qb:componentAttachment qb:Observation ],
+	[ qb:dimension bbg-dimension:classification ;
+                qb:componentAttachment qb:Observation],
+	[ qb:dimension bbg-dimension:functionalClassification;
+		qb:componentAttachment qb:Observation ],
+	[ qb:dimension obeu-dimension:currency ;
+	  qb:componentAttachment qb:Observation ],
+	[ qb:dimension bbg-dimension:name ;
+		qb:componentAttachment qb:Observation ],
+	[ qb:dimension bbg-dimension:population2006 ;
+		qb:componentAttachment qb:Observation ],
+	[ qb:dimension obeu-optional:location ;
+		qb:componentAttachment qb:Observation ],
+	[ qb:measure obeu-measure:amount ] .
+	
+
+#dimension definition	
+bbg-dimension:classification a rdf:Property, qb:CodedProperty, qb:DimensionProperty ;
+	rdfs:label "CAP or CUR Code"@en ;
+	rdfs:comment "CAP or CUR Code"@en ;
+	rdfs:subPropertyOf obeu-dimension:classification ;
+	qb:codeList bbg-codelist:cap-or-cur ;
+	rdfs:range skos:Concept ;
+	rdfs:isDefinedBy <http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> . 
+
+bbg-dimension:programmeClassification a rdf:Property, qb:CodedProperty, qb:DimensionProperty ;
+	rdfs:label "POG"@en ;
+	rdfs:comment "Programme Object Classification"@en ;
+	rdfs:subPropertyOf obeu-dimension:programmeClassification ;
+	qb:codeList bbg-codelist:pog ;
+	rdfs:range skos:Concept ;
+	rdfs:isDefinedBy <http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> .
+	
+bbg-dimension:functionalClassification a rdf:Property, qb:CodedProperty, qb:DimensionProperty ;
+	rdfs:label "COFOG"@en ;
+	rdfs:comment "COFOG Level 1, 2 or 3"@en ;
+	rdfs:subPropertyOf obeu-dimension:functionalClassification ;
+	qb:codeList obeu-codelist:cofog ;
+	rdfs:range skos:Concept ;
+	rdfs:isDefinedBy <http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> .
+	
+bbg-dimension:organization a rdf:Property, qb:CodedProperty, qb:DimensionProperty ;
+	rdfs:label "from"@en ;
+	rdfs:comment "The entity that comes from the amount."@en ;
+	rdfs:subPropertyOf obeu-dimension:organization ;
+	qb:codeList bbg-codelist:departments ;
+	rdfs:range skos:Concept ;
+	rdfs:isDefinedBy <http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> .
+	
+bbg-dimension:partner a rdf:Property, qb:CodedProperty, qb:DimensionProperty ;
+	rdfs:label "to"@en ;
+	rdfs:comment "The entity to which the payment was made."@en ;
+	rdfs:subPropertyOf obeu-dimension:partner ;
+	qb:codeList bbg-codelist:partners ;
+	rdfs:range skos:Concept ;
+	rdfs:isDefinedBy <http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> .
+	
+bbg-dimension:name a rdf:Property, qb:DimensionProperty ;
+	rdfs:label "name of the payment"@en ;
+	rdfs:comment "Distinct name for the payment"@en ;
+	rdfs:range xsd:string ;
+	rdfs:isDefinedBy <http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> .
+	
+bbg-dimension:population2006 a rdf:Property, qb:DimensionProperty ;
+	rdfs:label "population 2006"@en ;
+	rdfs:comment "The population of the respective location in year 2006."@en ;
+	rdfs:range xsd:integer ;
+	rdfs:isDefinedBy <http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> .
+	
+	
+
+# TO (PARTNER) CODE LIST
+bbg:Partner a rdfs:Class ;
+  rdfs:label "partner"@en ;
+  rdfs:subClassOf skos:Concept ;
+  rdfs:isDefinedBy <http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> .
+  
+bbg-codelist:partners a skos:ConceptScheme ;
+  rdfs:label "Partners/Organizations that the money was paid to."@en ;
+  skos:hasTopConcept bbg-partners:society . 
+  
+bbg-partners:society a skos:Concept, bbg:Partner ;
+  skos:prefLabel "Society (the General Public)"@en ;
+  skos:definition "A dummy entity to be the recipient of final government spending"@en ;
+  skos:topConceptOf bbg-codelist:partners ;
+  skos:inScheme bbg-codelist:partners .
+
+# CAP_OR_CUR CODE LIST
+bbg:CapOrCar a rdfs:Class ;
+  rdfs:label "Cap or Cur"@en ;
+  rdfs:subClassOf skos:Concept ;
+  rdfs:isDefinedBy <http://data.openbudgets.eu/ontology/dsd/babbage-tests/cra> .
+  
+bbg-codelist:cap-or-cur a skos:ConceptScheme ;
+  rdfs:label "Code list that distinguishes current and capital expenditure."@en ;
+  skos:hasTopConcept bbg-cap-or-cur:CUR, bbg-cap-or-cur:CAP . 
+  
+bbg-cap-or-cur:CUR a skos:Concept, bbg:CapOrCar ;
+  skos:prefLabel "CUR"@en ;
+  skos:definition "Current Expenditure"@en ;
+  skos:topConceptOf bbg-codelist:cap-or-cur ;
+  skos:inScheme bbg-codelist:cap-or-cur .
+  
+bbg-cap-or-cur:CAP a skos:Concept, bbg:CapOrCar ;
+  skos:prefLabel "CAP"@en ;
+  skos:definition "Capital Expenditure"@en ;
+  skos:topConceptOf bbg-codelist:cap-or-cur ;
+  skos:inScheme bbg-codelist:cap-or-cur .

@@ -60,7 +60,7 @@ class SearchResult extends SparqlModel
 
         $propertiesSparqlResult = $this->rdfResultsToArray($propertiesSparqlResult);
         //dd($propertiesSparqlResult);
-
+        $packages = [];
         foreach ($propertiesSparqlResult as $property) {
             if(!isset($packages[$property["dataset"]])){
                 $packages[$property["dataset"]] = new BabbageModelResult("");

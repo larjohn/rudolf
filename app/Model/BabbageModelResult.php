@@ -82,7 +82,7 @@ class BabbageModelResult extends SparqlModel
 
 
         $queryBuilder
-            ->selectDistinct('?attribute', '?label', '?attachment', "?propertyType", "?shortName")
+            ->selectDistinct('?attribute', '?label', '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName")
             ->where("?dsd", 'qb:component', '?component')
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset","qb:structure", "?dsd" )
@@ -95,9 +95,9 @@ class BabbageModelResult extends SparqlModel
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
             ->filter("?name = '$name'")
             ->optional($queryBuilder->newSubgraph()
-                ->where("?attribute", "a", "?propertyType")->filter("?propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"))
+                ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"))
 /*            ->filterNotExists('?component', 'qb:componentAttachment', 'qb:DataSet')*/
-            ->groupBy('?attribute', '?label', "?propertyType", "?shortName", "?attachment");
+            ->groupBy('?attribute', '?label',  "?shortName", "?attachment");
         ;
 
         //echo($queryBuilder->format());die;
@@ -113,6 +113,8 @@ class BabbageModelResult extends SparqlModel
 
         foreach ($propertiesSparqlResult as $property) {
             $newMeasure = new Measure();
+            if(!isset($property["attribute"])||!isset($property["propertyType"]))continue;
+            //var_dump($property);
             $attribute = $property["attribute"];
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
             $subQuery = $queryBuilder->newSubquery();

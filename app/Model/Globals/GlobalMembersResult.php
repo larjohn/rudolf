@@ -132,19 +132,30 @@ class GlobalMembersResult extends SparqlModel
 
 
                     //var_dump($dimension->attributes);
+                    //dd($dimension);
                     if (isset($attachment) && $attachment == "qb:Slice") {
-                        $sliceSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
-                        $sliceSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false));
-                        if ($dimension->ref != $dimension->key_attribute) {
+
+                        if($dimension->orig_dimension !=$dimension->label_attribute){
+                            $sliceSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false));
+                        }
+                        else{
+                            $sliceSubGraph->add(new TriplePattern("?slice", $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false));
+                        }
+
+                        if ($dimension->orig_dimension != $dimension->key_attribute) {
+                            $sliceSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
                             $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = "value";
                             $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5);
 
+                        }
+                        else{
+                            $sliceSubGraph->add(new TriplePattern("?slice", $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
                         }
                     } elseif (isset($attachment) && $attachment == "qb:DataSet") {
                         if ($dimension->orig_dimension != $dimension->key_attribute)
                             $dataSetSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
                         if ($dimension->orig_dimension != $dimension->label_attribute)
-                            $dataSetSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false));
+                            $dataSetSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), true));
                         if ($dimension->orig_dimension != $dimension->key_attribute) {
                             $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = "value";
                             $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5);
@@ -185,13 +196,13 @@ class GlobalMembersResult extends SparqlModel
         $innerQuery->union(array_map(function (QueryBuilder $subQueryBuilder) use ($innerQuery) {
             return $innerQuery->newSubgraph()->subquery($subQueryBuilder);
         }, $subQueryBuilders));
-        $innerQuery->selectDistinct(["?key", "?value", "?notation"]);
+        $innerQuery->selectDistinct(["?_key", "?_value", "?_notation"]);
         $innerQuery->filterNotExists($innerQuery->newSubgraph()->where("?key", "(skos:similar|^skos:similar)*", "?elem_")->filter("str(?elem_) < str(?key )"));
         $queryBuilder->subquery($innerQuery);
-        $queryBuilder->select(["?key", "(GROUP_CONCAT(?value, '/') AS ?value)", "(GROUP_CONCAT(?notation, '/') AS ?notation)"]);
+        $queryBuilder->select(["(SAMPLE(?_key) AS ?key)", "(GROUP_CONCAT(?_value  ; separator='/') AS ?value)", "(GROUP_CONCAT(?_notation; separator='/') AS ?notation)"]);
         $queryBuilder->limit($page_size);
         $queryBuilder->offset($page * $page_size);
-        // echo $queryBuilder->format();die;
+        //echo $queryBuilder->format();die;
 
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
@@ -279,7 +290,7 @@ class GlobalMembersResult extends SparqlModel
                 }
             } elseif ($filter instanceof SubPattern) {
                 $subGraph = $myQueryBuilder->newSubgraph();
-
+                //dd($filter);
                 foreach ($filter->patterns as $pattern) {
 
                     if ($pattern->isOptional) {
@@ -311,7 +322,7 @@ class GlobalMembersResult extends SparqlModel
             $myQueryBuilder
                 ->selectDistinct(array_map(function ($key, $value) {
                     return "(" . $value . " AS " . $key . ")";
-                }, ["?key", "?value", "?notation"], $bindings));
+                }, ["?_key", "?_value", "?_notation"], $bindings));
 
 
 

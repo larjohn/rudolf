@@ -1,0 +1,29 @@
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> <http://www.w3.org/2004/02/skos/core#notation> "999" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "ENG_HRA" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> <http://www.w3.org/2004/02/skos/core#notation> "Dept004" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "Department for Transport" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept022> <http://www.w3.org/2004/02/skos/core#notation> "Dept022" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "Department for Children, Schools and Families" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> <http://www.w3.org/2004/02/skos/core#notation> "Dept032" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "Department for Work and Pensions" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept047> <http://www.w3.org/2004/02/skos/core#notation> "Dept047" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "Ministry of Justice" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> a <http://www.w3.org/2004/02/skos/core#ConceptScheme> ;
+	<http://www.w3.org/2000/01/rdf-schema#label> "Mini code list for the representation of Departments (from column) in Babbage Tests Cra dataset"@en ;
+	<http://www.w3.org/2004/02/skos/core#hasTopConcept> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept022> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept047> .

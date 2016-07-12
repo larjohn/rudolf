@@ -1,0 +1,44 @@
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> <http://www.w3.org/2004/02/skos/core#notation> "999999" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "LA Dummy sprog 6. Housing and community amenities" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P01+S100417> <http://www.w3.org/2004/02/skos/core#notation> "P01 S100417" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "P01 S100417 Children and Family - Misc Programmes" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+500207> <http://www.w3.org/2004/02/skos/core#notation> "P07 500207" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "P07 S500207 Government Owned Rolling Stock" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+S500003> <http://www.w3.org/2004/02/skos/core#notation> "P07 S500003" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "P07 S500003 RPROJ-Channel Tunnel Rail Link (CTRL)" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P13+S091105> <http://www.w3.org/2004/02/skos/core#notation> "P13 S091105" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "P13 S091105 CICA" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S120812> <http://www.w3.org/2004/02/skos/core#notation> "P37 S120812" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "P37 S120812 Independent Living Fund" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S121211> <http://www.w3.org/2004/02/skos/core#notation> "P37 S121211" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "P37 S121211 ADMIN COSTS OF MEASURES TO HELP UNEMPL PEOPLE MOVE FROM WELFARE T..." ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S121216> <http://www.w3.org/2004/02/skos/core#notation> "P37 S121216" ;
+	<http://www.w3.org/2004/02/skos/core#prefLabel> "P37 S121216 ES Administration" ;
+	<http://www.w3.org/2004/02/skos/core#inScheme> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog> ;
+	<http://www.w3.org/2004/02/skos/core#topConceptOf> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments> .
+
+<http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog> a <http://www.w3.org/2004/02/skos/core#ConceptScheme> ;
+	<http://www.w3.org/2000/01/rdf-schema#label> "Mini code list for the representation of Programme Object Groups (POG) in Babbage Tests cra dataset"@en ;
+	<http://www.w3.org/2004/02/skos/core#hasTopConcept> <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P01+S100417> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+500207> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+S500003> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P13+S091105> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S120812> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S121211> , <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S121216> .

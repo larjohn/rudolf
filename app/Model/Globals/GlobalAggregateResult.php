@@ -742,7 +742,7 @@ class GlobalAggregateResult extends AggregateResult
 
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
-            $agBindings [] = "(sum($binding) AS $binding)";
+            $agBindings [] = "(sum($binding) AS {$binding}__)";
         }
         $agBindings[] = "(count(?observation) AS ?_count)";
 
@@ -782,7 +782,7 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
             foreach ($aggregateBindings as $aggregateBinding) {
-                $outerSelections[] = "(SUM($aggregateBinding) AS $aggregateBinding)";
+                $outerSelections[] = "(SUM($aggregateBinding) AS {$aggregateBinding}__)";
 
             }
         }
@@ -861,7 +861,7 @@ class GlobalAggregateResult extends AggregateResult
 
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
-            $agBindings [] = "(sum($binding) AS $binding)";
+            $agBindings [] = "(sum($binding) AS {$binding}__)";
         }
         $agBindings[] = "(count(?observation) AS ?_count)";
 
