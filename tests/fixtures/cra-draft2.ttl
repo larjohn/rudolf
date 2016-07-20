@@ -34,10 +34,10 @@ bbg-observation:cra-r1 a qb:Observation ;
 	bbg-dimension:name "cra-r1" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5116900" ;
+	bbg-dimension:population2006 5116900 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S121211> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2008> ;
-	obeu-measure:amount "12100000" ;
+	obeu-measure:amount 12100000 ;
 	obeu-optional:location "SCOTLAND" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -46,10 +46,10 @@ bbg-observation:cra-r10 a qb:Observation ;
 	bbg-dimension:name "cra-r10" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "7512400" ;
+	bbg-dimension:population2006 7512400 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+S500003> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2006> ;
-	obeu-measure:amount "1600000" ;
+	obeu-measure:amount 1600000 ;
 	obeu-optional:location "ENGLAND_London" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -58,10 +58,10 @@ bbg-observation:cra-r11 a qb:Observation ;
 	bbg-dimension:name "cra-r11" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "7512400" ;
+	bbg-dimension:population2006 7512400 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+S500003> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2007> ;
-	obeu-measure:amount "2900000" ;
+	obeu-measure:amount 2900000 ;
 	obeu-optional:location "ENGLAND_London" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -70,10 +70,10 @@ bbg-observation:cra-r12 a qb:Observation ;
 	bbg-dimension:name "cra-r12" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "7512400" ;
+	bbg-dimension:population2006 7512400 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+S500003> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2008> ;
-	obeu-measure:amount "1300000" ;
+	obeu-measure:amount 1300000 ;
 	obeu-optional:location "ENGLAND_London" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -82,10 +82,10 @@ bbg-observation:cra-r13 a qb:Observation ;
 	bbg-dimension:name "cra-r13" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "7512400" ;
+	bbg-dimension:population2006 7512400 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+S500003> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2009> ;
-	obeu-measure:amount "800000" ;
+	obeu-measure:amount 800000 ;
 	obeu-optional:location "ENGLAND_London" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -94,10 +94,10 @@ bbg-observation:cra-r14 a qb:Observation ;
 	bbg-dimension:name "cra-r14" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "7512400" ;
+	bbg-dimension:population2006 7512400 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+S500003> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2010> ;
-	obeu-measure:amount "500000" ;
+	obeu-measure:amount 500000 ;
 	obeu-optional:location "ENGLAND_London" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -106,10 +106,10 @@ bbg-observation:cra-r15 a qb:Observation ;
 	bbg-dimension:name "cra-r15" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5142400" ;
+	bbg-dimension:population2006 5142400 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+500207> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2009> ;
-	obeu-measure:amount "22400000" ;
+	obeu-measure:amount 22400000 ;
 	obeu-optional:location "ENGLAND_Yorkshire and The Humber" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -118,10 +118,10 @@ bbg-observation:cra-r16 a qb:Observation ;
 	bbg-dimension:name "cra-r16" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5142400" ;
+	bbg-dimension:population2006 5142400 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+500207> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2010> ;
-	obeu-measure:amount "-22400000" ;
+	obeu-measure:amount -22400000 ;
 	obeu-optional:location "ENGLAND_Yorkshire and The Humber" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -130,10 +130,10 @@ bbg-observation:cra-r17 a qb:Observation ;
 	bbg-dimension:name "cra-r17" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept047> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P13+S091105> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2003> ;
-	obeu-measure:amount "100000" ;
+	obeu-measure:amount 100000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -142,10 +142,10 @@ bbg-observation:cra-r18 a qb:Observation ;
 	bbg-dimension:name "cra-r18" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept047> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P13+S091105> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2007> ;
-	obeu-measure:amount "100000" ;
+	obeu-measure:amount 100000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -154,10 +154,10 @@ bbg-observation:cra-r19 a qb:Observation ;
 	bbg-dimension:name "cra-r19" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept047> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P13+S091105> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2008> ;
-	obeu-measure:amount "100000" ;
+	obeu-measure:amount 100000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -166,10 +166,10 @@ bbg-observation:cra-r2 a qb:Observation ;
 	bbg-dimension:name "cra-r2" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5116900" ;
+	bbg-dimension:population2006 5116900 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S121211> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2009> ;
-	obeu-measure:amount "12100000" ;
+	obeu-measure:amount 12100000 ;
 	obeu-optional:location "SCOTLAND" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -178,10 +178,10 @@ bbg-observation:cra-r20 a qb:Observation ;
 	bbg-dimension:name "cra-r20" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept047> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P13+S091105> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2009> ;
-	obeu-measure:amount "100000" ;
+	obeu-measure:amount 100000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -190,10 +190,10 @@ bbg-observation:cra-r21 a qb:Observation ;
 	bbg-dimension:name "cra-r21" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept047> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P13+S091105> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2010> ;
-	obeu-measure:amount "100000" ;
+	obeu-measure:amount 100000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -202,10 +202,10 @@ bbg-observation:cra-r22 a qb:Observation ;
 	bbg-dimension:name "cra-r22" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept022> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P01+S100417> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2004> ;
-	obeu-measure:amount "1500000" ;
+	obeu-measure:amount 1500000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -214,10 +214,10 @@ bbg-observation:cra-r23 a qb:Observation ;
 	bbg-dimension:name "cra-r23" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept022> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P01+S100417> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2005> ;
-	obeu-measure:amount "6900000" ;
+	obeu-measure:amount 6900000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -226,10 +226,10 @@ bbg-observation:cra-r24 a qb:Observation ;
 	bbg-dimension:name "cra-r24" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept022> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P01+S100417> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2006> ;
-	obeu-measure:amount "100000" ;
+	obeu-measure:amount 100000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -238,10 +238,10 @@ bbg-observation:cra-r25 a qb:Observation ;
 	bbg-dimension:name "cra-r25" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept022> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P01+S100417> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2007> ;
-	obeu-measure:amount "300000" ;
+	obeu-measure:amount 300000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -250,10 +250,10 @@ bbg-observation:cra-r26 a qb:Observation ;
 	bbg-dimension:name "cra-r26" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept022> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P01+S100417> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2008> ;
-	obeu-measure:amount "100000" ;
+	obeu-measure:amount 100000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -262,10 +262,10 @@ bbg-observation:cra-r27 a qb:Observation ;
 	bbg-dimension:name "cra-r27" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept022> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P01+S100417> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2009> ;
-	obeu-measure:amount "15800000" ;
+	obeu-measure:amount 15800000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -274,10 +274,10 @@ bbg-observation:cra-r28 a qb:Observation ;
 	bbg-dimension:name "cra-r28" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept022> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P01+S100417> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2010> ;
-	obeu-measure:amount "46000000" ;
+	obeu-measure:amount 46000000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -286,10 +286,10 @@ bbg-observation:cra-r29 a qb:Observation ;
 	bbg-dimension:name "cra-r29" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2003> ;
-	obeu-measure:amount "-167700000" ;
+	obeu-measure:amount -167700000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -298,10 +298,10 @@ bbg-observation:cra-r3 a qb:Observation ;
 	bbg-dimension:name "cra-r3" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5116900" ;
+	bbg-dimension:population2006 5116900 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S121211> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2010> ;
-	obeu-measure:amount "12100000" ;
+	obeu-measure:amount 12100000 ;
 	obeu-optional:location "SCOTLAND" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -310,10 +310,10 @@ bbg-observation:cra-r30 a qb:Observation ;
 	bbg-dimension:name "cra-r30" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2004> ;
-	obeu-measure:amount "-118300000" ;
+	obeu-measure:amount -118300000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -322,10 +322,10 @@ bbg-observation:cra-r31 a qb:Observation ;
 	bbg-dimension:name "cra-r31" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2005> ;
-	obeu-measure:amount "-94700000" ;
+	obeu-measure:amount -94700000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -334,10 +334,10 @@ bbg-observation:cra-r32 a qb:Observation ;
 	bbg-dimension:name "cra-r32" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2006> ;
-	obeu-measure:amount "-84100000" ;
+	obeu-measure:amount -84100000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -346,10 +346,10 @@ bbg-observation:cra-r33 a qb:Observation ;
 	bbg-dimension:name "cra-r33" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2007> ;
-	obeu-measure:amount "-51100000" ;
+	obeu-measure:amount -51100000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -358,10 +358,10 @@ bbg-observation:cra-r34 a qb:Observation ;
 	bbg-dimension:name "cra-r34" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2008> ;
-	obeu-measure:amount "-20600000" ;
+	obeu-measure:amount -20600000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -370,10 +370,10 @@ bbg-observation:cra-r35 a qb:Observation ;
 	bbg-dimension:name "cra-r35" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2009> ;
-	obeu-measure:amount "-25000000" ;
+	obeu-measure:amount -25000000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -382,10 +382,10 @@ bbg-observation:cra-r36 a qb:Observation ;
 	bbg-dimension:name "cra-r36" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/999> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5124100" ;
+	bbg-dimension:population2006 5124100 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/999999> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2010> ;
-	obeu-measure:amount "-47400000" ;
+	obeu-measure:amount -47400000 ;
 	obeu-optional:location "ENGLAND_South West" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -394,10 +394,10 @@ bbg-observation:cra-r4 a qb:Observation ;
 	bbg-dimension:name "cra-r4" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5366700" ;
+	bbg-dimension:population2006 5366700 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S120812> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2007> ;
-	obeu-measure:amount "27500000" ;
+	obeu-measure:amount 27500000 ;
 	obeu-optional:location "ENGLAND_West Midlands" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -406,10 +406,10 @@ bbg-observation:cra-r5 a qb:Observation ;
 	bbg-dimension:name "cra-r5" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5366700" ;
+	bbg-dimension:population2006 5366700 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S120812> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2008> ;
-	obeu-measure:amount "30400000" ;
+	obeu-measure:amount 30400000 ;
 	obeu-optional:location "ENGLAND_West Midlands" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -418,10 +418,10 @@ bbg-observation:cra-r6 a qb:Observation ;
 	bbg-dimension:name "cra-r6" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5366700" ;
+	bbg-dimension:population2006 5366700 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S120812> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2009> ;
-	obeu-measure:amount "31100000" ;
+	obeu-measure:amount 31100000 ;
 	obeu-optional:location "ENGLAND_West Midlands" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -430,10 +430,10 @@ bbg-observation:cra-r7 a qb:Observation ;
 	bbg-dimension:name "cra-r7" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5366700" ;
+	bbg-dimension:population2006 5366700 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S120812> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2010> ;
-	obeu-measure:amount "31800000" ;
+	obeu-measure:amount 31800000 ;
 	obeu-optional:location "ENGLAND_West Midlands" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -442,10 +442,10 @@ bbg-observation:cra-r8 a qb:Observation ;
 	bbg-dimension:name "cra-r8" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept032> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "5142400" ;
+	bbg-dimension:population2006 5142400 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P37+S121216> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2003> ;
-	obeu-measure:amount "-100000" ;
+	obeu-measure:amount -100000 ;
 	obeu-optional:location "ENGLAND_Yorkshire and The Humber" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .
 
@@ -454,9 +454,9 @@ bbg-observation:cra-r9 a qb:Observation ;
 	bbg-dimension:name "cra-r9" ;
 	bbg-dimension:organization <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/departments/Dept004> ;
 	bbg-dimension:partner <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/partners/society> ;
-	bbg-dimension:population2006 "7512400" ;
+	bbg-dimension:population2006 7512400 ;
 	bbg-dimension:programmeClassification <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra/codelist/pog/P07+S500003> ;
 	obeu-dimension:fiscalYear <http://reference.data.gov.uk/id/year/2005> ;
-	obeu-measure:amount "2100000" ;
+	obeu-measure:amount 2100000 ;
 	obeu-optional:location "ENGLAND_London" ;
 	qb:dataSet <http://data.openbudgets.eu/resource/dataset/babbage-tests/cra> .

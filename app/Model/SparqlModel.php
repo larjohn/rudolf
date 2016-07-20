@@ -150,7 +150,9 @@ class SparqlModel
                         $selectedBinding = $attributes[$selectedFieldName]["value"];
                     }
                     else if(isset($attributes[$selectedFieldName]["sum"])){
-                        $selectedBinding = $attributes[$selectedFieldName]["sum"]."__";
+                        $selectedBinding = $attributes[$selectedFieldName]["sum"];
+                        /* Support for variable scope with alternative binding name */
+                        $alternativeBinding = $attributes[$selectedFieldName]["sum"]."__";
                         $aggregateSuffix = ".sum";
 
                     }
@@ -159,6 +161,7 @@ class SparqlModel
 
                     }
                     if(isset($row->$selectedBinding))$value = $row->$selectedBinding;
+                    elseif(isset($alternativeBinding) && isset($row->$alternativeBinding))$value = $row->$alternativeBinding;
                     else continue;
 
                     if ($value instanceof EasyRdf_Literal ) {

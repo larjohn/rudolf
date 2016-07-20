@@ -389,7 +389,6 @@ class GlobalAggregateResult extends AggregateResult
 
 
         //////////////////////////////////////////////////////////////////////////////////////
-
         foreach ($drilldowns as $drilldown) {
             $drilldownElements = explode(".", $drilldown);
             foreach ($model->dimensions as $dimension) {
@@ -742,9 +741,9 @@ class GlobalAggregateResult extends AggregateResult
 
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
-            $agBindings [] = "(sum($binding) AS {$binding}__)";
+            $agBindings [] = "(SUM($binding) AS {$binding}__)";
         }
-        $agBindings[] = "(count(?observation) AS ?_count)";
+        $agBindings[] = "(COUNT(?observation) AS ?_count)";
 
         $drldnBindings = [];
 
@@ -782,7 +781,7 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
             foreach ($aggregateBindings as $aggregateBinding) {
-                $outerSelections[] = "(SUM($aggregateBinding) AS {$aggregateBinding}__)";
+                $outerSelections[] = "(SUM({$aggregateBinding}__) AS {$aggregateBinding})";
 
             }
         }
@@ -861,9 +860,9 @@ class GlobalAggregateResult extends AggregateResult
 
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
-            $agBindings [] = "(sum($binding) AS {$binding}__)";
+            $agBindings [] = "(SUM($binding) AS {$binding}__)";
         }
-        $agBindings[] = "(count(?observation) AS ?_count)";
+        $agBindings[] = "(COUNT(?observation) AS ?_count)";
 
         if (!empty($dimensionPatterns))
             $queryBuilder
@@ -1125,7 +1124,7 @@ class GlobalAggregateResult extends AggregateResult
 
         $rate = $this->getRate($sourceCurrency, $targetCurrency, $year);
 
-        /** @var SparqlPattern $patterns */
+        /** @var SparqlPattern[] $patterns */
         $patterns = [];
 
         if ($sourceCurrency == 'EUR' && $targetCurrency == 'EUR') {

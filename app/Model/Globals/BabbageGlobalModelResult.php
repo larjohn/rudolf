@@ -68,8 +68,9 @@ class BabbageGlobalModelResult extends BabbageModelResult
         );
         /** @var EasyRdf_Sparql_Result $result */
         $propertiesSparqlResult = $this->rdfResultsToArray($propertiesSparqlResult);
-       // dd($propertiesSparqlResult);
         foreach ($propertiesSparqlResult as $property) {
+            if(!isset($property["attribute"])||!isset($property["propertyType"]))continue;
+
             $attribute = $property["attribute"];
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
             $subQuery = $queryBuilder->newSubquery();
@@ -110,7 +111,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     $newMeasure->setDataSet($property["dataset"]);
                     $newMeasure->label = $property["label"] . (isset($property["datasetLabel"]) ? " (" . $property["datasetLabel"] . ")" : " (" . $property["datasetName"] . ")");
                     $newMeasure->setDataSetFiscalYear(isset($property["year"])?$this->convertYear($property["year"]):date("Y"));
-                    $newMeasure->currency = $this->convertCurrency($property["currency"]);
+                    $newMeasure->currency = isset($property["currency"])?$this->convertCurrency($property["currency"]):"EUR";
                     $newMeasure->orig_measure = $property["shortName"];;// $attribute;
                     Cache::forget($property["datasetName"] . "__" . $property["shortName"]);
                     Cache::forever($property["datasetName"] . "__" . $property["shortName"], $newMeasure);
@@ -460,7 +461,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
                 }
 
-                $newAggregate->label = $measure->label . ' ' . $function;
+                $newAggregate->label = $measure->label;
                 $newAggregate->ref = $measure->ref . '.' . $function;
                 $newAggregate->measure = $measure->ref;
                 $newAggregate->function = $function;

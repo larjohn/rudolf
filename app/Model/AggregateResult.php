@@ -356,13 +356,20 @@ class AggregateResult extends SparqlModel
                 $queryBuilder->orderBy("?".$sorter->property, strtoupper($sorter->direction));
                 continue;
             }
+            if(in_array($sorter->property,$aggregates)){
+                $queryBuilder->orderBy($sorter->binding."__", strtoupper($sorter->direction));
 
-            $queryBuilder->orderBy($sorter->binding, strtoupper($sorter->direction));
+            }
+            else{
+                $queryBuilder->orderBy($sorter->binding, strtoupper($sorter->direction));
+
+            }
         }
        /* $queryBuilder
             ->orderBy("?observation");*/
 
 
+       // echo $queryBuilder->format();DIE;
 
         // die;
         /** @var EasyRdf_Sparql_Result $result */
@@ -371,7 +378,6 @@ class AggregateResult extends SparqlModel
         );
         Log::info($queryBuilder->format());
 
-       // echo $queryBuilder->format();DIE;
        // echo($result->dump());
 //dd($selectedPatterns);
         //dd($attributes);
@@ -430,9 +436,9 @@ class AggregateResult extends SparqlModel
 
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
-            $agBindings [] = "(sum($binding) AS {$binding}__)";
+            $agBindings [] = "(SUM($binding) AS {$binding}__)";
         }
-        $agBindings[]="(count(?observation) AS ?_count)";
+        $agBindings[]="(COUNT(?observation) AS ?_count)";
 
         $drldnBindings = [];
 
@@ -488,9 +494,9 @@ class AggregateResult extends SparqlModel
 
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
-            $agBindings [] = "(sum($binding) AS {$binding}__)";
+            $agBindings [] = "(SUM($binding) AS {$binding}__)";
         }
-       $agBindings[]="(count(?observation) AS ?_count)";
+       $agBindings[]="(COUNT(?observation) AS ?_count)";
 
 
 

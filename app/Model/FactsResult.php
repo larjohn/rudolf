@@ -189,7 +189,7 @@ class FactsResult extends SparqlModel
         $patterns[] = new TriplePattern('?observation', 'qb:dataSet', "<$dataset>");
 
 
-        $queryBuilderC = $this->build(["(count(?observation) as ?_count)"], $patterns,$finalFilters );
+        $queryBuilderC = $this->build(["(COUNT(?observation) AS ?_count)"], $patterns,$finalFilters );
         /** @var EasyRdf_Sparql_Result $countResult */
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()

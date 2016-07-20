@@ -62,6 +62,8 @@ class SearchResult extends SparqlModel
         //dd($propertiesSparqlResult);
         $packages = [];
         foreach ($propertiesSparqlResult as $property) {
+            if(!isset($property["attribute"])||!isset($property["propertyType"]))continue;
+
             if(!isset($packages[$property["dataset"]])){
                 $packages[$property["dataset"]] = new BabbageModelResult("");
                 $packages[$property["dataset"]]->id = preg_replace("/^.*(#|\/)/", "", $property["dataset"])."__" . substr(md5($property["dataset"]),0,5) ;

@@ -4,7 +4,7 @@ use Illuminate\Foundation\Testing\WithoutMiddleware;
 use Illuminate\Foundation\Testing\DatabaseMigrations;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 
-class ExampleTest extends TestCase
+class ParserTest extends TestCase
 {
 
     /**
@@ -14,6 +14,8 @@ class ExampleTest extends TestCase
      */
     public function testBasicExample()
     {
+        $parser = new App\Model\Parsers\Parser();
+        $parser->parse("foo:bar");
         $this->json("GET","api/3/cubes")->assertResponseOk();
 
     }

@@ -79,8 +79,6 @@ class BabbageModelResult extends SparqlModel
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
-
-
         $queryBuilder
             ->selectDistinct('?attribute', '?label', '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName")
             ->where("?dsd", 'qb:component', '?component')
@@ -158,7 +156,7 @@ class BabbageModelResult extends SparqlModel
 
                 foreach (Aggregate::$functions as $function) {
                     $newAggregate = new Aggregate();
-                    $newAggregate->label = $newMeasure->ref . ' ' . $function;
+                    $newAggregate->label = $newMeasure->ref ;
                     $newAggregate->ref = $newMeasure->ref.'.'.$function;
                     $newAggregate->measure = $newMeasure->ref;
                     $newAggregate->function = $function;
