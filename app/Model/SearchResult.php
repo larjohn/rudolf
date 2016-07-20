@@ -13,6 +13,7 @@ use App\Model\Globals\BabbageGlobalModelResult;
 use Asparagus\QueryBuilder;
 use Cache;
 use EasyRdf_Sparql_Result;
+use Log;
 
 class SearchResult extends SparqlModel
 {
@@ -102,6 +103,7 @@ class SearchResult extends SparqlModel
                         $queryBuilder->getSPARQL()
                     );
                     /** @var EasyRdf_Sparql_Result $result */
+                    Log::info($subSubQuery->format());
 
                     $subResults = $this->rdfResultsToArray($subResult);
                     $newMeasure->setUri($attribute);
