@@ -13,7 +13,7 @@ class PackageResult extends SparqlModel
 {
 
 
-    public $__origin_url;
+    public $origin_url;
 
     public $author;
 

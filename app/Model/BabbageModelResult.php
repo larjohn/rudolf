@@ -188,7 +188,7 @@ class BabbageModelResult extends SparqlModel
 
                 $newDimension = new Dimension();
                 $newDimension->label =  $property["label"];
-                //$newDimension->cardinality_class = $this->getCardinality($property["cardinality"]);
+                $newDimension->cardinality_class = "";// $this->getCardinality($property["cardinality"]);
                 $newDimension->ref= $property["shortName"];
                 $newDimension->orig_dimension= $property["shortName"];
                 $newDimension->setUri($attribute);

@@ -241,6 +241,7 @@ class SearchResult extends SparqlModel
             $countAggregate->function = "count";
             $countAggregate->ref = "_count";
             $package->model->aggregates["_count"] = $countAggregate;
+            $package->origin_url = "http://openbudgets.eu";
         }
 
 

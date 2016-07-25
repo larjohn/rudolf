@@ -40,5 +40,5 @@ Route::get("api/{ver?}/cubes/{name}/aggregate", ["as"=>"api.cubes.aggregates", "
 
 Route::get("api/{ver?}/info/global/package", ["as"=>"api.info.package", "uses"=>"Api\\PackageController@global"]);
 Route::get("api/{ver?}/info/{name}/package", ["as"=>"api.info.package", "uses"=>"Api\\PackageController@index"]);
-Route::get("permit/lib", "PermitController@lib" );
+Route::get("user/lib", "PermitController@lib" );
 Route::get("search/package", "SearchController@index" );

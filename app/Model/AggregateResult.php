@@ -36,7 +36,16 @@ class AggregateResult extends SparqlModel
 
         $this->page = $page;
         $this->page_size = min($page_size,1000);
-        $this->aggregates = $aggregates;
+
+        if(count($aggregates)<1||$aggregates[0]==""){
+
+            $aggregates = [];
+
+        }
+
+
+            $this->aggregates = $aggregates;
+
         $this->cell = [];
         $sorters = [];
         foreach ($orders as $order) {
@@ -72,6 +81,8 @@ class AggregateResult extends SparqlModel
                 }
             }
         }
+        $this->aggregates = $aggregates;
+        $this->aggregates[] = "_count";
 
         // return $facts;
         $selectedAggregates = $this->modelFieldsToPatterns($model,$aggregates);
@@ -413,17 +424,18 @@ class AggregateResult extends SparqlModel
             elseif($dimensionPattern instanceof SubPattern){
                 $subGraph = $queryBuilder->newSubgraph();
 
-                foreach($dimensionPattern->patterns as $pattern){
+                 foreach($dimensionPattern->patterns as $pattern){
+                     $queryBuilder->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
 
-                    if($pattern->isOptional){
-                        $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
-                    else{
-                        $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
-                }
+                     /*     if($pattern->isOptional){
+                            $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                        }
+                        else{
+                            $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                        }*/
+                   }
 
-                $queryBuilder->optional($subGraph);
+                  // $queryBuilder->optional($subGraph);
             }
         }
 
@@ -473,16 +485,17 @@ class AggregateResult extends SparqlModel
                 $subGraph = $queryBuilder->newSubgraph();
 
                 foreach($dimensionPattern->patterns as $pattern){
+                    $queryBuilder->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
 
-                    if($pattern->isOptional){
+                   /* if($pattern->isOptional){
                         $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
                     }
                     else{
                         $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
+                    }*/
                 }
 
-                $queryBuilder->optional($subGraph);
+                //$queryBuilder->optional($subGraph);
             }
         }
 
@@ -526,13 +539,14 @@ class AggregateResult extends SparqlModel
                 $subGraph = $subQuery->newSubgraph();
 
                 foreach($dimensionPattern->patterns as $pattern){
+                    $subQuery->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
 
-                    if($pattern->isOptional){
+                  /*  if($pattern->isOptional){
                         $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
                     }
                     else{
                         $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
+                    }*/
                 }
 
                 $subQuery->optional($subGraph);
