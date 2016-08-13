@@ -148,6 +148,8 @@ class SparqlModel
                     $aggregateSuffix = "";
                     if (isset($attributes[$selectedFieldName]["value"])) {
                         $selectedBinding = $attributes[$selectedFieldName]["value"];
+                        $alternativeBinding = $attributes[$selectedFieldName]["value"]."_";
+
                     }
                     else if(isset($attributes[$selectedFieldName]["sum"])){
                         $selectedBinding = $attributes[$selectedFieldName]["sum"];
@@ -158,6 +160,7 @@ class SparqlModel
                     }
                     else {
                         $selectedBinding = $attributes[$selectedFieldName]["uri"];
+                        $alternativeBinding = $attributes[$selectedFieldName]["uri"]."_";
 
                     }
                     if(isset($row->$selectedBinding))$value = $row->$selectedBinding;
@@ -185,8 +188,14 @@ class SparqlModel
                 else{
                     foreach ($selectedField as $subPropertyName=>$subProperty){
                         $selectedBinding = $attributes[$selectedFieldName][$subPropertyName];
-                        if(!isset($row->$selectedBinding))continue;
-                        $value = $row->$selectedBinding;
+                        if(!isset($row->$selectedBinding)){
+
+                            if(!isset($row->{"{$selectedBinding}_"}))
+                                continue;
+                            $value = $row->{"{$selectedBinding}_"};
+                        }
+                        else
+                            $value = $row->$selectedBinding;
 
                         if ($value instanceof EasyRdf_Literal ) {
                             /** @var EasyRdf_Literal $value */

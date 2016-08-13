@@ -743,13 +743,13 @@ class GlobalAggregateResult extends AggregateResult
         foreach ($aggregateBindings as $binding) {
             $agBindings [] = "(SUM($binding) AS {$binding}__)";
         }
-        $agBindings[] = "(COUNT(?observation) AS ?_count)";
+        $agBindings[] = "(COUNT(?observation) AS ?count)";
 
         $drldnBindings = [];
 
         foreach ($drilldownBindings as $dataset => $bindings) {
             foreach ($bindings as $binding) {
-                $drldnBindings [] = "$binding";
+                $drldnBindings [] = "{$binding}";
 
             }
         }
@@ -764,20 +764,20 @@ class GlobalAggregateResult extends AggregateResult
 
         $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
         foreach ($flatParentBindings as $flatParentBinding) {
-            $queryBuilder->filterNotExists($queryBuilder->newSubgraph()->where($flatParentBinding . "_", "(skos:similar|^skos:similar)*",
-                "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "_)"));
+            $queryBuilder->filterNotExists($queryBuilder->newSubgraph()->where($flatParentBinding . "__", "(skos:similar|^skos:similar)",
+                "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "__)"));
         }
 
         $outerSelections = [];
         $outerGroupings = [];
         if (count($dimensionPatterns) > 0) {
             foreach ($parentDrilldownBindings as $parentBinding => $childrenBindings) {
-                $queryBuilder->where($parentBinding, "(skos:similar|^skos:similar)*", $parentBinding . "_");
+                $queryBuilder->where($parentBinding, "(skos:similar|^skos:similar)?", $parentBinding . "__");
                 $innerGraph->orderBy($parentBinding, "ASC");
-                $outerSelections[] = "(" . $parentBinding . "_ AS $parentBinding)";
-                $outerGroupings[] = $parentBinding . "_";
+                $outerSelections[] = "(" . $parentBinding . "__ AS {$parentBinding}_)";
+                $outerGroupings[] = $parentBinding . "__";
                 foreach (array_unique($childrenBindings) as $childrenBinding) {
-                    $outerSelections[] = "(MAX($childrenBinding) AS $childrenBinding)";
+                    $outerSelections[] = "(MAX({$childrenBinding}) AS {$childrenBinding}_)";
                 }
             }
             foreach ($aggregateBindings as $aggregateBinding) {
@@ -786,13 +786,13 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 
-        $outerSelections[] = "(SUM(?_count) AS ?_count)";
+        $outerSelections[] = "(SUM(?count) AS ?_count)";
         $queryBuilder->selectDistinct($outerSelections);
         if (!empty($outerGroupings))
             $queryBuilder->groupBy(array_unique(array_merge($outerGroupings, array_flatten($sorterBindings))));
         $queryBuilder->subquery($innerGraph);
 
-        //echo $queryBuilder->format();die;
+      // echo $queryBuilder->format();die;
         return $queryBuilder;
 
     }
@@ -862,7 +862,7 @@ class GlobalAggregateResult extends AggregateResult
         foreach ($aggregateBindings as $binding) {
             $agBindings [] = "(SUM($binding) AS {$binding}__)";
         }
-        $agBindings[] = "(COUNT(?observation) AS ?_count)";
+        $agBindings[] = "(COUNT(?observation) AS ?count)";
 
         if (!empty($dimensionPatterns))
             $queryBuilder
@@ -929,7 +929,7 @@ class GlobalAggregateResult extends AggregateResult
 
         $agBindings = [];
 
-        $agBindings[] = "(count(?observation) AS ?_count)";
+        $agBindings[] = "(count(?observation) AS ?count)";
         if (count($parentDrilldownBindings) > 0 && count($dimensionPatterns) > 0) {
             $innerGraph->groupBy(array_keys($parentDrilldownBindings));
         }
@@ -941,18 +941,18 @@ class GlobalAggregateResult extends AggregateResult
         //   echo $innerGraph->format();die;
         $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
         foreach ($flatParentBindings as $flatParentBinding) {
-            $midGraph->filterNotExists($midGraph->newSubgraph()->where($flatParentBinding . "_", "(skos:similar|^skos:similar)*",
-                "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "_)"));
+            $midGraph->filterNotExists($midGraph->newSubgraph()->where($flatParentBinding . "__", "(skos:similar|^skos:similar)?",
+                "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "__)"));
         }
 
         $outerSelections = [];
         $outerGroupings = [];
         if (count($dimensionPatterns) > 0) {
             foreach ($parentDrilldownBindings as $parentBinding => $childrenBindings) {
-                $midGraph->where($parentBinding, "(skos:similar|^skos:similar)*", $parentBinding . "_");
+                $midGraph->where($parentBinding, "(skos:similar|^skos:similar)", $parentBinding . "__");
 
-                $outerSelections[] = "(" . $parentBinding . "_ AS $parentBinding)";
-                $outerGroupings[] = $parentBinding . "_";
+                $outerSelections[] = "(" . $parentBinding . "__ AS {$parentBinding}_)";
+                $outerGroupings[] = $parentBinding . "__";
 
             }
         }

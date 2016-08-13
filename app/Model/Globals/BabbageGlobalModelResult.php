@@ -23,7 +23,6 @@ use EasyRdf_Sparql_Result;
 
 class BabbageGlobalModelResult extends BabbageModelResult
 {
-    public $id;
 
     public function __construct()
     {

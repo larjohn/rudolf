@@ -199,9 +199,10 @@ class GlobalMembersResult extends SparqlModel
         $innerQuery->selectDistinct(["?_key", "?_value", "?_notation"]);
         $innerQuery->filterNotExists($innerQuery->newSubgraph()->where("?key", "(skos:similar|^skos:similar)", "?elem_")->filter("str(?elem_) < str(?key )"));
         $queryBuilder->subquery($innerQuery);
-        $queryBuilder->select(["(SAMPLE(?_key) AS ?key)", "(GROUP_CONCAT(?_value  ; separator='/') AS ?value)", "(GROUP_CONCAT(?_notation; separator='/') AS ?notation)"]);
+        $queryBuilder->select(["(?_key AS ?key)", "(GROUP_CONCAT(?_value  ; separator='/') AS ?value)", "(GROUP_CONCAT(?_notation; separator='/') AS ?notation)"]);
         $queryBuilder->limit($page_size);
         $queryBuilder->offset($page * $page_size);
+        $queryBuilder->groupBy("?_key");
         //echo $queryBuilder->format();die;
 
         $result = $this->sparql->query(
