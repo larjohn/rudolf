@@ -110,7 +110,7 @@ class SearchResult extends SparqlModel
 
                     $newMeasure->ref = $property["shortName"];
                     $newMeasure->column = $property["shortName"];// $attribute;
-                    $newMeasure->label = $property["label"];
+                    $newMeasure->label = isset($property["label"])?$property["label"]:$property["shortName"];
                     $newMeasure->orig_measure = $property["shortName"];;// $attribute;
                     $packages[$property["dataset"]]->model->measures[$property["shortName"]] = $newMeasure;
 
@@ -153,7 +153,7 @@ class SearchResult extends SparqlModel
                     //echo($queryBuilder->format());
 
                     $newDimension = new Dimension();
-                    $newDimension->label =  $property["label"];
+                    $newDimension->label =  isset($property["label"])?$property["label"]:$property["shortName"];
                     //$newDimension->cardinality_class = $this->getCardinality($property["cardinality"]);
                     $newDimension->ref= $property["shortName"];
                     $newDimension->orig_dimension= $property["shortName"];
@@ -197,7 +197,7 @@ class SearchResult extends SparqlModel
                         $selfAttribute->ref = $property["shortName"].".".$property["shortName"];
                         $selfAttribute->column = $attribute;
                         $selfAttribute->datatype = isset($property["dataType"])? $this->flatten_data_type($property["dataType"]):"string";
-                        $selfAttribute->label = $property["label"];
+                        $selfAttribute->label = isset($property["label"])?$property["label"]:$property["shortName"];
                         $selfAttribute->orig_attribute =  /*$property["shortName"].".".*/$property["shortName"];
                         $selfAttribute->setUri($attribute);
                         $newDimension->attributes[$property["shortName"]] = $selfAttribute;

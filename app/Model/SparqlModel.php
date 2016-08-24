@@ -263,6 +263,7 @@ class SparqlModel
 
                 if(count($path)>1){
                     if($path[0]==$path[1]){
+
                         return $result;
                     }
                     foreach ($dimension->attributes as $attributeName=>$attribute){

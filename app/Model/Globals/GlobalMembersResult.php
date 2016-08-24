@@ -197,7 +197,7 @@ class GlobalMembersResult extends SparqlModel
             return $innerQuery->newSubgraph()->subquery($subQueryBuilder);
         }, $subQueryBuilders));
         $innerQuery->selectDistinct(["?_key", "?_value", "?_notation"]);
-        $innerQuery->filterNotExists($innerQuery->newSubgraph()->where("?key", "(skos:similar|^skos:similar)", "?elem_")->filter("str(?elem_) < str(?key )"));
+     //   $innerQuery->filterNotExists($innerQuery->newSubgraph()->where("?key", "(skos:similar|^skos:similar)", "?elem_")->filter("str(?elem_) < str(?key )"));
         $queryBuilder->subquery($innerQuery);
         $queryBuilder->select(["(?_key AS ?key)", "(GROUP_CONCAT(?_value  ; separator='/') AS ?value)", "(GROUP_CONCAT(?_notation; separator='/') AS ?notation)"]);
         $queryBuilder->limit($page_size);
@@ -216,6 +216,7 @@ class GlobalMembersResult extends SparqlModel
         // dd($selectedPatterns);
         // dd($selectedPatterns);
         $results = [];
+       // dd($result);
         //dd($actualDimension);
         foreach ($result as $row) {
             if (!isset($row->key)) continue;
@@ -228,8 +229,34 @@ class GlobalMembersResult extends SparqlModel
 
                 }
             }
-            else $key = $row->key;
-            $results[] = [$actualDimension->key_ref => $key, $actualDimension->label_ref => $row->value->getValue()];
+            else {
+                if($row->key instanceof EasyRdf_Resource){
+                    $key = $row->key->dumpValue("text");
+                }
+                else{
+                    $key = $row->key->getValue();
+
+                }
+            }
+            if(isset($row->value)){
+                if($row->value instanceof EasyRdf_Resource){
+                    $value = $row->value->dumpValue("text");
+                }
+                else{
+                    $value = $row->value->getValue();
+
+                }
+            }
+            else {
+                if($row->key instanceof EasyRdf_Resource){
+                    $value = $row->key->dumpValue("text");
+                }
+                else{
+                    $value = $row->key->getValue();
+
+                }
+            }
+            $results[] = [$actualDimension->key_ref => $key, $actualDimension->label_ref => $value];
         }
 
 

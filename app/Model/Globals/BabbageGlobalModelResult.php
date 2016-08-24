@@ -67,6 +67,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
         );
         /** @var EasyRdf_Sparql_Result $result */
         $propertiesSparqlResult = $this->rdfResultsToArray($propertiesSparqlResult);
+        //echo(json_encode($propertiesSparqlResult));die;
+
         foreach ($propertiesSparqlResult as $property) {
             if(!isset($property["attribute"])||!isset($property["propertyType"]))continue;
 
@@ -108,7 +110,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     $newMeasure->ref = $property["datasetName"] . "__" . $property["shortName"];
                     $newMeasure->column = $property["shortName"];// $attribute;
                     $newMeasure->setDataSet($property["dataset"]);
-                    $newMeasure->label = $property["label"] . (isset($property["datasetLabel"]) ? " (" . $property["datasetLabel"] . ")" : " (" . $property["datasetName"] . ")");
+                    $newMeasure->label = (isset($property["label"])?$property["label"]:$property["shortName"]) . (isset($property["datasetLabel"]) ? " (" . $property["datasetLabel"] . ")" : " (" . $property["datasetName"] . ")");
                     $newMeasure->setDataSetFiscalYear(isset($property["year"])?$this->convertYear($property["year"]):date("Y"));
                     $newMeasure->currency = isset($property["currency"])?$this->convertCurrency($property["currency"]):"EUR";
                     $newMeasure->orig_measure = $property["shortName"];;// $attribute;
@@ -140,8 +142,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
                     $newDimension = new Dimension();
                     $newDimension->setDataSet($property["dataset"]);
-
-                    $newDimension->label = $property["label"] . " (" . $property["datasetName"] . ")";
+                    $newDimension->label = (isset($property["label"])?$property["label"]:$property["shortName"]) . " (" . $property["datasetName"] . ")";
                     //$newDimension->cardinality_class = $this->getCardinality($property["cardinality"]);
                     $newDimension->ref = $property["datasetName"] . "__" . $property["shortName"];
                     $newDimension->orig_dimension = $property["shortName"];
@@ -174,7 +175,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $selfAttribute->ref = $property["shortName"] . "." . $property["shortName"];
                         $selfAttribute->column = $attribute;
                         $selfAttribute->datatype = isset($property["dataType"]) ? $this->flatten_data_type($property["dataType"]) : "string";
-                        $selfAttribute->label = $property["label"];
+                        $selfAttribute->label = isset($property["label"])?$property["label"]:$property["shortName"];
                         $selfAttribute->orig_attribute =  /*$property["shortName"].".".*/
                             $property["shortName"];
                         $selfAttribute->setUri($attribute);

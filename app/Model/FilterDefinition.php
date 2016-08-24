@@ -18,7 +18,7 @@ class FilterDefinition
 
     public function __construct($cut)
     {
-        $values = explode(":", $cut);
+        $values = explode(":", $cut,2);
         $this->property = $values[0];
         $this->value = $values[1];
     }
