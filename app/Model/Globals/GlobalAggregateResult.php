@@ -736,15 +736,16 @@ class GlobalAggregateResult extends AggregateResult
             $datasetQuery->where("?observation", "qb:dataSet", "<$dataset>");
             $datasetQueries [$dataset] = $datasetQuery;
 
-            foreach ($filterMap[$dataset] as $attributeFilterSet) {
-                foreach ($attributeFilterSet as $filter) {
-                    $filter->value = trim($filter->value, '"');
-                    $filter->value = trim($filter->value, "'");
+            if (isset($filterMap[$dataset]))
+                foreach ($filterMap[$dataset] as $attributeFilterSet) {
+                    foreach ($attributeFilterSet as $filter) {
+                        $filter->value = trim($filter->value, '"');
+                        $filter->value = trim($filter->value, "'");
 
-                    $datasetQuery->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                        $datasetQuery->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                    }
+
                 }
-
-            }
             //var_dump($datasetQuery->format());
         }
 
@@ -863,15 +864,16 @@ class GlobalAggregateResult extends AggregateResult
             $datasetQuery->where("?observation", "qb:dataSet", "<$dataset>");
             $datasetQueries [$dataset] = $datasetQuery;
 
-            foreach ($filterMap[$dataset] as $attributeFilterSet) {
-                foreach ($attributeFilterSet as $filter) {
-                    $filter->value = trim($filter->value, '"');
-                    $filter->value = trim($filter->value, "'");
+            if (isset($filterMap[$dataset]))
+                foreach ($filterMap[$dataset] as $attributeFilterSet) {
+                    foreach ($attributeFilterSet as $filter) {
+                        $filter->value = trim($filter->value, '"');
+                        $filter->value = trim($filter->value, "'");
 
-                    $datasetQuery->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                        $datasetQuery->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                    }
+
                 }
-
-            }
         }
 
         $queryBuilder->union(array_map(function (QueryBuilder $subQueryBuilder) use ($queryBuilder) {
@@ -937,16 +939,16 @@ class GlobalAggregateResult extends AggregateResult
             $datasetQuery->where("?observation", "qb:dataSet", "<$dataset>");
             // echo $datasetQuery->format();die;
             $datasetQueries [$dataset] = $datasetQuery;
+            if (isset($filterMap[$dataset]))
+                foreach ($filterMap[$dataset] as $attributeFilterSet) {
+                    foreach ($attributeFilterSet as $filter) {
+                        $filter->value = trim($filter->value, '"');
+                        $filter->value = trim($filter->value, "'");
 
-            foreach ($filterMap[$dataset] as $attributeFilterSet) {
-                foreach ($attributeFilterSet as $filter) {
-                    $filter->value = trim($filter->value, '"');
-                    $filter->value = trim($filter->value, "'");
+                        $datasetQuery->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                    }
 
-                    $datasetQuery->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
                 }
-
-            }
         }
 
         $innerGraph->union(array_map(function (QueryBuilder $subQueryBuilder) use ($innerGraph) {
