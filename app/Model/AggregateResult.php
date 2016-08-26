@@ -149,7 +149,7 @@ class AggregateResult extends SparqlModel
             }
             if (isset($filterMap[$dimension->getUri()])) {
                 $selectedFilterDimensions[$dimension->getUri()] = $dimension;
-                $filterBindings[$dimension->getUri()] = "?$bindingName";
+                $filterBindings[$dimension->getUri()] = "?{$bindingName}__filter";
 
             }
 
@@ -225,15 +225,20 @@ class AggregateResult extends SparqlModel
                 //dd($dimensionPatterns);
                 //if(!is_array($dimensionPatterns)) continue;
                 foreach ($dimensionPatterns as $patternName => $dimensionPattern) {
+
                     $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"] . "_" . substr(md5($patternName), 0, 5);
                     $filterBindings[] = $filterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5);
                     if (is_array($filterMap[$attribute]) && isset($filterMap[$attribute][$patternName])) {
+                        if(isset($filterMap[$attribute][$patternName]->transitivity)){
+                            $transitivity =  $filterMap[$attribute][$patternName]->transitivity;
+                        }
+                        else $transitivity = null;
                         $filterMap[$attribute][$patternName]->binding = $filterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5);
                         $finalFilters[] = $filterMap[$attribute][$patternName];
                         if (isset($attachment) && $attachment == "qb:Slice") {
-                            $sliceSubGraph->add(new TriplePattern($filterBindings[$attribute], $patternName, $filterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false));
+                            $sliceSubGraph->add(new TriplePattern($filterBindings[$attribute], $patternName, $filterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false, $transitivity));
                         } else {
-                            $patterns [] = new TriplePattern($filterBindings[$attribute], $patternName, $filterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false);
+                            $patterns [] = new TriplePattern($filterBindings[$attribute], $patternName, $filterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false, $transitivity);
 
                         }
 
@@ -374,7 +379,7 @@ class AggregateResult extends SparqlModel
              ->orderBy("?observation");*/
 
 
-       // echo $queryBuilder->format();        DIE;
+        //echo $queryBuilder->format();        DIE;
 
         // die;
         /** @var EasyRdf_Sparql_Result $result */
@@ -410,15 +415,15 @@ class AggregateResult extends SparqlModel
         foreach ($dimensionPatterns as $dimensionPattern) {
             if ($dimensionPattern instanceof TriplePattern) {
                 if ($dimensionPattern->isOptional) {
-                    $queryBuilder->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                    $queryBuilder->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                 } else {
-                    $queryBuilder->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                    $queryBuilder->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                 }
             } elseif ($dimensionPattern instanceof SubPattern) {
                 $subGraph = $queryBuilder->newSubgraph();
 
                 foreach ($dimensionPattern->patterns as $pattern) {
-                    $queryBuilder->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                    $queryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
 
                     /*     if($pattern->isOptional){
                            $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
@@ -468,15 +473,15 @@ class AggregateResult extends SparqlModel
         foreach ($dimensionPatterns as $dimensionPattern) {
             if ($dimensionPattern instanceof TriplePattern) {
                 if ($dimensionPattern->isOptional) {
-                    $queryBuilder->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                    $queryBuilder->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                 } else {
-                    $queryBuilder->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                    $queryBuilder->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                 }
             } elseif ($dimensionPattern instanceof SubPattern) {
                 $subGraph = $queryBuilder->newSubgraph();
 
                 foreach ($dimensionPattern->patterns as $pattern) {
-                    $queryBuilder->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                    $queryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
 
                     /* if($pattern->isOptional){
                          $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
@@ -519,15 +524,15 @@ class AggregateResult extends SparqlModel
         foreach ($dimensionPatterns as $dimensionPattern) {
             if ($dimensionPattern instanceof TriplePattern) {
                 if ($dimensionPattern->isOptional) {
-                    $subQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                    $subQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                 } else {
-                    $subQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                    $subQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                 }
             } elseif ($dimensionPattern instanceof SubPattern) {
                 $subGraph = $subQuery->newSubgraph();
 
                 foreach ($dimensionPattern->patterns as $pattern) {
-                    $subQuery->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                    $subQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
 
                     /*  if($pattern->isOptional){
                           $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);

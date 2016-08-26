@@ -330,7 +330,7 @@ class GlobalAggregateResult extends AggregateResult
                 $valueAttributeLabel = "uri";
                 $attributes[$innerDimension->getDataSet()][$innerDimension->getUri()][$valueAttributeLabel] = $bindingName;
                 $selectedFilterDimensions[$innerDimension->getDataSet()][$innerDimension->getUri()] = $innerDimension;
-                $filterBindings[$innerDimension->getDataSet()][$innerDimension->getUri()] = "?$bindingName";
+                $filterBindings[$innerDimension->getDataSet()][$innerDimension->getUri()] = "?{$bindingName}__filter";
                 $datasetURI = $innerDimension->getDataSet();
                 if (isset($sliceSubGraphs[$datasetURI][$foundDimension->getUri()]) && isset($sliceSubGraphs[$datasetURI][$foundDimension->getUri()][0]))
                     $sliceSubGraph = $sliceSubGraphs[$datasetURI][$foundDimension->getUri()][0];
@@ -373,17 +373,25 @@ class GlobalAggregateResult extends AggregateResult
                         $filterMap[$datasetURI][$attribute][$attribute]->binding = $filterBindings[$datasetURI][$attribute];
                     }
                     foreach ($dimensionPatterns as $patternName => $dimensionPattern) {
+                        /** @var FilterDefinition $filter */
+                        if(isset($filter->transitivity)){
+                            $transitivity =  $filter->transitivity;
+                        }
+                        else $transitivity = null;
+
+                       // dd($patternPredicate);
+
                         $attributes[$datasetURI][$attribute][$patternName] = $attributes[$datasetURI][$attribute]["uri"] . "_" . substr(md5($patternName), 0, 5);
                         $filterBindings[$datasetURI][] = $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
                         $filterMap[$datasetURI][$attribute][$patternName]->binding = $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
                         $finalFilters[$filterName] = $filterMap[$datasetURI][$attribute][$patternName];
 
                         if (isset($attachment) && $attachment == "qb:Slice") {
-                            $sliceSubGraph->add(new TriplePattern($filterBindings[$datasetURI][$attribute], $patternName, $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false));
+                            $sliceSubGraph->add(new TriplePattern($filterBindings[$datasetURI][$attribute], $patternName, $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false, $transitivity));
                         } elseif (isset($attachment) && $attachment == "qb:DataSet") {
-                            $dataSetSubGraph->add(new TriplePattern($filterBindings[$datasetURI][$attribute], $patternName, $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false));
+                            $dataSetSubGraph->add(new TriplePattern($filterBindings[$datasetURI][$attribute], $patternName, $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false, $transitivity));
                         } else {
-                            $patterns[$datasetURI] [$foundDimension->getUri()][] = new TriplePattern($filterBindings[$datasetURI][$attribute], $patternName, $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false);
+                            $patterns[$datasetURI] [$foundDimension->getUri()][] = new TriplePattern($filterBindings[$datasetURI][$attribute], $patternName, $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false, $transitivity);
                         }
                     }
                 }
@@ -638,7 +646,7 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 //dd($selectedAggregates);
-        //echo  $queryBuilder->format();die;
+       // echo  $queryBuilder->format();die;
         /* $queryBuilder
              ->orderBy("?observation");*/
 
@@ -700,9 +708,9 @@ class GlobalAggregateResult extends AggregateResult
                 foreach ($dimensions as $dimensionPattern) {
                     if ($dimensionPattern instanceof TriplePattern) {
                         if ($dimensionPattern->isOptional) {
-                            $datasetQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                            $datasetQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                         } else {
-                            $datasetQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                            $datasetQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                         }
                     } elseif ($dimensionPattern instanceof SubPattern) {
                         $subGraph = $datasetQuery->newSubgraph();
@@ -710,9 +718,9 @@ class GlobalAggregateResult extends AggregateResult
                         foreach ($dimensionPattern->patterns as $pattern) {
                             if ($pattern instanceof TriplePattern) {
                                 if ($pattern->isOptional) {
-                                    $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                    $subGraph->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 } else {
-                                    $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                    $subGraph->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 }
                             } else if ($pattern instanceof BindPattern) {
                                 $subGraph->bind($pattern->expression);
@@ -827,9 +835,9 @@ class GlobalAggregateResult extends AggregateResult
                 foreach ($dimensions as $dimensionPattern) {
                     if ($dimensionPattern instanceof TriplePattern) {
                         if ($dimensionPattern->isOptional) {
-                            $datasetQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                            $datasetQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                         } else {
-                            $datasetQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                            $datasetQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                         }
                     } elseif ($dimensionPattern instanceof SubPattern) {
                         $subGraph = $datasetQuery->newSubgraph();
@@ -838,9 +846,9 @@ class GlobalAggregateResult extends AggregateResult
                             if ($pattern instanceof TriplePattern) {
 
                                 if ($pattern->isOptional) {
-                                    $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                    $subGraph->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 } else {
-                                    $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                    $subGraph->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 }
                             } else if ($pattern instanceof BindPattern) {
                                 //      dd($pattern->expression);
@@ -913,9 +921,9 @@ class GlobalAggregateResult extends AggregateResult
                 foreach ($dimensions as $dimensionPattern) {
                     if ($dimensionPattern instanceof TriplePattern) {
                         if ($dimensionPattern->isOptional) {
-                            $datasetQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                            $datasetQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                         } else {
-                            $datasetQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                            $datasetQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                         }
                     } elseif ($dimensionPattern instanceof SubPattern) {
                         $subGraph = $datasetQuery->newSubgraph();
@@ -923,9 +931,9 @@ class GlobalAggregateResult extends AggregateResult
                         foreach ($dimensionPattern->patterns as $pattern) {
 
                             if ($pattern->isOptional) {
-                                $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                $subGraph->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
-                                $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                                $subGraph->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
                         }
 

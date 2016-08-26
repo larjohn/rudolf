@@ -37,10 +37,11 @@ class SparqlModel
     protected $sparql;
 
 
-    protected static function expand(string $shortUri){
+    protected static function expand(string $shortUri, $transitivity=null){
 
         //dd(EasyRdf_Namespace::namespaces());
-        return '<'.EasyRdf_Namespace::expand($shortUri).'>';
+        //var_dump($shortUri);
+        return '<'.EasyRdf_Namespace::expand($shortUri).'>'.$transitivity;
 
     }
 

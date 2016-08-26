@@ -14,7 +14,7 @@ class TriplePattern extends SparqlPattern
     public $subject;
     public $object;
     public $predicate;
-    public function __construct(string $subject, string $predicate, string $object, bool $isOptional=false)
+    public function __construct(string $subject, string $predicate, string $object, bool $isOptional=false, $transitivity = null)
     {
         parent::__construct($isOptional) ;
 
@@ -22,6 +22,7 @@ class TriplePattern extends SparqlPattern
         $this->subject = $subject;
         $this->predicate = $predicate;
         $this->object = $object;
+        $this->transitivity = $transitivity;
     }
 
     public function sameAs($existing_pattern)
@@ -30,5 +31,7 @@ class TriplePattern extends SparqlPattern
             return $this->subject==$existing_pattern->subject && $this->predicate==$existing_pattern->predicate && $this->object==$existing_pattern->object;
         else return false;
     }
+
+    public $transitivity = null;
 
 }
