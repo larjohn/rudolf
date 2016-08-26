@@ -46,7 +46,6 @@ class GlobalAggregateResult extends AggregateResult
 
         $this->page = $page;
         $this->page_size = min($page_size, 1000);
-        $this->aggregates = $aggregates;
         $this->cell = [];
         $sorters = [];
         foreach ($orders as $order) {
@@ -66,6 +65,8 @@ class GlobalAggregateResult extends AggregateResult
 
         $this->aggregates = $aggregates;
         $this->load($aggregates, $drilldown, $sorters, $filters);
+        $this->aggregates[] = "_count";
+
         $this->status = "ok";
 
     }
