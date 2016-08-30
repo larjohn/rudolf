@@ -12,8 +12,7 @@
         "easyrdf/easyrdf": "~0.9.1",
         "danielstjules/stringy": "~2.2",
         "barryvdh/laravel-cors": "^0.8.0",
-        "ferno/loco":"dev-master",
-        "zhenbo/parser":"dev-master"
+        "ferno/loco":"dev-master"
     },
     "require-dev": {
         "fzaninotto/faker": "~1.4",
