@@ -14,6 +14,7 @@ use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use App\Model\SparqlModel;
 use Asparagus\QueryBuilder;
+use Cache;
 use EasyRdf_Resource;
 
 class GlobalMembersResult extends SparqlModel
@@ -55,6 +56,11 @@ class GlobalMembersResult extends SparqlModel
 
     private function load($attributeShortName, $page, $page_size, $order)
     {
+
+        if(Cache::has("members/global/$attributeShortName/$page/$page_size")){
+            $this->data = Cache::get("members/global/$attributeShortName/$page/$page_size");
+            return;
+        }
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $subQueryBuilders = [];
@@ -261,6 +267,7 @@ class GlobalMembersResult extends SparqlModel
 
 
         $this->data = $results;
+        Cache::forever("members/global/$attributeShortName/$page/$page_size", $this->data);
 
     }
 

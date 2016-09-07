@@ -77,9 +77,11 @@ class GlobalAggregateResult extends AggregateResult
         $chosenDatasets = [];
         $datasetAggregates = [];
         // dd($model);
+        //no aggregates selected, select all aggregates
         if (count($aggregates) < 1 || $aggregates[0] == "") {
             $aggregates = [];
             foreach ($model->aggregates as $agg) {
+
                 if ($agg->ref != "_count" && ($agg instanceof GlobalAggregate)) {
                     $aggregates[] = $agg->ref;
                     $chosenDatasets[] = $agg->getDataSets();
@@ -89,7 +91,7 @@ class GlobalAggregateResult extends AggregateResult
 
                 }
             }
-        } else {
+        } else { //some aggregates selected
             foreach ($model->aggregates as $agg) {
                 if ($agg->ref != "_count" && ($agg instanceof GlobalAggregate)) {
                     foreach ($aggregates as $aggregate) {
@@ -105,6 +107,7 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
         }
+        //dd($chosenDatasets);
 
         //dd($selectedAggregates);
 
@@ -440,6 +443,7 @@ class GlobalAggregateResult extends AggregateResult
                     $this->globalDimensionToPatterns([$innerDimension], [$innerDimension->$attributeModifier])
                 );
 
+
                 $bindingName = "binding_" . substr(md5($foundDimension->ref), 0, 5);
                 $parentDrilldownBindings["?" . $bindingName] = [];
                 $valueAttributeLabel = "uri";
@@ -480,10 +484,10 @@ class GlobalAggregateResult extends AggregateResult
                 } else {
                     $patterns[$datasetURI][$foundDimension->getUri()][] = new TriplePattern("?observation", $attribute, $drilldownBindings[$datasetURI][$attribute], false);
                 }
-
                 if ($innerDimension instanceof Dimension) {
                     $dimensionPatterns = &$selectedDrilldowns[$datasetURI][$attribute];
                     foreach ($dimensionPatterns as $patternName => $dimensionPattern) {
+
                         $parentDrilldownBindings[$drilldownBindings[$datasetURI][$attribute]][] = $drilldownBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
                         $attributes[$datasetURI][$attribute][$patternName] = $attributes[$datasetURI][$attribute]["uri"] . "_" . substr(md5($patternName), 0, 5);
                         $drilldownBindings[$datasetURI][] = $drilldownBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
@@ -508,6 +512,8 @@ class GlobalAggregateResult extends AggregateResult
 
         if (count($chosenDatasets) > 1) $chosenDatasets = call_user_func_array("array_intersect", $chosenDatasets);
         else $chosenDatasets = reset($chosenDatasets);
+        //dd($chosenDatasets);
+
         $attributes = array_intersect_key($attributes, array_flip($chosenDatasets));
         $selectedDrilldowns = array_intersect_key($selectedDrilldowns, array_flip($chosenDatasets));
 
@@ -605,9 +611,13 @@ class GlobalAggregateResult extends AggregateResult
             $mergedDrilldowns = array_merge($mergedDrilldowns, $datasetSelectedDrilldowns);
         }
 
+        //dd($parentDrilldownBindings);
+
         $queryBuilderC = $this->buildC(array_intersect_key(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs), array_flip($chosenDatasets)), $parentDrilldownBindings, $filterBindings, $filterMap);
         /** @var EasyRdf_Sparql_Result $countResult */
-        //echo($queryBuilderC->format());die;
+
+       // dd($chosenDatasets);
+       // echo($queryBuilderC->format());die;
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()
         );
@@ -649,7 +659,6 @@ class GlobalAggregateResult extends AggregateResult
        // echo  $queryBuilder->format();die;
         /* $queryBuilder
              ->orderBy("?observation");*/
-
 
         // die;
         /** @var EasyRdf_Sparql_Result $result */
@@ -720,7 +729,7 @@ class GlobalAggregateResult extends AggregateResult
                                 if ($pattern->isOptional) {
                                     $subGraph->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 } else {
-                                    $subGraph->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                    $datasetQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 }
                             } else if ($pattern instanceof BindPattern) {
                                 $subGraph->bind($pattern->expression);
@@ -810,6 +819,7 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 
+
         $outerSelections[] = "(SUM(?count) AS ?_count)";
         $queryBuilder->selectDistinct($outerSelections);
         if (!empty($outerGroupings))
@@ -848,7 +858,7 @@ class GlobalAggregateResult extends AggregateResult
                                 if ($pattern->isOptional) {
                                     $subGraph->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 } else {
-                                    $subGraph->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                    $datasetQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 }
                             } else if ($pattern instanceof BindPattern) {
                                 //      dd($pattern->expression);
@@ -933,7 +943,7 @@ class GlobalAggregateResult extends AggregateResult
                             if ($pattern->isOptional) {
                                 $subGraph->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
-                                $subGraph->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                $datasetQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
                         }
 
@@ -1118,7 +1128,9 @@ class GlobalAggregateResult extends AggregateResult
             );
             // echo $queryBuilder->format();die;
             $results = $this->rdfResultsToArray($result);
-            $rate = $results[0]["rate"];
+            if(count($results)>0)
+                $rate = $results[0]["rate"];
+            else $rate = 1;
             Cache::forever("rates/$sourceCurrency/$targetCurrency/$year", $rate);
 
             return $rate;

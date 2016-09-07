@@ -70,7 +70,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
         //echo(json_encode($propertiesSparqlResult));die;
 
         foreach ($propertiesSparqlResult as $property) {
-            if(!isset($property["attribute"])||!isset($property["propertyType"]))continue;
+            if (!isset($property["attribute"]) || !isset($property["propertyType"])) continue;
 
             $attribute = $property["attribute"];
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
@@ -92,9 +92,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
                     $newMeasure = Cache::get($property["datasetName"] . "__" . $property["shortName"]);
 
-                }
-                else
-                {
+                } else {
                     $newMeasure = new Measure();
 
                     $queryBuilder->selectDistinct("?dataType")
@@ -110,9 +108,9 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     $newMeasure->ref = $property["datasetName"] . "__" . $property["shortName"];
                     $newMeasure->column = $property["shortName"];// $attribute;
                     $newMeasure->setDataSet($property["dataset"]);
-                    $newMeasure->label = (isset($property["label"])?$property["label"]:$property["shortName"]) . (isset($property["datasetLabel"]) ? " (" . $property["datasetLabel"] . ")" : " (" . $property["datasetName"] . ")");
-                    $newMeasure->setDataSetFiscalYear(isset($property["year"])?$this->convertYear($property["year"]):date("Y"));
-                    $newMeasure->currency = isset($property["currency"])?$this->convertCurrency($property["currency"]):"EUR";
+                    $newMeasure->label = (isset($property["label"]) ? $property["label"] : $property["shortName"]) . (isset($property["datasetLabel"]) ? " (" . $property["datasetLabel"] . ")" : " (" . $property["datasetName"] . ")");
+                    $newMeasure->setDataSetFiscalYear(isset($property["year"]) ? $this->convertYear($property["year"]) : date("Y"));
+                    $newMeasure->currency = isset($property["currency"]) ? $this->convertCurrency($property["currency"]) : "EUR";
                     $newMeasure->orig_measure = $property["shortName"];;// $attribute;
                     Cache::forget($property["datasetName"] . "__" . $property["shortName"]);
                     Cache::forever($property["datasetName"] . "__" . $property["shortName"], $newMeasure);
@@ -122,7 +120,9 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 $this->model->measures[$property["datasetName"] . "__" . $property["shortName"]] = $newMeasure;
 
 
-            } else {
+            }
+
+            else {
                 if (Cache::has($property["datasetName"] . "__" . $property["shortName"])) {
                     $newDimension = Cache::get($property["datasetName"] . "__" . $property["shortName"]);
                 } else {
@@ -139,10 +139,12 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $queryBuilder->getSPARQL()
                     );
                     $subResults = $this->rdfResultsToArray($subResult);
-
+                  //  echo $queryBuilder->format();
+                   // var_dump($property["shortName"]);
+                  //  var_dump($property["attribute"]);
                     $newDimension = new Dimension();
                     $newDimension->setDataSet($property["dataset"]);
-                    $newDimension->label = (isset($property["label"])?$property["label"]:$property["shortName"]) . " (" . $property["datasetName"] . ")";
+                    $newDimension->label = (isset($property["label"]) ? $property["label"] : $property["shortName"]) . " (" . $property["datasetName"] . ")";
                     //$newDimension->cardinality_class = $this->getCardinality($property["cardinality"]);
                     $newDimension->ref = $property["datasetName"] . "__" . $property["shortName"];
                     $newDimension->orig_dimension = $property["shortName"];
@@ -168,6 +170,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $newAttribute->label = $subResult["label"];
                         $newAttribute->orig_attribute = /*$property["shortName"].".".*/
                             $subResult["shortName"];
+                        //var_dump($newAttribute);
+
                         $newDimension->attributes[$subResult["shortName"]] = $newAttribute;
                     }
                     if (!isset($newDimension->label_ref) || !isset($newDimension->key_ref)) {
@@ -175,7 +179,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $selfAttribute->ref = $property["shortName"] . "." . $property["shortName"];
                         $selfAttribute->column = $attribute;
                         $selfAttribute->datatype = isset($property["dataType"]) ? $this->flatten_data_type($property["dataType"]) : "string";
-                        $selfAttribute->label = isset($property["label"])?$property["label"]:$property["shortName"];
+                        $selfAttribute->label = isset($property["label"]) ? $property["label"] : $property["shortName"];
                         $selfAttribute->orig_attribute =  /*$property["shortName"].".".*/
                             $property["shortName"];
                         $selfAttribute->setUri($attribute);
@@ -264,8 +268,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 //dd($this->model->measures);
                 if (isset($globalTuple["parent"])) {
                     $ref = "global__" . preg_replace("/^.*(#|\/)/", "", $globalTuple["parent"]) . "__" . substr(md5($globalTuple["parent"]), 0, 5);
-
-                    if (!isset($newGlobalMeasure[$ref])) {
+                   // dump($newGlobalMeasure);
+                    if (!isset($globalMeasures[$ref])) {
                         $globalMeasures[$ref] = $newGlobalMeasure;
                         $globalMeasures[$ref]->ref = $ref;
                         $globalMeasures[$ref]->setOriginalMeasure($globalTuple["originalName"]);
@@ -293,22 +297,24 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 }
             }
             $globalMeasuresCurrencyVariants = [];
-            $available_currencies =array_unique(array_flatten(array_map(function($measure){
+            $available_currencies = array_unique(array_flatten(array_map(function ($measure) {
                 /** @var GlobalMeasure $measure */
-                return array_map(function($measure){
+                return array_map(function ($measure) {
                     /** @var Measure $measure */
-                    return $measure->currency;}, $measure->getInnerMeasures());}, $globalMeasures)));
+                    return $measure->currency;
+                }, $measure->getInnerMeasures());
+            }, $globalMeasures)));
             foreach ($globalMeasures as $globalMeasure) {
-              // dd($available_currencies);
+                // dd($available_currencies);
                 foreach ($available_currencies as $available_currency) {
                     $currency = $this->convertCurrency($available_currency);
-                    if($currency=="EUR") continue;
+                    if ($currency == "EUR") continue;
                     $newGlobalMeasure = new GlobalMeasure();
-                    $newGlobalMeasure->ref = $globalMeasure->ref.'__'.$currency;
-                    $newGlobalMeasure->label = $globalMeasure->label. ' in '. $currency;
+                    $newGlobalMeasure->ref = $globalMeasure->ref . '__' . $currency;
+                    $newGlobalMeasure->label = $globalMeasure->label . ' in ' . $currency;
                     $newGlobalMeasure->column = $newGlobalMeasure->ref;
                     $newGlobalMeasure->setUri($globalMeasure->getUri());
-                    $newGlobalMeasure->setSpecialUri($globalMeasure->getUri()."#$available_currency");
+                    $newGlobalMeasure->setSpecialUri($globalMeasure->getUri() . "#$available_currency");
 
 
                     $newGlobalMeasure->currency = $this->convertCurrency($currency);
@@ -374,7 +380,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     }
                 }
             }
-
+//dump($globalDimensions);
             foreach ($globalDimensions as $key => &$globalDimensionGroup) {
 
                 if (count($globalDimensionGroup->getInnerDimensions()) < 2) {
@@ -386,9 +392,11 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         /** @var Dimension $value */
                         return $value->attributes;
                     }, $innerDimensions);
-
+                    //dump($innerDimensionAttributes);
                     $attributes = [];
-                    $candidate_attributes = call_user_func_array("array_intersect_key", $innerDimensionAttributes);
+                    $candidate_attributes = call_user_func_array("array_merge", $innerDimensionAttributes);
+                //    dump($candidate_attributes);
+
                     foreach ($candidate_attributes as $att_key => &$attribute) {
                         /** @var Attribute $attribute */
                         $glob_att = clone $attribute;
@@ -408,14 +416,15 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     }
                     $globalDimensionGroup->attributes = $attributes;
 
-                    $allKeys = array_unique($innerDimensionAttributes = array_map(function ($value) {
+                    $allKeys = array_unique( array_map(function ($value) {
                         /** @var Dimension $value */
                         return $value->key_attribute;
                     }, $innerDimensions));
+                    //dump($globalDimensionGroup->attributes);
 
                     if (count($allKeys) > 1) {
                         /** @var Attribute $firstAttribute */
-                        $firstAttribute = reset($globalDimensionGroup->attributes);
+                        $firstAttribute = in_array("notation",$allKeys)?$globalDimensionGroup->attributes["notation"]:reset($globalDimensionGroup->attributes);
                         $globalDimensionGroup->key_attribute = $firstAttribute->orig_attribute;
                         $globalDimensionGroup->key_ref = $firstAttribute->ref;
                     } else {
@@ -428,10 +437,9 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         /** @var Dimension $value */
                         return $value->label_attribute;
                     }, $innerDimensions));
-
                     if (count($allLabels) > 1) {
                         /** @var Attribute $firstAttribute */
-                        $firstAttribute = reset($globalDimensionGroup->attributes);
+                        $firstAttribute = in_array("prefLabel",$allLabels)?$globalDimensionGroup->attributes["prefLabel"]:reset($globalDimensionGroup->attributes);
                         $globalDimensionGroup->label_attribute = $firstAttribute->orig_attribute;
                         $globalDimensionGroup->label_ref = $firstAttribute->ref;
                     } else {
@@ -491,40 +499,41 @@ class BabbageGlobalModelResult extends BabbageModelResult
     }
 
 
-    protected function convertYear($yearURI){
-        return str_replace("http://reference.data.gov.uk/id/year/","",$yearURI);
+    protected function convertYear($yearURI)
+    {
+        return str_replace("http://reference.data.gov.uk/id/year/", "", $yearURI);
     }
 }
 
 /**
  *
  * PREFIX xro: <http://purl.org/xro/ns#>
-
-
-CONSTRUCT{
-?uri a  xro:ExchangeRateInfo.
-?uri xro:rate ?rate.
-?uri xro:yearOfConversion ?year.
-?uri xro:target ?target.
-?uri xro:source ?source.
-}
-WHERE
-{
-
-
-?s a <http://purl.org/linked-data/cube#Observation>. ?s <http://purl.org/linked-data/sdmx/2009/dimension#refTime> ?date.
-?s <http://linked.opendata.cz/resource/ontology/currencies#hasRate> ?rate.
-?s <http://linked.opendata.cz/resource/ontology/currencies#currency> ?currency.
-{SELECT (MIN(?date) as ?date) WHERE {?s a <http://purl.org/linked-data/cube#Observation>. ?s <http://purl.org/linked-data/sdmx/2009/dimension#refTime> ?date } GROUP BY year(?date)}
-BIND(year(?date) as ?year)
-BIND(replace(STR(?currency), "http://linked.opendata.cz/resource/currency#", "") as ?curr)
-BIND (URI(CONCAT("http://data.openbudgets.eu/exchangerates/EUR/",?curr,"/",?year)) AS ?uri)
-BIND(URI(CONCAT("http://data.openbudgets.eu/codelist/currency/",?curr)) AS ?target)
-BIND(URI(CONCAT("http://data.openbudgets.eu/codelist/currency/EUR")) AS ?source)
-
-}
-
-order by ?year ?currency
+ *
+ *
+ * CONSTRUCT{
+ * ?uri a  xro:ExchangeRateInfo.
+ * ?uri xro:rate ?rate.
+ * ?uri xro:yearOfConversion ?year.
+ * ?uri xro:target ?target.
+ * ?uri xro:source ?source.
+ * }
+ * WHERE
+ * {
+ *
+ *
+ * ?s a <http://purl.org/linked-data/cube#Observation>. ?s <http://purl.org/linked-data/sdmx/2009/dimension#refTime> ?date.
+ * ?s <http://linked.opendata.cz/resource/ontology/currencies#hasRate> ?rate.
+ * ?s <http://linked.opendata.cz/resource/ontology/currencies#currency> ?currency.
+ * {SELECT (MIN(?date) as ?date) WHERE {?s a <http://purl.org/linked-data/cube#Observation>. ?s <http://purl.org/linked-data/sdmx/2009/dimension#refTime> ?date } GROUP BY year(?date)}
+ * BIND(year(?date) as ?year)
+ * BIND(replace(STR(?currency), "http://linked.opendata.cz/resource/currency#", "") as ?curr)
+ * BIND (URI(CONCAT("http://data.openbudgets.eu/exchangerates/EUR/",?curr,"/",?year)) AS ?uri)
+ * BIND(URI(CONCAT("http://data.openbudgets.eu/codelist/currency/",?curr)) AS ?target)
+ * BIND(URI(CONCAT("http://data.openbudgets.eu/codelist/currency/EUR")) AS ?source)
+ *
+ * }
+ *
+ * order by ?year ?currency
  *
  *
  *
