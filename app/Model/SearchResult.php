@@ -33,23 +33,22 @@ class SearchResult extends SparqlModel
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
-            ->selectDistinct('?attribute', '?label', '?attachment', "?propertyType", "?shortName", "?dataset", "?name"/*, "(count(distinct ?value) AS ?cardinality)"*/)
+            ->selectDistinct('?attribute', '(MAX(?_label) AS ?label)', '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "(MAX(?_datasetName) AS ?datasetName)", "?dataset", "(SAMPLE(?_datasetLabel) AS ?datasetLabel)", "?currency", "?year"/*, "(count(distinct ?value) AS ?cardinality)"*/)
             ->where("?dsd", 'qb:component', '?component')
             ->where("?dataset", "a", "qb:DataSet")
-            ->where("?dataset","qb:structure", "?dsd" )
+            ->where("?dataset", "qb:structure", "?dsd")
+            ->optional("?dataset", "<http://data.openbudgets.eu/ontology/dsd/attribute/currency>", "?currency")
+            ->optional("?dataset", "rdfs:label", "?_datasetLabel")
             ->where('?component', '?componentProperty', '?attribute')
             ->where('?componentProperty', 'rdfs:subPropertyOf', 'qb:componentProperty')
-            ->optional('?attribute', 'rdfs:label', '?label')
+            ->optional('?attribute', 'rdfs:label', '?_label')
             ->bind("REPLACE(str(?attribute), '^.*(#|/)', \"\") AS ?shortName")
             ->optional('?component', 'qb:componentAttachment', '?attachment')
-            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
-            //   ->filter("?name = '$name'")
-
+            ->optional("?dataset", "<http://data.openbudgets.eu/ontology/dsd/dimension/fiscalYear>", "?year")
+            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?_datasetName")
             ->optional($queryBuilder->newSubgraph()
-                ->where("?attribute", "a", "?propertyType")->filter("?propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"))
-            ->filterNotExists('?component', 'qb:componentAttachment', 'qb:DataSet')
-            ->groupBy('?attribute', '?label', "?propertyType", "?shortName", "?attachment", "?dataset", "?name");
-        ;
+                ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in ( qb:MeasureProperty, qb:DimensionProperty, qb:CodedProperty)"))
+            ->groupBy('?attribute', "?shortName", "?attachment", "?dataset", "?currency", "?year")        ;
         //echo($queryBuilder->format());die;
         /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
         $propertiesSparqlResult = $this->sparql->query(
@@ -68,7 +67,7 @@ class SearchResult extends SparqlModel
             if(!isset($packages[$property["dataset"]])){
                 $packages[$property["dataset"]] = new BabbageModelResult("");
                 $packages[$property["dataset"]]->id = preg_replace("/^.*(#|\/)/", "", $property["dataset"])."__" . substr(md5($property["dataset"]),0,5) ;
-                $packages[$property["dataset"]]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$property["name"]];
+                $packages[$property["dataset"]]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$property["datasetName"]];
             }
             $attribute = $property["attribute"];
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));

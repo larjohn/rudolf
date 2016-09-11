@@ -123,8 +123,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
             }
 
             else {
-                if (Cache::has($property["datasetName"] . "__" . $property["shortName"])) {
-                    $newDimension = Cache::get($property["datasetName"] . "__" . $property["shortName"]);
+                if (Cache::has($property["datasetName"] . "/" . $property["shortName"])) {
+                    $newDimension = Cache::get($property["datasetName"] . "/" . $property["shortName"]);
                 } else {
                     $subQuery->where("?value", "?extensionProperty", "?extension");
                     $subQuery->subquery($subSubQuery);
@@ -146,7 +146,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     $newDimension->setDataSet($property["dataset"]);
                     $newDimension->label = (isset($property["label"]) ? $property["label"] : $property["shortName"]) . " (" . $property["datasetName"] . ")";
                     //$newDimension->cardinality_class = $this->getCardinality($property["cardinality"]);
-                    $newDimension->ref = $property["datasetName"] . "__" . $property["shortName"];
+                    $newDimension->ref = $property["datasetName"] . "/" . $property["shortName"];
                     $newDimension->orig_dimension = $property["shortName"];
                     $newDimension->setUri($attribute);
                     if (isset($property["attachment"]))
@@ -196,10 +196,10 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $newDimension->key_ref = $property["shortName"] . "." . $property["shortName"];
                         $newDimension->key_attribute = $property["shortName"];
                     }
-                    Cache::forget($property["datasetName"] . "__" . $property["shortName"]);
-                    Cache::forever($property["datasetName"] . "__" . $property["shortName"], $newDimension);
+                    Cache::forget($property["datasetName"] . "/" . $property["shortName"]);
+                    Cache::forever($property["datasetName"] . "/" . $property["shortName"], $newDimension);
                 }
-                $this->model->dimensions[$property["datasetName"] . "__" . $property["shortName"]] = $newDimension;
+                $this->model->dimensions[$property["datasetName"] . "/" . $property["shortName"]] = $newDimension;
 
             }
         }

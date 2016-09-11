@@ -117,21 +117,23 @@ class BabbageModelResult extends SparqlModel
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
             $subQuery = $queryBuilder->newSubquery();
             $subSubQuery = $subQuery->newSubquery();
-            $subSubQuery->where('?observation', 'a', 'qb:Observation');
             $subSubQuery->select("?value");
             $subSubQuery->limit(20);
 
             if(isset($property["attachment"]) &&  $property["attachment"]=="qb:Slice"){
                 $subSubQuery
+                    ->where('?observation', 'a', 'qb:Observation')
                     ->where("?slice", "qb:observation", "?observation")
                     ->where("?slice",  "<$attribute>", "?value");
             }
             elseif(isset($property["attachment"]) &&  $property["attachment"]=="qb:DataSet"){
-                continue;
+                $subSubQuery->where("?dataset", "a", "qb:DataSet")
+                        ->where("?dataset", "<$attribute>", "?value");
                 
             }
             else{
-                $subSubQuery->where("?observation", "<$attribute>" ,"?value");
+                $subSubQuery->where("?observation", "<$attribute>" ,"?value")->where('?observation', 'a', 'qb:Observation')
+                ;
             }
 
             if($property["propertyType"]=="qb:MeasureProperty"){
@@ -151,7 +153,7 @@ class BabbageModelResult extends SparqlModel
                 $newMeasure->ref = $property["shortName"];
                 $newMeasure->column = $property["shortName"];// $attribute;
                 $newMeasure->label = $property["label"];
-                $newMeasure->orig_measure = $property["shortName"];;// $attribute;
+                $newMeasure->orig_measure = $property["shortName"];// $attribute;
                 $this->model->measures[$property["shortName"]] = $newMeasure;
 
                 foreach (Aggregate::$functions as $function) {
