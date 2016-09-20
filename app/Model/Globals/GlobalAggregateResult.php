@@ -11,6 +11,7 @@ namespace App\Model\Globals;
 
 use App\Model\Aggregate;
 use App\Model\AggregateResult;
+use App\Model\CurrencyService;
 use App\Model\Dimension;
 use App\Model\FilterDefinition;
 use App\Model\GenericProperty;
@@ -24,6 +25,7 @@ use App\Model\SparqlModel;
 use Asparagus\QueryBuilder;
 use Cache;
 use EasyRdf_Sparql_Result;
+use Illuminate\Database\Eloquent\Collection;
 
 class GlobalAggregateResult extends AggregateResult
 {
@@ -43,7 +45,7 @@ class GlobalAggregateResult extends AggregateResult
     public function __construct($page, $page_size, $aggregates, $drilldown, $orders, $cuts)
     {
         SparqlModel::__construct();
-
+        $this->currencyService = new CurrencyService();
         $this->page = $page;
         $this->page_size = min($page_size, 1000);
         $this->cell = [];
@@ -69,11 +71,16 @@ class GlobalAggregateResult extends AggregateResult
 
         $this->status = "ok";
 
+
     }
+    private $currencyService ;
 
     private function load($aggregates, $drilldowns, $sorters, $filters)
     {
+        /** @var CurrencyService $currencyService */
+        $currencyService = $this->currencyService;
         $model = (new BabbageGlobalModelResult())->model;
+        //dd($model->measures);
         $chosenDatasets = [];
         $datasetAggregates = [];
         // dd($model);
@@ -84,7 +91,7 @@ class GlobalAggregateResult extends AggregateResult
 
                 if ($agg->ref != "_count" && ($agg instanceof GlobalAggregate)) {
                     $aggregates[] = $agg->ref;
-                    $chosenDatasets[] = $agg->getDataSets();
+                    $chosenDatasets[$agg->ref] = $agg->getDataSets();
                     foreach ($agg->getDataSets() as $dataset) {
                         $datasetAggregates[$dataset][] = $agg;
                     }
@@ -95,8 +102,16 @@ class GlobalAggregateResult extends AggregateResult
             foreach ($model->aggregates as $agg) {
                 if ($agg->ref != "_count" && ($agg instanceof GlobalAggregate)) {
                     foreach ($aggregates as $aggregate) {
-                        if ($agg->ref == $aggregate) {
-                            $chosenDatasets[] = $agg->getDataSets();
+
+                        $re = "/(\\S*)\\.(sum)/";
+                        $matches= [];
+                        preg_match_all($re, $agg->ref, $matches);
+                        if(count($matches)!=3) continue;
+                        $refWithoutFunction = $matches[1][0];
+
+
+                        if ($refWithoutFunction == $aggregate || $agg->ref == $aggregate) {
+                            $chosenDatasets[$agg->ref] = $agg->getDataSets();
                             foreach ($agg->getDataSets() as $dataset) {
                                 $datasetAggregates[$dataset][] = $agg;
                             }
@@ -107,9 +122,7 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
         }
-        //dd($chosenDatasets);
 
-        //dd($selectedAggregates);
 
         $offset = $this->page_size * $this->page;
         $sliceSubGraphs = [];
@@ -377,12 +390,11 @@ class GlobalAggregateResult extends AggregateResult
                     }
                     foreach ($dimensionPatterns as $patternName => $dimensionPattern) {
                         /** @var FilterDefinition $filter */
-                        if(isset($filter->transitivity)){
-                            $transitivity =  $filter->transitivity;
-                        }
-                        else $transitivity = null;
+                        if (isset($filter->transitivity)) {
+                            $transitivity = $filter->transitivity;
+                        } else $transitivity = null;
 
-                       // dd($patternPredicate);
+                        // dd($patternPredicate);
 
                         $attributes[$datasetURI][$attribute][$patternName] = $attributes[$datasetURI][$attribute]["uri"] . "_" . substr(md5($patternName), 0, 5);
                         $filterBindings[$datasetURI][] = $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
@@ -429,7 +441,7 @@ class GlobalAggregateResult extends AggregateResult
 
             /** @var GlobalDimension $foundDimension */
 
-            $chosenDatasets[] = array_map(function (Dimension $dimension) {
+            $chosenDatasets[$foundDimension->ref] = array_map(function (Dimension $dimension) {
                 return $dimension->getDataset();
             }, $foundDimension->getInnerDimensions());
 
@@ -445,7 +457,7 @@ class GlobalAggregateResult extends AggregateResult
 
 
                 $bindingName = "binding_" . substr(md5($foundDimension->ref), 0, 5);
-                $parentDrilldownBindings["?" . $bindingName] = [];
+                if(!isset($parentDrilldownBindings["?" . $bindingName]))$parentDrilldownBindings["?" . $bindingName] = [];
                 $valueAttributeLabel = "uri";
                 $attributes[$innerDimension->getDataSet()][$innerDimension->getUri()][$valueAttributeLabel] = $bindingName;
 
@@ -467,6 +479,7 @@ class GlobalAggregateResult extends AggregateResult
                     $dataSetSubGraph = $dataSetSubGraphs[$datasetURI][$foundDimension->getUri()][0];
                 else {
                     $dataSetSubGraph = new SubPattern([
+                        new TriplePattern("?observation", "qb:dataSet", "?dataSet"),
 
                     ], false);
                 }
@@ -476,23 +489,48 @@ class GlobalAggregateResult extends AggregateResult
                 $attachment = $innerDimension->getAttachment();
                 if (isset($attachment) && $attachment == "qb:Slice") {
                     $needsSliceSubGraph = true;
-                    $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $drilldownBindings[$datasetURI][$attribute], false));
+                    if($foundDimension->getUri() == $innerDimension->getUri()){
+                        $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $drilldownBindings[$datasetURI][$attribute], false));
+                    }
+                    else{
+                        $sliceSubGraph->add(new TriplePattern("?slice", "?att_".substr(md5($foundDimension->ref), 0, 5), $drilldownBindings[$datasetURI][$attribute], false));
+
+                        $sliceSubGraph->add(new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                    }
+
+                    //$sliceSubGraph->add(new TriplePattern("?slice", $attribute, $drilldownBindings[$datasetURI][$attribute], false));
                 } elseif (isset($attachment) && $attachment == "qb:DataSet") {
                     $needsDataSetSubGraph = true;
+                    if($foundDimension->getUri() == $innerDimension->getUri()){
+                        $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $drilldownBindings[$datasetURI][$attribute], false));
+                    }
+                    else{
+                        $dataSetSubGraph->add(new TriplePattern("?dataSet", "?att_".substr(md5($foundDimension->ref), 0, 5), $drilldownBindings[$datasetURI][$attribute], false));
 
-                    $dataSetSubGraph->add(new TriplePattern("<$datasetURI>", $attribute, $drilldownBindings[$datasetURI][$attribute], false));
+                        $dataSetSubGraph->add(new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                    }
+                   // $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $drilldownBindings[$datasetURI][$attribute], false));
                 } else {
-                    $patterns[$datasetURI][$foundDimension->getUri()][] = new TriplePattern("?observation", $attribute, $drilldownBindings[$datasetURI][$attribute], false);
+                    if($foundDimension->getUri() == $innerDimension->getUri()){
+
+                        $patterns[$datasetURI][$foundDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", $attribute, $drilldownBindings[$datasetURI][$attribute], false)]);
+                    }
+                    else{
+                        $patterns[$datasetURI][$foundDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", "?att_".substr(md5($foundDimension->ref), 0, 5), $drilldownBindings[$datasetURI][$attribute], false), new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false)]);
+                    }
+
+                   // $patterns[$datasetURI][$foundDimension->getUri()][] = new TriplePattern("?observation", $attribute, $drilldownBindings[$datasetURI][$attribute], false);
                 }
                 if ($innerDimension instanceof Dimension) {
                     $dimensionPatterns = &$selectedDrilldowns[$datasetURI][$attribute];
                     foreach ($dimensionPatterns as $patternName => $dimensionPattern) {
-
-                        $parentDrilldownBindings[$drilldownBindings[$datasetURI][$attribute]][] = $drilldownBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
+                        $childBinding = $drilldownBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
+                        $parentDrilldownBindings[$drilldownBindings[$datasetURI][$attribute]][$childBinding] = $childBinding;
                         $attributes[$datasetURI][$attribute][$patternName] = $attributes[$datasetURI][$attribute]["uri"] . "_" . substr(md5($patternName), 0, 5);
                         $drilldownBindings[$datasetURI][] = $drilldownBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
 
                         if (isset($attachment) && $attachment == "qb:Slice") {
+
                             $sliceSubGraph->add(new TriplePattern($drilldownBindings[$datasetURI][$attribute], $patternName, $drilldownBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false));
                         } elseif (isset($attachment) && $attachment == "qb:DataSet") {
                             $dataSetSubGraph->add(new TriplePattern($drilldownBindings[$datasetURI][$attribute], $patternName, $drilldownBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5), false));
@@ -501,6 +539,7 @@ class GlobalAggregateResult extends AggregateResult
                         }
                     }
                 }
+
                 if ($needsSliceSubGraph && !isset($sliceSubGraphs[$datasetURI][$foundDimension->getUri()])) {
                     $sliceSubGraphs[$datasetURI][$foundDimension->getUri()][0] = $sliceSubGraph;
                 }
@@ -509,16 +548,17 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
         }
+        //dd($chosenDatasets);
 
         if (count($chosenDatasets) > 1) $chosenDatasets = call_user_func_array("array_intersect", $chosenDatasets);
         else $chosenDatasets = reset($chosenDatasets);
-        //dd($chosenDatasets);
 
         $attributes = array_intersect_key($attributes, array_flip($chosenDatasets));
         $selectedDrilldowns = array_intersect_key($selectedDrilldowns, array_flip($chosenDatasets));
 
 
         $datasetAggregates = array_intersect_key($datasetAggregates, array_flip($chosenDatasets));
+
         if (!empty($datasetAggregates))
             $filteredAggregates = array_unique(call_user_func_array("array_merge", $datasetAggregates), SORT_REGULAR);
         else {
@@ -527,7 +567,6 @@ class GlobalAggregateResult extends AggregateResult
         $mergedAggregateRefs = array_map(function (Aggregate $agg) {
             return $agg->ref;
         }, $filteredAggregates);
-
 
         $selectedAggregates = $this->modelFieldsToPatterns($model, $mergedAggregateRefs);
         $extraAggregates = [];
@@ -542,22 +581,23 @@ class GlobalAggregateResult extends AggregateResult
         }
 
         $selectedAggregates = array_merge($selectedAggregates, $extraAggregates);
-
         $alreadyRestrictedDatasets = array_keys(array_merge_recursive($sliceSubGraphs, $patterns, $dataSetSubGraphs));
         /** @var GlobalMeasure[] $measures */
         foreach ($measures as $measureName => $measure) {
             if (!isset($selectedAggregates[$measure->getUri()])) continue;
-            $selectedAggregateDimensions[$measure->getSpecialUri()] = $measure;
+            $selectedAggregateDimensions[$measure->getSpecialUri()][] = $measure;
             $bindingName = "binding_" . substr(md5($measure->getSpecialUri()), 0, 5);
             $valueAttributeLabel = "sum";
             $attributes["_"][$measure->getSpecialUri()][$valueAttributeLabel] = $bindingName;
             $aggregateBindings[$measure->getSpecialUri()] = "?$bindingName";
         }
-        //   dd($selectedAggregateDimensions);
-        foreach ($selectedAggregateDimensions as $measureName => $measure) {
+
+        foreach (array_flatten($selectedAggregateDimensions) as $measureName => $measure) {
             /** @var GlobalMeasure $measure */
             $currency = $measure->currency;
+
             if ($measure instanceof GlobalMeasure) {
+
                 /** @var Measure $innerMeasureName */
                 foreach ($measure->getInnerMeasures() as $innerMeasureName => $innerMeasure) {
                     $datasetURI = $innerMeasure->getDataSet();
@@ -568,7 +608,7 @@ class GlobalAggregateResult extends AggregateResult
                     //var_dump($innerMeasure->currency);
                     if (isset($attachment) && $attachment == "qb:Slice") {
                         $needsSliceSubGraph = true;
-                        $sliceSubGraphs[$innerMeasure->getDataSet()]->addMany($this->currencyMagicTriples("?slice", $attribute, $aggregateBindings[$measure->getSpecialUri()], $innerMeasure->currency, $measure->currency, $innerMeasure->getDataSetFiscalYear()));
+                        $sliceSubGraphs[$innerMeasure->getDataSet()]->addMany($currencyService->currencyMagicTriples("?slice", $attribute, $aggregateBindings[$measure->getSpecialUri()], $innerMeasure->currency, $measure->currency, $innerMeasure->getDataSetFiscalYear(), $innerMeasure->getDataSet()));
 
                         //   $sliceSubGraphs[$innerMeasure->getDataSet()]->add(new TriplePattern("?slice", $attribute, $aggregateBindings[$attribute], false));
 
@@ -576,13 +616,19 @@ class GlobalAggregateResult extends AggregateResult
                     if (isset($attachment) && $attachment == "qb:DataSet") {
                         $needsDataSetSubGraph = true;
 
-                        $dataSetSubGraphs[$innerMeasure->getDataSet()]->addMany($this->currencyMagicTriples("<$datasetURI>", $attribute, $aggregateBindings[$measure->getSpecialUri()], $innerMeasure->currency, $measure->currency, $innerMeasure->getDataSetFiscalYear()));
+                        $dataSetSubGraphs[$innerMeasure->getDataSet()]->addMany($currencyService->currencyMagicTriples("?dataSet", $attribute, $aggregateBindings[$measure->getSpecialUri()], $innerMeasure->currency, $measure->currency, $innerMeasure->getDataSetFiscalYear(), $innerMeasure->getDataSet()));
 
                     } else {
                         /** @var Measure $innerMeasure */
 
-                        $triples = $this->currencyMagicTriples("?observation", $attribute, $aggregateBindings[$measure->getSpecialUri()], $innerMeasure->currency, $measure->currency, $innerMeasure->getDataSetFiscalYear());
-                        foreach ($triples as $triple) $patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = $triple;
+                        $triples = $currencyService->currencyMagicTriples("?observation", $attribute, $aggregateBindings[$measure->getSpecialUri()], $innerMeasure->currency, $measure->currency, $innerMeasure->getDataSetFiscalYear(), $innerMeasure->getDataSet());
+                        //  dd($innerMeasure->getDataSet());
+                        foreach ($triples as $triple) {
+                            $patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = $triple;
+                            $patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = new TriplePattern("?observation", "qb:dataSet", "?dataSet");
+                        }
+
+
 
                         // $patterns [$innerMeasure->getDataSet()][$attribute][] = new TriplePattern("?observation", $attribute, $aggregateBindings[$attribute], false);
 
@@ -600,7 +646,7 @@ class GlobalAggregateResult extends AggregateResult
 
         }
 
-        // echo($queryBuilder->format());
+
 
         $mergedAttributes = [];
         foreach ($attributes as $datasetAttributes) {
@@ -610,36 +656,35 @@ class GlobalAggregateResult extends AggregateResult
         foreach ($selectedDrilldowns as $datasetSelectedDrilldowns) {
             $mergedDrilldowns = array_merge($mergedDrilldowns, $datasetSelectedDrilldowns);
         }
-
-        //dd($parentDrilldownBindings);
-
-        $queryBuilderC = $this->buildC(array_intersect_key(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs), array_flip($chosenDatasets)), $parentDrilldownBindings, $filterBindings, $filterMap);
+        //dd($model);
+        //dd(array_intersect_key(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs), array_flip($chosenDatasets)));
+        $queryBuilderC = $this->buildC2(array_intersect_key(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs), array_flip($chosenDatasets)), $parentDrilldownBindings, $filterBindings, $filterMap);
         /** @var EasyRdf_Sparql_Result $countResult */
 
-       // dd($chosenDatasets);
+       //  dd($chosenDatasets);
        // echo($queryBuilderC->format());die;
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()
         );
+        // dd($countResult);
 
 //dd($datasetAttributes);
         //  dd($aggregateBindings);
-        // dd($patterns);
-        //dd(array_intersect_key(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs), array_flip($chosenDatasets)));
-        $queryBuilderS = $this->buildS($aggregateBindings, array_intersect_key(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs), array_flip($chosenDatasets)), $filterBindings, $filterMap);
+        //  dd($patterns);
+        $queryBuilderS = $this->buildS2($aggregateBindings, array_intersect_key(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs), array_flip($chosenDatasets)),$parentDrilldownBindings, $filterBindings, $filterMap);
         /** @var EasyRdf_Sparql_Result $countResult */
-        //echo($queryBuilderS->format());die;
+       // echo($queryBuilderS->format());die;
         $summaryResult = $this->sparql->query(
             $queryBuilderS->getSPARQL()
         );
-        //dd($mergedAttributes);
+//dd($summaryResult);
         $summaryResults = $this->rdfResultsToArray3($summaryResult, $mergedAttributes, $model, $selectedAggregates);
         if (!empty($summaryResults)) $this->summary = $summaryResults[0];
         else {
             $this->summary = [];
         }
         $count = $countResult[0]->_count->getValue();
-        $queryBuilder = $this->build($aggregateBindings, $drilldownBindings, array_intersect_key(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs), array_flip($chosenDatasets)), $parentDrilldownBindings, $sorterBindings, $filterBindings, $filterMap);
+        $queryBuilder = $this->build2($aggregateBindings, $drilldownBindings, array_intersect_key(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs), array_flip($chosenDatasets)), $parentDrilldownBindings, $sorterBindings, $filterBindings, $filterMap);
 
 
         $queryBuilder
@@ -656,7 +701,7 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 //dd($selectedAggregates);
-       // echo  $queryBuilder->format();die;
+        // echo  $queryBuilder->format();die;
         /* $queryBuilder
              ->orderBy("?observation");*/
 
@@ -681,6 +726,8 @@ class GlobalAggregateResult extends AggregateResult
      * @param array $drilldownBindings
      * @param Dimension[] $dimensionPatterns
      * @param array $parentDrilldownBindings
+     * @param array $sorterBindings
+     * @param array $filterBindings
      * @param FilterDefinition[] $filterMap
      * @return QueryBuilder
      * @internal param array $bindings
@@ -692,7 +739,6 @@ class GlobalAggregateResult extends AggregateResult
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $innerGraph = $queryBuilder->newSubquery();
         $datasetQueries = [];
-        $selectedFields = [];
         $allSelectedFields = array_unique(array_flatten($drilldownBindings));
         foreach ($drilldownBindings as $dataset => &$dataSetDrilldownBindings) {
             foreach ($allSelectedFields as $allSelectedField) {
@@ -772,6 +818,7 @@ class GlobalAggregateResult extends AggregateResult
             return $innerGraph->newSubgraph()->subquery($subQueryBuilder);
         }, $datasetQueries));
 
+
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
             $agBindings [] = "(SUM($binding) AS {$binding}__)";
@@ -786,6 +833,8 @@ class GlobalAggregateResult extends AggregateResult
 
             }
         }
+        // dd(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
+
         if (count($dimensionPatterns) > 0) {
             $innerGraph
                 ->selectDistinct(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
@@ -796,19 +845,19 @@ class GlobalAggregateResult extends AggregateResult
         }
 
         $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
-        foreach ($flatParentBindings as $flatParentBinding) {
-            $queryBuilder->filterNotExists($queryBuilder->newSubgraph()->where($flatParentBinding . "__", "(skos:similar|^skos:similar)",
-                "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "__)"));
-        }
+        /*   foreach ($flatParentBindings as $flatParentBinding) {
+               $queryBuilder->filterNotExists($queryBuilder->newSubgraph()->where($flatParentBinding . "__", "(skos:similar|^skos:similar)",
+                   "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "__)"));
+           }*/
 
         $outerSelections = [];
         $outerGroupings = [];
         if (count($dimensionPatterns) > 0) {
             foreach ($parentDrilldownBindings as $parentBinding => $childrenBindings) {
-                $queryBuilder->where($parentBinding, "(skos:similar|^skos:similar)?", $parentBinding . "__");
+                //    $queryBuilder->where($parentBinding, "(skos:similar|^skos:similar)?", $parentBinding . "__");
                 $innerGraph->orderBy($parentBinding, "ASC");
-                $outerSelections[] = "(" . $parentBinding . "__ AS {$parentBinding}_)";
-                $outerGroupings[] = $parentBinding . "__";
+                $outerSelections[] = "(" . $parentBinding . " AS {$parentBinding}_)";
+                $outerGroupings[] = $parentBinding . "";
                 foreach (array_unique($childrenBindings) as $childrenBinding) {
                     $outerSelections[] = "(MAX({$childrenBinding}) AS {$childrenBinding}_)";
                 }
@@ -819,12 +868,233 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 
-
         $outerSelections[] = "(SUM(?count) AS ?_count)";
+        $queryBuilder->subquery($innerGraph);
+        //dd($outerSelections);
+
         $queryBuilder->selectDistinct($outerSelections);
+
         if (!empty($outerGroupings))
             $queryBuilder->groupBy(array_unique(array_merge($outerGroupings, array_flatten($sorterBindings))));
+        //echo $queryBuilder->format();die;
+
+        //echo $queryBuilder->format();die;
+        return $queryBuilder;
+
+    }
+
+    /**
+     * @param array $aggregateBindings
+     * @param array $drilldownBindings
+     * @param Dimension[] $dimensionPatterns
+     * @param array $parentDrilldownBindings
+     * @param array $sorterBindings
+     * @param array $filterBindings
+     * @param FilterDefinition[] $filterMap
+     * @return QueryBuilder
+     * @internal param array $bindings
+     */
+    private function build2(array $aggregateBindings, array $drilldownBindings, array $dimensionPatterns, array $parentDrilldownBindings, array $sorterBindings, array $filterBindings = [], array $filterMap = [])
+    {
+
+        $allSelectedFields = array_unique(array_flatten($drilldownBindings));
+        $allFilteredFields = array_unique(array_flatten($filterBindings));
+        $allSortedFields = array_unique(array_flatten($sorterBindings));
+
+
+        $flatDimensionPatterns = new Collection();
+
+        foreach (new Collection($dimensionPatterns) as $dataSet => $patternsOfDimension) {
+
+            foreach ($patternsOfDimension as $pattern => $patternsArray) {
+                if ($flatDimensionPatterns->has($pattern)) {
+                    /** @var Collection $existing */
+                    $existing = $flatDimensionPatterns->get($pattern);
+                    $found = false;
+                    /** @var Collection $existingPatternsArray */
+                    foreach ($existing as $existingPatternsArray) {
+                        /** @var Collection $patternsArray */
+                        $patternsArrayCol = new Collection($patternsArray);
+                        if (json_encode($existingPatternsArray) == json_encode($patternsArrayCol)) {
+                            $found = true;
+                        }
+                    }
+                    if (!$found) {
+                        $flatDimensionPatterns->get($pattern)->add(new Collection($patternsArray));
+                    }
+                } else {
+                    $flatDimensionPatterns->put($pattern, new Collection([new Collection($patternsArray)]));
+                }
+            }
+        }
+
+        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $dataSets = array_keys($dimensionPatterns);
+        $rateTuples = [];
+        array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
+            $value = ["dataSet" => "<$dataSet>"];
+            foreach ($this->currencyService->dataSetRates[$dataSet] as $target=>$dataSetRate) {
+                $value["rate__{$target}"] = $dataSetRate;
+            }
+            $rateTuples[] = $value;
+
+        });
+
+
+        $basicQueryBuilder->values($rateTuples);
+        $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+
+        /** @var Collection $dimensionPatterCollections */
+        foreach ($flatDimensionPatterns as $dimension => $dimensionPatternsCollections) {
+            if ($dimensionPatternsCollections->count() > 1) {
+                $multiPatternGraph = [];
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
+                    $newQuery = $basicQueryBuilder->newSubquery();
+                    $selections = ["?observation"];
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+                            if (in_array($pattern->object, array_keys($parentDrilldownBindings)) || in_array($pattern->object, $aggregateBindings) || in_array($pattern->object, $allSelectedFields) || in_array($pattern->object, $sorterBindings) || in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
+                            if ($pattern->isOptional) {
+                                $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            } else {
+                                $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            foreach ($pattern->patterns as $subPattern) {
+                                if (in_array($subPattern->object, array_keys($parentDrilldownBindings))|| in_array($subPattern->object, $aggregateBindings)|| in_array($subPattern->object, $allSelectedFields) || in_array($subPattern->object, $allSortedFields) || in_array($subPattern->object, $allFilteredFields)) $selections[$subPattern->object] = $subPattern->object;
+
+
+                                if ($subPattern->isOptional) {
+                                    $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                } else {
+                                    $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                }
+                            }
+
+                        } else if ($pattern instanceof BindPattern) {
+                            if (in_array($pattern->getVariable(), array_keys($parentDrilldownBindings))||in_array($pattern->getVariable(), $aggregateBindings)||in_array($pattern->getVariable(), $allSelectedFields)||in_array($pattern->getVariable(), $allSortedFields)||in_array($pattern->getVariable(), $allFilteredFields)) $selections[$pattern->getVariable()] = $pattern->getVariable();
+
+                            $newQuery->bind($pattern->expression);
+                        }
+                    }
+                    $newQuery->select($selections);
+
+                    $multiPatternGraph[] = $newQuery;
+                }
+
+                $basicQueryBuilder->union(array_map(function (QueryBuilder $subQueryBuilder) use ($basicQueryBuilder) {
+                    return $basicQueryBuilder->newSubgraph()->subquery($subQueryBuilder);
+                }, $multiPatternGraph));
+
+
+            } else {
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+                            if ($pattern->isOptional) {
+                                $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            } else {
+                                $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            foreach ($pattern->patterns as $subPattern) {
+
+                                if ($subPattern->isOptional) {
+                                    $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                } else {
+                                    $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                }
+                            }
+
+                        } else if ($pattern instanceof BindPattern) {
+                            $basicQueryBuilder->bind($pattern->expression);
+                        }
+
+                    }
+                }
+            }
+        }
+        $filterCollection = new Collection(array_flatten($filterMap));
+        $filterCollection = $filterCollection->unique(function($item){return json_encode($item);});
+//echo $basicQueryBuilder->format();die;
+        foreach ($filterCollection as $filter) {
+            $filter->value = trim($filter->value, '"');
+            $filter->value = trim($filter->value, "'");
+
+            $basicQueryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+
+
+        }
+
+
+
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $innerGraph = $basicQueryBuilder;
+        $datasetQueries = [];
+
+
+        $agBindings = [];
+        foreach ($aggregateBindings as $binding) {
+            $agBindings [] = "(SUM($binding) AS {$binding}__)";
+        }
+        $agBindings[] = "(COUNT(?observation) AS ?count)";
+
+        $drldnBindings = [];
+
+        foreach ($drilldownBindings as $dataset => $bindings) {
+            foreach ($bindings as $binding) {
+                $drldnBindings [] = "{$binding}";
+
+            }
+        }
+        // dd(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
+        if (count($dimensionPatterns) > 0) {
+            $innerGraph
+                ->select(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
+            if (count($drilldownBindings) > 0) {
+
+                $innerGraph->groupBy(array_unique(array_merge($allSelectedFields, array_flatten($sorterBindings))));
+            }
+        }
+
+        $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
+        /*   foreach ($flatParentBindings as $flatParentBinding) {
+               $queryBuilder->filterNotExists($queryBuilder->newSubgraph()->where($flatParentBinding . "__", "(skos:similar|^skos:similar)",
+                   "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "__)"));
+           }*/
+
+        $outerSelections = [];
+        $outerGroupings = [];
+        if (count($dimensionPatterns) > 0) {
+            foreach ($parentDrilldownBindings as $parentBinding => $childrenBindings) {
+                //    $queryBuilder->where($parentBinding, "(skos:similar|^skos:similar)?", $parentBinding . "__");
+                $innerGraph->orderBy($parentBinding, "ASC");
+                $outerSelections[] = "(" . $parentBinding . " AS {$parentBinding}_)";
+                $outerGroupings[] = $parentBinding . "";
+                //dump($childrenBindings);
+                foreach (array_unique($childrenBindings) as $childrenBinding) {
+                    $outerSelections[] = "({$childrenBinding} AS {$childrenBinding}_)";
+                    $outerGroupings[] = $childrenBinding . "";
+
+                }
+            }
+            foreach ($aggregateBindings as $aggregateBinding) {
+                $outerSelections[] = "(SUM({$aggregateBinding}__) AS {$aggregateBinding})";
+
+            }
+        }
+
+        $outerSelections[] = "(SUM(?count) AS ?_count)";
         $queryBuilder->subquery($innerGraph);
+        //dd($outerSelections);
+
+        $queryBuilder->select($outerSelections);
+
+        if (!empty($outerGroupings))
+            $queryBuilder->groupBy(array_unique(array_merge($outerGroupings, array_flatten($sorterBindings))));
+        //echo $queryBuilder->format();die;
 
         //echo $queryBuilder->format();die;
         return $queryBuilder;
@@ -833,8 +1103,9 @@ class GlobalAggregateResult extends AggregateResult
 
     private function buildS(array $aggregateBindings, array $dimensionPatterns, array $filterBindings = [], array $filterMap = [])
     {
-        //  dd($dimensionPatterns);
-        //  dd($aggregateBindings);
+        //
+        //  dump($dimensionPatterns);
+        //  dump($aggregateBindings);
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $datasetQueries = [];
         foreach ($dimensionPatterns as $dataset => $dimensionPatternGroup) {
@@ -876,6 +1147,7 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
             $dataSetFilterBindings = isset($filterBindings[$dataset]) ? $filterBindings[$dataset] : [];
+            //dump($datasetQuery->format());
 
             $datasetQuery->selectDistinct(array_merge($aggregateBindings, ["?observation"], $dataSetFilterBindings));
 
@@ -908,7 +1180,224 @@ class GlobalAggregateResult extends AggregateResult
         if (!empty($dimensionPatterns))
             $queryBuilder
                 ->selectDistinct($agBindings);
-        // echo $queryBuilder->format();die;
+        //echo $queryBuilder->format();die;
+
+        return $queryBuilder;
+
+    }
+
+    private function buildS2(array $aggregateBindings, array $dimensionPatterns, $parentDrilldownBindings, array $filterBindings = [], array $filterMap = [])
+    {
+        //dd($aggregateBindings);
+        $allFilteredFields = array_unique(array_flatten($filterBindings));
+
+        $flatDimensionPatterns = new Collection();
+
+        foreach (new Collection($dimensionPatterns) as $dataSet => $patternsOfDimension) {
+
+            foreach ($patternsOfDimension as $pattern => $patternsArray) {
+                if ($flatDimensionPatterns->has($pattern)) {
+                    /** @var Collection $existing */
+                    $existing = $flatDimensionPatterns->get($pattern);
+                    $found = false;
+                    /** @var Collection $existingPatternsArray */
+                    foreach ($existing as $existingPatternsArray) {
+                        /** @var Collection $patternsArray */
+                        $patternsArrayCol = new Collection($patternsArray);
+                        if (json_encode($existingPatternsArray) == json_encode($patternsArrayCol)) {
+                            $found = true;
+                        }
+                    }
+                    if (!$found) {
+                        $flatDimensionPatterns->get($pattern)->add(new Collection($patternsArray));
+                    }
+                } else {
+                    $flatDimensionPatterns->put($pattern, new Collection([new Collection($patternsArray)]));
+                }
+            }
+        }
+        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $dataSets = array_keys($dimensionPatterns);
+        $rateTuples = [];
+        array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
+            $value = ["dataSet" => "<$dataSet>"];
+
+            foreach ($this->currencyService->dataSetRates[$dataSet] as $target=>$dataSetRate) {
+                $value["rate__{$target}"] = $dataSetRate;
+            }
+            $rateTuples[] = $value;
+
+        });
+
+        $basicQueryBuilder->values($rateTuples);
+        $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+
+        /** @var Collection $dimensionPatterCollections */
+        foreach ($flatDimensionPatterns as $dimension => $dimensionPatternsCollections) {
+            if ($dimensionPatternsCollections->count() > 1) {
+                $multiPatternGraph = [];
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
+                    $newQuery = $basicQueryBuilder->newSubquery();
+                    $selections = ["?observation"];
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+                            if (in_array($pattern->object, array_keys($parentDrilldownBindings)) || in_array($pattern->object, $aggregateBindings)|| in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
+                            if ($pattern->isOptional) {
+                                $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            } else {
+                                $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            foreach ($pattern->patterns as $subPattern) {
+                                if (in_array($subPattern->object, array_keys($parentDrilldownBindings))|| in_array($subPattern->object, $aggregateBindings)|| in_array($subPattern->object, $allFilteredFields)) $selections[$subPattern->object] = $subPattern->object;
+                                if ($subPattern->isOptional) {
+                                    $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                } else {
+                                    $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                }
+                            }
+
+                        } else if ($pattern instanceof BindPattern) {
+                            if (in_array($pattern->getVariable(), array_keys($parentDrilldownBindings))||in_array($pattern->getVariable(), $aggregateBindings)||in_array($pattern->getVariable(), $allFilteredFields)) $selections[$pattern->getVariable()] = $pattern->getVariable();
+
+                            $newQuery->bind($pattern->expression);
+                        }
+                    }
+                    $newQuery->select($selections);
+
+                    $multiPatternGraph[] = $newQuery;
+                }
+
+                $basicQueryBuilder->union(array_map(function (QueryBuilder $subQueryBuilder) use ($basicQueryBuilder) {
+                    return $basicQueryBuilder->newSubgraph()->subquery($subQueryBuilder);
+                }, $multiPatternGraph));
+
+
+            } else {
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+
+                            if ($pattern->isOptional) {
+                                $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            } else {
+                                $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            foreach ($pattern->patterns as $subPattern) {
+
+                                if ($subPattern->isOptional) {
+                                    $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                } else {
+                                    $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                }
+                            }
+
+                        } else if ($pattern instanceof BindPattern) {
+                            $basicQueryBuilder->bind($pattern->expression);
+                        }
+
+                    }
+                }
+            }
+        }
+        $filterCollection = new Collection(array_flatten($filterMap));
+        $filterCollection = $filterCollection->unique(function($item){return json_encode($item);});
+
+        foreach ($filterCollection as $filter) {
+            $filter->value = trim($filter->value, '"');
+            $filter->value = trim($filter->value, "'");
+
+            $basicQueryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+
+
+        }
+        //echo $basicQueryBuilder->format();die;
+
+        $basicQueryBuilder->select(array_merge(["?observation"],$aggregateBindings));
+
+
+        //
+        //  dump($dimensionPatterns);
+        //  dump($aggregateBindings);
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $datasetQueries = [];
+        $queryBuilder->subquery($basicQueryBuilder);
+        /*foreach ($dimensionPatterns as $dataset => $dimensionPatternGroup) {
+            $datasetQuery = $queryBuilder->newSubquery();
+
+            foreach ($dimensionPatternGroup as $uri => $dimensions) {
+
+                foreach ($dimensions as $dimensionPattern) {
+                    if ($dimensionPattern instanceof TriplePattern) {
+                        if ($dimensionPattern->isOptional) {
+                            $datasetQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
+                        } else {
+                            $datasetQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
+                        }
+                    } elseif ($dimensionPattern instanceof SubPattern) {
+                        $subGraph = $datasetQuery->newSubgraph();
+
+                        foreach ($dimensionPattern->patterns as $pattern) {
+                            if ($pattern instanceof TriplePattern) {
+
+                                if ($pattern->isOptional) {
+                                    $subGraph->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                } else {
+                                    $datasetQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                }
+                            } else if ($pattern instanceof BindPattern) {
+                                //      dd($pattern->expression);
+                                $subGraph->bind($pattern->expression);
+                            }
+                        }
+
+                        $datasetQuery->optional($subGraph);
+                    } elseif ($dimensionPattern instanceof BindPattern) {
+                        //dd($pattern->expression);
+
+                        $datasetQuery->bind($dimensionPattern->expression);
+
+                    }
+                }
+            }
+            $dataSetFilterBindings = isset($filterBindings[$dataset]) ? $filterBindings[$dataset] : [];
+            //dump($datasetQuery->format());
+
+            $datasetQuery->selectDistinct(array_merge($aggregateBindings, ["?observation"], $dataSetFilterBindings));
+
+            $datasetQuery->where("?observation", "a", "qb:Observation");
+            $datasetQuery->where("?observation", "qb:dataSet", "<$dataset>");
+            $datasetQueries [$dataset] = $datasetQuery;
+
+            if (isset($filterMap[$dataset]))
+                foreach ($filterMap[$dataset] as $attributeFilterSet) {
+                    foreach ($attributeFilterSet as $filter) {
+                        $filter->value = trim($filter->value, '"');
+                        $filter->value = trim($filter->value, "'");
+
+                        $datasetQuery->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                    }
+
+                }
+        }
+
+        $queryBuilder->union(array_map(function (QueryBuilder $subQueryBuilder) use ($queryBuilder) {
+            return $queryBuilder->newSubgraph()->subquery($subQueryBuilder);
+        }, $datasetQueries));*/
+
+        $agBindings = [];
+        foreach ($aggregateBindings as $binding) {
+            $agBindings [] = "(SUM($binding) AS {$binding}__)";
+        }
+        $agBindings[] = "(COUNT(?observation) AS ?count)";
+
+        if (!empty($dimensionPatterns))
+            $queryBuilder
+                ->select($agBindings);
+       //echo $queryBuilder->format();die;
 
         return $queryBuilder;
 
@@ -987,19 +1476,19 @@ class GlobalAggregateResult extends AggregateResult
         //dd($dimensionPatterns);
         //   echo $innerGraph->format();die;
         $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
-        foreach ($flatParentBindings as $flatParentBinding) {
+        /*foreach ($flatParentBindings as $flatParentBinding) {
             $midGraph->filterNotExists($midGraph->newSubgraph()->where($flatParentBinding . "__", "(skos:similar|^skos:similar)?",
                 "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "__)"));
-        }
+        }*/
 
         $outerSelections = [];
         $outerGroupings = [];
         if (count($dimensionPatterns) > 0) {
             foreach ($parentDrilldownBindings as $parentBinding => $childrenBindings) {
-                $midGraph->where($parentBinding, "(skos:similar|^skos:similar)", $parentBinding . "__");
+                //    $midGraph->where($parentBinding, "(skos:similar|^skos:similar)", $parentBinding . "__");
 
-                $outerSelections[] = "(" . $parentBinding . "__ AS {$parentBinding}_)";
-                $outerGroupings[] = $parentBinding . "__";
+                // $outerSelections[] = "(" . $parentBinding . "__ AS {$parentBinding}_)";
+                //   $outerGroupings[] = $parentBinding . "__";
 
             }
         }
@@ -1014,6 +1503,184 @@ class GlobalAggregateResult extends AggregateResult
 
 
         //echo $queryBuilder->format();die;
+        return $queryBuilder;
+
+    }
+
+    private function buildC2(array $dimensionPatterns, array $parentDrilldownBindings, array $filterBindings = [], array $filterMap = [])
+    {
+        $flatDimensionPatterns = new Collection();
+        $allFilteredFields = array_unique(array_flatten($filterBindings));
+
+        foreach (new Collection($dimensionPatterns) as $dataSet => $patternsOfDimension) {
+
+            foreach ($patternsOfDimension as $pattern => $patternsArray) {
+                if ($flatDimensionPatterns->has($pattern)) {
+                    /** @var Collection $existing */
+                    $existing = $flatDimensionPatterns->get($pattern);
+                    $found = false;
+                    /** @var Collection $existingPatternsArray */
+                    foreach ($existing as $existingPatternsArray) {
+                        /** @var Collection $patternsArray */
+                        $patternsArrayCol = new Collection($patternsArray);
+                        if (json_encode($existingPatternsArray) == json_encode($patternsArrayCol)) {
+                            $found = true;
+                        }
+                    }
+                    if (!$found) {
+                        $flatDimensionPatterns->get($pattern)->add(new Collection($patternsArray));
+                    }
+                } else {
+                    $flatDimensionPatterns->put($pattern, new Collection([new Collection($patternsArray)]));
+                }
+            }
+        }
+//dd($flatDimensionPatterns);
+        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $dataSets = array_keys($dimensionPatterns);
+        $rateTuples = [];
+        array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
+            $value = ["dataSet" => "<$dataSet>"];
+            foreach ($this->currencyService->dataSetRates[$dataSet] as $target=>$dataSetRate) {
+                $value["rate__{$target}"] = $dataSetRate;
+            }
+            $rateTuples[] = $value;
+
+        });
+
+
+        $basicQueryBuilder->values($rateTuples);
+//dd($flatDimensionPatterns);
+        /** @var Collection $dimensionPatterCollections */
+        foreach ($flatDimensionPatterns as $dimension => $dimensionPatternsCollections) {
+            if ($dimensionPatternsCollections->count() > 1) {
+                $multiPatternGraph = [];
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
+                    $newQuery = $basicQueryBuilder->newSubquery();
+                    $selections = ["?observation"];
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+                            if (in_array($pattern->object, array_keys($parentDrilldownBindings))|| in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
+                            if ($pattern->isOptional) {
+                                $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            } else {
+                                $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            foreach ($pattern->patterns as $subPattern) {
+                                if (in_array($subPattern->object, array_keys($parentDrilldownBindings))|| in_array($subPattern->object, $allFilteredFields)) $selections[$subPattern->object] = $subPattern->object;
+                                if ($subPattern->isOptional) {
+                                    $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                } else {
+                                    $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                }
+                            }
+
+                        } else if ($pattern instanceof BindPattern) {
+                            if (in_array($pattern->getVariable(), array_keys($parentDrilldownBindings))||in_array($pattern->getVariable(), $allFilteredFields)) $selections[$pattern->getVariable()] = $pattern->getVariable();
+                            $newQuery->bind($pattern->expression);
+                        }
+                    }
+                    $newQuery->select($selections);
+
+                    $multiPatternGraph[] = $newQuery;
+                }
+
+                $basicQueryBuilder->union(array_map(function (QueryBuilder $subQueryBuilder) use ($basicQueryBuilder) {
+                    return $basicQueryBuilder->newSubgraph()->subquery($subQueryBuilder);
+                }, $multiPatternGraph));
+
+
+            } else {                        
+
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {//dd($dimensionPatternsCollections);
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+                            if ($pattern->isOptional) {
+                                $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            } else {
+                                $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            foreach ($pattern->patterns as $subPattern) {
+
+                                if ($subPattern->isOptional) {
+                                    $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                } else {
+                                    $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                }
+                            }
+
+                        } else if ($pattern instanceof BindPattern) {
+                            $basicQueryBuilder->bind($pattern->expression);
+                        }
+
+                    }
+                }
+            }
+        }
+
+        $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+
+        $filterCollection = new Collection(array_flatten($filterMap));
+        $filterCollection = $filterCollection->unique(function($item){return json_encode($item);});
+//dd($filterCollection);
+        foreach ($filterCollection as $filter) {
+                $filter->value = trim($filter->value, '"');
+                $filter->value = trim($filter->value, "'");
+
+            $basicQueryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+
+
+        }
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $midGraph = $queryBuilder->newSubquery();
+
+        $innerGraph = $basicQueryBuilder;
+
+
+        $agBindings = [];
+
+        $agBindings[] = "(count(?observation) AS ?count)";
+        if (count($parentDrilldownBindings) > 0 && count($dimensionPatterns) > 0) {
+            $innerGraph->groupBy(array_keys($parentDrilldownBindings));
+        }
+        if (count($dimensionPatterns) > 0)
+            $innerGraph
+                ->select(array_merge($agBindings, array_keys($parentDrilldownBindings)), $filterBindings);
+//dd(array_merge($agBindings, array_keys($parentDrilldownBindings)), $filterBindings);
+        //dd($dimensionPatterns);
+        //   echo $innerGraph->format();die;
+       // $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
+        /*foreach ($flatParentBindings as $flatParentBinding) {
+            $midGraph->filterNotExists($midGraph->newSubgraph()->where($flatParentBinding . "__", "(skos:similar|^skos:similar)?",
+                "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "__)"));
+        }*/
+
+        $outerSelections = [];
+        $outerGroupings = [];
+        if (count($dimensionPatterns) > 0) {
+            foreach ($parentDrilldownBindings as $parentBinding => $childrenBindings) {
+                //    $midGraph->where($parentBinding, "(skos:similar|^skos:similar)", $parentBinding . "__");
+
+                // $outerSelections[] = "(" . $parentBinding . "__ AS {$parentBinding}_)";
+                //   $outerGroupings[] = $parentBinding . "__";
+
+            }
+        }
+
+        // dd($outerSelections);
+        $midGraph->select($outerSelections);
+        if (!empty($outerGroupings))
+            $midGraph->groupBy($outerGroupings);
+        $midGraph->subquery($innerGraph);
+        $queryBuilder->subquery($midGraph);
+        $queryBuilder->select("(COUNT(*) AS ?_count)");
+
+       // echo $queryBuilder->format(); die;
+
         return $queryBuilder;
 
     }
@@ -1087,103 +1754,5 @@ class GlobalAggregateResult extends AggregateResult
 
     }
 
-    private function getRate($sourceCurrency, $targetCurrency, $year)
-    {
-
-        if (Cache::has("rates/$sourceCurrency/$targetCurrency/$year")) {
-            return Cache::get("rates/$sourceCurrency/$targetCurrency/$year");
-        }
-
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
-
-        if ($sourceCurrency == $targetCurrency) {
-            $rate = 1;
-            Cache::forever("rates/$sourceCurrency/$targetCurrency/$year", $rate);
-            return $rate;
-        } elseif ($sourceCurrency != 'EUR' && $targetCurrency == 'EUR') {
-            $queryBuilder->where("?xroInfo", 'a', 'xro:ExchangeRateInfo');
-            $queryBuilder->where("?xroInfo", 'xro:yearOfConversion', $year);
-            $queryBuilder->where("?xroInfo", 'xro:source', "<http://data.openbudgets.eu/codelist/currency/{$targetCurrency}>");
-            $queryBuilder->where("?xroInfo", 'xro:target', "<http://data.openbudgets.eu/codelist/currency/{$sourceCurrency}>");
-            $queryBuilder->where("?xroInfo", 'xro:rate', "?rate");
-            $queryBuilder->selectDistinct("?rate");
-
-            $result = $this->sparql->query(
-                $queryBuilder->getSPARQL()
-            );
-            $results = $this->rdfResultsToArray($result);
-            $rate = 1 / $results[0]["rate"];
-            Cache::forever("rates/$sourceCurrency/$targetCurrency/$year", $rate);
-
-            return $rate;
-        } elseif ($sourceCurrency == 'EUR' && $targetCurrency != 'EUR') {
-            $queryBuilder->where("?xroInfo", 'a', 'xro:ExchangeRateInfo');
-            $queryBuilder->where("?xroInfo", 'xro:yearOfConversion', $year);
-            $queryBuilder->where("?xroInfo", 'xro:source', "<http://data.openbudgets.eu/codelist/currency/{$sourceCurrency}>");
-            $queryBuilder->where("?xroInfo", 'xro:target', "<http://data.openbudgets.eu/codelist/currency/{$targetCurrency}>");
-            $queryBuilder->where("?xroInfo", 'xro:rate', "?rate");
-            $queryBuilder->selectDistinct("?rate");
-            $result = $this->sparql->query(
-                $queryBuilder->getSPARQL()
-            );
-            // echo $queryBuilder->format();die;
-            $results = $this->rdfResultsToArray($result);
-            if(count($results)>0)
-                $rate = $results[0]["rate"];
-            else $rate = 1;
-            Cache::forever("rates/$sourceCurrency/$targetCurrency/$year", $rate);
-
-            return $rate;
-
-        } elseif ($sourceCurrency != 'EUR' && $targetCurrency != 'EUR') {
-
-            $queryBuilder->where("?xroInfo_source", 'a', 'xro:ExchangeRateInfo');
-            $queryBuilder->where("?xroInfo_source", 'xro:yearOfConversion', $year);
-            $queryBuilder->where("?xroInfo_source", 'xro:source', "<http://data.openbudgets.eu/codelist/currency/EUR>");
-            $queryBuilder->where("?xroInfo_source", 'xro:target', "<http://data.openbudgets.eu/codelist/currency/{$sourceCurrency}>");
-            $queryBuilder->where("?xroInfo_source", 'xro:rate', "?rate_source");
-
-            $queryBuilder->where("?xroInfo_target", 'a', 'xro:ExchangeRateInfo');
-            $queryBuilder->where("?xroInfo_target", 'xro:yearOfConversion', $year);
-            $queryBuilder->where("?xroInfo_target", 'xro:source', "<http://data.openbudgets.eu/codelist/currency/EUR>");
-            $queryBuilder->where("?xroInfo_target", 'xro:target', "<http://data.openbudgets.eu/codelist/currency/{$targetCurrency}>");
-            $queryBuilder->where("?xroInfo_target", 'xro:rate', "?rate_target");
-            $queryBuilder->selectDistinct(["?rate_target", "?rate_source"]);
-
-            $result = $this->sparql->query(
-                $queryBuilder->getSPARQL()
-            );
-            $results = $this->rdfResultsToArray($result);
-            $rate = $results[0]["rate_source"] / $results[0]["rate_target"];
-            Cache::forever("rates/$sourceCurrency/$targetCurrency/$year", $rate);
-
-            return $rate;
-        }
-        return 1;
-
-    }
-
-    /**
-     * @return SparqlPattern[]
-     */
-    private function currencyMagicTriples($subjectBinding, $attributePredicate, $objectBinding, $sourceCurrency, $targetCurrency, $year)
-    {
-
-        $rate = $this->getRate($sourceCurrency, $targetCurrency, $year);
-
-        /** @var SparqlPattern[] $patterns */
-        $patterns = [];
-
-        if ($sourceCurrency == 'EUR' && $targetCurrency == 'EUR') {
-            $patterns[] = new TriplePattern($subjectBinding, $attributePredicate, $objectBinding, false);
-        } else {
-            $patterns[] = new TriplePattern($subjectBinding, $attributePredicate, "{$objectBinding}__$sourceCurrency", false);
-
-            $patterns[] = new BindPattern("$rate*{$objectBinding}__$sourceCurrency AS $objectBinding");
-        }
-
-
-        return $patterns;
-    }
 
 }

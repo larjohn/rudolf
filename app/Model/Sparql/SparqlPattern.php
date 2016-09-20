@@ -23,5 +23,8 @@ abstract class SparqlPattern
         return false;
     }
 
+    public abstract function id();
+
+
 
 }

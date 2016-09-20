@@ -37,4 +37,8 @@ class SubPattern extends SparqlPattern
        }
     }
 
+    public function id()
+    {
+        return implode("|", array_map(function(SparqlPattern $item){ return $item->id();}, $this->patterns));
+    }
 }

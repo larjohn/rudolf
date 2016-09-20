@@ -31,6 +31,11 @@ class SearchResult extends SparqlModel
 
     public function load(){
 
+        if(Cache::has("search")){
+            $this->packages = Cache::get("search");
+            return;
+        }
+
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
             ->selectDistinct('?attribute', '(MAX(?_label) AS ?label)', '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "(MAX(?_datasetName) AS ?datasetName)", "?dataset", "(SAMPLE(?_datasetLabel) AS ?datasetLabel)", "?currency", "?year"/*, "(count(distinct ?value) AS ?cardinality)"*/)
@@ -250,7 +255,7 @@ class SearchResult extends SparqlModel
         $globalModel->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>"global", "countryCode"=>"GR"];
 
         $this->packages[] = $globalModel;
-
+        Cache::forever("search", $this->packages);
         // dd($this->model->dimensions);
 
 

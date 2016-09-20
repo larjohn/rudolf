@@ -23,7 +23,7 @@ class SparqlModel
     public function  __construct(){
         \EasyRdf_Http::setDefaultHttpClient(new \EasyRdf_Http_Client(null, ['maxredirects'    => 5,
             'useragent'       => 'EasyRdf_Http_Client',
-            'timeout'         => 150]));
+            'timeout'         => 350]));
         $this->sparql = new EasyRdf_Sparql_Client(config("sparql.endpoint"));
         foreach (config("sparql.prefixes") as $prefix=>$uri) {
             //dd($prefix);
@@ -41,6 +41,7 @@ class SparqlModel
 
         //dd(EasyRdf_Namespace::namespaces());
         //var_dump($shortUri);
+        if($shortUri[0]=="?") return  $shortUri;
         return '<'.EasyRdf_Namespace::expand($shortUri).'>'.$transitivity;
 
     }
@@ -98,6 +99,7 @@ class SparqlModel
         $selectedDimensions = [];
         foreach ($fields as $field) {
             $fieldNames = explode(".", $field);
+
             foreach ($model->measures as $name => $attribute) {
                 if($fieldNames[0] == $name){
 

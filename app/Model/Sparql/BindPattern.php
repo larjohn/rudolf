@@ -16,7 +16,6 @@ class BindPattern extends SparqlPattern
     {
         parent::__construct(false) ;
 
-
         $this->expression = $expression;
 
     }
@@ -26,5 +25,21 @@ class BindPattern extends SparqlPattern
         if($existing_pattern instanceof BindPattern)
             return $this->expression==$existing_pattern->expression;
         else return false;
+    }
+
+    public function id()
+    {
+        return $this->expression;
+    }
+
+    public function getVariable(){
+        $re = "/.*\\sAS\\s(\\?\\S*).*/";
+        $str =$this->expression;
+
+        $matches = [];
+
+        preg_match_all($re, $str, $matches);
+
+        return $matches[1][0];
     }
 }

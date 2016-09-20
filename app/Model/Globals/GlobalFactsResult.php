@@ -9,23 +9,30 @@
 namespace App\Model\Globals;
 
 
+use App\Model\CurrencyService;
 use App\Model\Dimension;
 use App\Model\FactsResult;
 use App\Model\FilterDefinition;
 use App\Model\Measure;
 use App\Model\Sorter;
+use App\Model\Sparql\BindPattern;
 use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use App\Model\SparqlModel;
+use Asparagus\GraphBuilder;
 use Asparagus\QueryBuilder;
 use EasyRdf_Sparql_Result;
+use Illuminate\Database\Eloquent\Collection;
 
 class GlobalFactsResult extends FactsResult
 {
+    private $currencyService ;
+
 
     public function __construct($page, $page_size, array $fields, array $orders, array $cuts)
     {
         SparqlModel::__construct();
+        $this->currencyService = new CurrencyService();
         $sorters = [];
         foreach ($orders as $order) {
             $newSorter = new Sorter($order);
@@ -73,6 +80,7 @@ class GlobalFactsResult extends FactsResult
         $offset = $page_size * $page;
 
         $dimensions = $model->dimensions;
+        //dd($dimensions);
         $measures = $model->measures;
 
         /** @var Sorter[] $sorterMap */
@@ -174,15 +182,35 @@ class GlobalFactsResult extends FactsResult
                     if (isset($attachment) && $attachment == "qb:Slice") {
                         $needsSliceSubGraph = true;
 
-                        $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $dimensionBindings[$datasetURI][$attribute], false));
+                        if($foundDimension->getUri() == $innerDimension->getUri()){
+                            $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $dimensionBindings[$datasetURI][$attribute], true));
+                        }
+                        else{
+                            $sliceSubGraph->add(new TriplePattern("?slice", "?att_".substr(md5($foundDimension->ref), 0, 5), $dimensionBindings[$datasetURI][$attribute], false));
+
+                            $sliceSubGraph->add(new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                        }
                     } elseif (isset($attachment) && $attachment == "qb:DataSet") {
                         $needsDataSetSubGraph = true;
 
 
-                        $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $dimensionBindings[$datasetURI][$attribute], false));
-                    } else {
+                        if($foundDimension->getUri() == $innerDimension->getUri()){
+                            $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $dimensionBindings[$datasetURI][$attribute], true));
+                        }
+                        else{
+                            $dataSetSubGraph->add(new TriplePattern("?dataSet", "?att_".substr(md5($foundDimension->ref), 0, 5), $dimensionBindings[$datasetURI][$attribute], false));
 
-                        $patterns[$datasetURI][$foundDimension->getUri()][] = new TriplePattern("?observation", $attribute, $dimensionBindings[$datasetURI][$attribute], false);
+                            $dataSetSubGraph->add(new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                        }
+                    } else {
+                        if($foundDimension->getUri() == $innerDimension->getUri()){
+
+                            $patterns[$datasetURI][$foundDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", $attribute, $dimensionBindings[$datasetURI][$attribute], true)]);
+                        }
+                        else{
+                            $patterns[$datasetURI][$foundDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", "?att_".substr(md5($foundDimension->ref), 0, 5), $dimensionBindings[$datasetURI][$attribute], false), new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false)]);
+                        }
+
                     }
                     if (isset($sorterMap[$attribute]) && $sorterMap[$attribute] instanceof Sorter) {
                         $sorterMap[$attribute]->binding = $dimensionBindings[$datasetURI][$attribute];
@@ -238,6 +266,7 @@ class GlobalFactsResult extends FactsResult
 
             }
 
+           // dd($foundMeasure);
 
             /** @var GlobalMeasure $foundMeasure */
             if (isset($foundMeasure)) {
@@ -287,12 +316,22 @@ class GlobalFactsResult extends FactsResult
                     $attachment = $innerMeasure->getAttachment();
                     if (isset($attachment) && $attachment == "qb:Slice") {
                         $needsSliceSubGraph = true;
-                        $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $measureBindings[$datasetURI][$attribute], false));
+                        $sliceSubGraph->addMany($this->currencyService->currencyMagicTriples("?slice", $attribute, $measureBindings[$datasetURI][$attribute], $innerMeasure->currency, $foundMeasure->currency, $innerMeasure->getDataSetFiscalYear(), $innerMeasure->getDataSet()));
+
+                      //  $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $measureBindings[$datasetURI][$attribute], false));
                     } elseif (isset($attachment) && $attachment == "qb:DataSet") {
                         $needsDataSetSubGraph = true;
-                        $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $measureBindings[$datasetURI][$attribute], false));
+                        $dataSetSubGraph->addMany($this->currencyService->currencyMagicTriples("?dataSet", $attribute, $measureBindings[$datasetURI][$attribute], $innerMeasure->currency, $foundMeasure->currency, $innerMeasure->getDataSetFiscalYear(), $innerMeasure->getDataSet()));
+
+                       // $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $measureBindings[$datasetURI][$attribute], false));
                     } else {
-                        $patterns[$datasetURI][$foundMeasure->getUri()][] = new TriplePattern("?observation", $attribute, $measureBindings[$datasetURI][$attribute], false);
+
+
+                        $triples = $this->currencyService->currencyMagicTriples("?observation", $attribute, $measureBindings[$datasetURI][$attribute], $innerMeasure->currency, $foundMeasure->currency, $innerMeasure->getDataSetFiscalYear(), $innerMeasure->getDataSet());
+                        foreach ($triples as $triple) {
+                            $patterns [$innerMeasure->getDataSet()][$foundMeasure->getUri()][] = $triple;
+                        }
+                        //$patterns[$datasetURI][$foundMeasure->getUri()][] = new TriplePattern("?observation", $attribute, $measureBindings[$datasetURI][$attribute], false);
                         //dd($foundMeasure->getUri());
 
                     }
@@ -334,7 +373,7 @@ class GlobalFactsResult extends FactsResult
 
       //  dd(array_merge_recursive($patterns, $dataSetSubGraphs, $sliceSubGraphs));
 
-        $queryBuilder = $this->build(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs),array_merge_recursive($dimensionBindings, $measureBindings), $finalFilters);
+        $queryBuilder = $this->build2(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs),array_merge_recursive($dimensionBindings, $measureBindings), $finalFilters);
         /** @var EasyRdf_Sparql_Result $countResult */
         //echo($queryBuilderC->format());die;
 
@@ -393,7 +432,7 @@ class GlobalFactsResult extends FactsResult
 
         $queryBuilderC =new QueryBuilder(config("sparql.prefixes"));
 
-        $queryBuilderC->subquery($this->build(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs),array_merge_recursive($dimensionBindings, $measureBindings), $finalFilters));
+        $queryBuilderC->subquery($this->build2(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs),array_merge_recursive($dimensionBindings, $measureBindings), $finalFilters));
         $queryBuilderC->selectDistinct("(COUNT(?observation) AS ?_count)");
         /** @var EasyRdf_Sparql_Result $countResult */
         $countResult = $this->sparql->query(
@@ -407,6 +446,162 @@ class GlobalFactsResult extends FactsResult
         $this->page = $page;
         $this->total_fact_count = $count;
         $this->fields = $fields;
+
+
+    }
+
+    private function build2( array $dimensionPatterns, array $bindings, array $filterMap = []){
+
+        $allSelectedFields = array_unique(array_flatten($bindings));
+
+
+        $flatDimensionPatterns = new Collection();
+
+        foreach (new Collection($dimensionPatterns) as $dataSet => $patternsOfDimension) {
+
+            foreach ($patternsOfDimension as $pattern => $patternsArray) {
+                if ($flatDimensionPatterns->has($pattern)) {
+                    /** @var Collection $existing */
+                    $existing = $flatDimensionPatterns->get($pattern);
+                    $found = false;
+                    /** @var Collection $existingPatternsArray */
+                    foreach ($existing as $existingPatternsArray) {
+                        /** @var Collection $patternsArray */
+                        $patternsArrayCol = new Collection($patternsArray);
+                        if (json_encode($existingPatternsArray) == json_encode($patternsArrayCol)) {
+                            $found = true;
+                        }
+                    }
+                    if (!$found) {
+                        $flatDimensionPatterns->get($pattern)->add(new Collection($patternsArray));
+                    }
+                } else {
+                    $flatDimensionPatterns->put($pattern, new Collection([new Collection($patternsArray)]));
+                }
+            }
+        }
+
+        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $dataSets = array_keys($dimensionPatterns);
+        $rateTuples = [];
+
+        array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
+            $value = ["dataSet" => "<$dataSet>"];
+            foreach ($this->currencyService->dataSetRates[$dataSet] as $target=>$dataSetRate) {
+                $value["rate__{$target}"] = $dataSetRate;
+            }
+            $rateTuples[] = $value;
+
+        });
+
+
+        $basicQueryBuilder->values($rateTuples);
+
+        $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+//dd($flatDimensionPatterns);
+        /** @var Collection $dimensionPatterCollections */
+        foreach ($flatDimensionPatterns as $dimension => $dimensionPatternsCollections) {
+            if ($dimensionPatternsCollections->count() > 1) {
+                $multiPatternGraph = [];
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
+                    $newQuery = $basicQueryBuilder->newSubquery();
+                    $selections = ["?observation"];
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+                            if (in_array($pattern->object, $allSelectedFields)) $selections[$pattern->object] = $pattern->object;
+                            //if ($pattern->isOptional) {
+                               // $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                          //  } else {
+                                $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                           // }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            foreach ($pattern->patterns as $subPattern) {
+                                if (in_array($subPattern->object, $allSelectedFields)) $selections[$subPattern->object] = $subPattern->object;
+                               // if ($subPattern->isOptional) {
+                                  //  $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                               // } else {
+                                    $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                              //  }
+                            }
+
+                        } else if ($pattern instanceof BindPattern) {
+                            $newQuery->values($rateTuples);
+                            if (in_array($pattern->getVariable(), $allSelectedFields)) $selections[$pattern->getVariable()] = $pattern->getVariable();
+                            //dd($pattern->getVariable());
+                            $newQuery->bind($pattern->expression);
+                        }
+                    }
+                   // dump($selections);
+                   // dump($newQuery->format());
+
+                    $newQuery->select($selections);
+                   // dump($newQuery->format());
+
+                    $multiPatternGraph[] = $newQuery;
+                }
+
+                /** @var GraphBuilder $optional */
+                $optional = $basicQueryBuilder->newSubgraph();
+                $optional->union(array_map(function (QueryBuilder $subQueryBuilder) use ($optional, $basicQueryBuilder) {
+                    return $basicQueryBuilder->newSubgraph()->subquery($subQueryBuilder);
+                }, $multiPatternGraph));
+
+
+
+                $basicQueryBuilder->optional($optional);
+
+
+            } else {
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
+                    //dump($dimensionPatternsCollection);
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+                            if ($pattern->isOptional) {
+                                $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            } else {
+                                $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            $subPatternGraph = $basicQueryBuilder->newSubgraph();
+
+                            foreach ($pattern->patterns as $subPattern) {
+
+                                if ($subPattern->isOptional) {
+                                    $subPatternGraph->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                } else {
+                                    $subPatternGraph->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                }
+                            }
+
+                            $basicQueryBuilder->optional($subPatternGraph);
+
+                        } else if ($pattern instanceof BindPattern) {
+                            $basicQueryBuilder->bind($pattern->expression);
+                        }
+
+                    }
+                }
+            }
+        }
+        $filterCollection = new Collection(array_flatten($filterMap));
+        $filterCollection = $filterCollection->unique(function($item){return json_encode($item);});
+
+        foreach ($filterCollection as $filter) {
+            $filter->value = trim($filter->value, '"');
+            $filter->value = trim($filter->value, "'");
+
+            $basicQueryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+
+
+        }
+       // dd($flatDimensionPatterns);
+
+        $basicQueryBuilder->select(array_unique(array_merge(["?observation"], array_values($allSelectedFields))));
+      //echo $basicQueryBuilder->format();die;
+
+        return $basicQueryBuilder;
 
 
     }

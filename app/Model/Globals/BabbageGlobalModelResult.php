@@ -38,8 +38,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
     {
 
         if (Cache::has("global")) {
-            $this->model = Cache::get("global");
-            //dd($this->model); //fiscalYear????
+           $this->model = Cache::get("global");
             return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
@@ -76,15 +75,21 @@ class BabbageGlobalModelResult extends BabbageModelResult
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
             $subQuery = $queryBuilder->newSubquery();
             $subSubQuery = $subQuery->newSubquery();
-            $subSubQuery->where('?observation', 'a', 'qb:Observation');
             $subSubQuery->select("?value");
             $subSubQuery->limit(1);
             if (isset($property["attachment"]) && $property["attachment"] == "qb:Slice") {
+                $subSubQuery->where('?observation', 'a', 'qb:Observation');
 
                 $subSubQuery
                     ->where("?slice", "qb:observation", "?observation")
                     ->where("?slice", "<$attribute>", "?value");
+            }  elseif (isset($property["attachment"]) && $property["attachment"] == "qb:DataSet") {
+
+                $subSubQuery
+                    ->where("?dataSet", "a", "qb:DataSet")
+                    ->where("?dataSet", "<$attribute>", "?value");
             } else {
+                $subSubQuery->where('?observation', 'a', 'qb:Observation');
                 $subSubQuery->where("?observation", "<$attribute>", "?value");
             }
             if ($property["propertyType"] == "qb:MeasureProperty") {
@@ -125,6 +130,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
             else {
                 if (Cache::has($property["datasetName"] . "/" . $property["shortName"])) {
                     $newDimension = Cache::get($property["datasetName"] . "/" . $property["shortName"]);
+
                 } else {
                     $subQuery->where("?value", "?extensionProperty", "?extension");
                     $subQuery->subquery($subSubQuery);
@@ -134,6 +140,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         ->where("?extensionProperty", "rdfs:label", "?label")
                         ->bind("datatype(?extension) AS ?dataType")
                         ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
+
+
 
                     $subResult = $this->sparql->query(
                         $queryBuilder->getSPARQL()
@@ -146,7 +154,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     $newDimension->setDataSet($property["dataset"]);
                     $newDimension->label = (isset($property["label"]) ? $property["label"] : $property["shortName"]) . " (" . $property["datasetName"] . ")";
                     //$newDimension->cardinality_class = $this->getCardinality($property["cardinality"]);
-                    $newDimension->ref = $property["datasetName"] . "/" . $property["shortName"];
+                    $newDimension->ref = $property["datasetName"] . "__" . $property["shortName"];
                     $newDimension->orig_dimension = $property["shortName"];
                     $newDimension->setUri($attribute);
                     if (isset($property["attachment"]))
@@ -199,7 +207,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     Cache::forget($property["datasetName"] . "/" . $property["shortName"]);
                     Cache::forever($property["datasetName"] . "/" . $property["shortName"], $newDimension);
                 }
-                $this->model->dimensions[$property["datasetName"] . "/" . $property["shortName"]] = $newDimension;
+                $this->model->dimensions[$property["datasetName"] . "__" . $property["shortName"]] = $newDimension;
 
             }
         }
@@ -227,9 +235,11 @@ class BabbageGlobalModelResult extends BabbageModelResult
             /** @var GlobalMeasure[] $globalMeasures */
             $globalMeasures = [];
             foreach ($globalsResults as $globalTuple) {
-                if (!isset($this->model->dimensions[$globalTuple["shortName"]])) continue; //need dimensions not measures
-                $newGlobalDimension = new GlobalDimension();
+                //dd($this->model->dimensions);
 
+                if (!isset($this->model->dimensions[$globalTuple["shortName"]])) continue; //need dimensions not measures
+
+                $newGlobalDimension = new GlobalDimension();
                 if (isset($globalTuple["parent"])) {
                     $ref = "global__" . preg_replace("/^.*(#|\/)/", "", $globalTuple["parent"]) . "__" . substr(md5($globalTuple["parent"]), 0, 5);
 
@@ -280,7 +290,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     $existingInnerMeasure = $this->model->measures[$globalTuple["shortName"]];
                     $globalMeasures[$ref]->addInnerMeasure($existingInnerMeasure);
                 } else {
-                    $ref = preg_replace("/^.*(#|\/)/", "", $globalTuple["attribute"]) . "__" . substr(md5($globalTuple["attribute"]), 0, 5);
+                    $ref = "global__" . preg_replace("/^.*(#|\/)/", "", $globalTuple["attribute"]) . "__" . substr(md5($globalTuple["attribute"]), 0, 5);
                     if (!isset($globalMeasures[$ref])) {
                         $globalMeasures[$ref] = $newGlobalMeasure;
                         $globalMeasures[$ref]->ref = $ref;
@@ -349,6 +359,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
                             ->where("?extensionProperty", "rdfs:label", "?label")
                             ->bind("datatype(?extension) AS ?dataType")
                             ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
+                        //echo                             $queryBuilder->format();
+
                         $subResult = $this->sparql->query(
                             $queryBuilder->getSPARQL()
                         );

@@ -9,29 +9,52 @@
 namespace App\Model\Globals;
 
 
-class GlobalPackageResult
+use App\Model\SparqlModel;
+
+class GlobalPackageResult extends SparqlModel
 {
 
     public $model;
     public $countryCode;
-    
+
     public function __construct()
     {
+        parent::__construct();
+
+
         $this->load();
     }
 
     private function load()
     {
-        $this->model = [];
-        $this->model["dimensions"]= [];
+
         $model = (new BabbageGlobalModelResult())->model;
+       // dd($model->dimensions["global__fiscalPeriod__28951"]->getInnerDimensions());
 
         foreach ($model->dimensions as $dimension) {
-            $this->model["dimensions"][$dimension->ref] = ["dimensionType"=>"location"];
-            
-        }
+            $newDimension = [];
+            if ( strpos($dimension->ref, 'fiscalYear') !== false  ||  strpos($dimension->ref, 'fiscalPeriod') !== false  ) {
+                $newDimension["dimensionType"] = "datetime";
 
-        $this->countryCode="GR";
+
+            } elseif ( strpos($dimension->ref, 'organization') !== false ||  strpos($dimension->ref, 'budgetaryUnit')!== false ) {
+                $newDimension["dimensionType"] = "location";
+
+            } else {
+                $newDimension["dimensionType"] = "classification";
+
+            }
+            $this->model["dimensions"][$dimension->ref] = $newDimension;
+        }
+        foreach ($model->measures as $measure) {
+            $newMeasure = [];
+            $newMeasure["currency"] = $measure->currency;
+            $newMeasure["title"] = $measure->label;
+            $this->model["measures"][$measure->ref] = $newMeasure;
+        }
+        $this->name = "global";
+
+
     }
 
 }

@@ -34,4 +34,8 @@ class TriplePattern extends SparqlPattern
 
     public $transitivity = null;
 
+    public function id()
+    {
+        return "{$this->subject}|{$this->predicate}|{$this->object}";
+    }
 }

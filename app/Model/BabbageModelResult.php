@@ -147,7 +147,6 @@ class BabbageModelResult extends SparqlModel
                 );
                 /** @var EasyRdf_Sparql_Result $result */
 
-                $subResults = $this->rdfResultsToArray($subResult);
                 $newMeasure->setUri($attribute);
 
                 $newMeasure->ref = $property["shortName"];

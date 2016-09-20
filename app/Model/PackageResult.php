@@ -9,6 +9,7 @@
 namespace App\Model;
 
 
+
 class PackageResult extends SparqlModel
 {
 
@@ -17,37 +18,44 @@ class PackageResult extends SparqlModel
 
     public $author;
 
-    public $countryCode = "GR";
+    public $countryCode = "EU";
 
-    public $model;
+    public $model = [];
+    public $name;
 
-    public function __construct()
+    public function __construct($name)
     {
         parent::__construct();
 
-        $this->model = [
-            /*"dimensions" => [
-                "economicClassification"=>[
-                    "classificationType"=>"administrative",
-                    "dimensionType"=>"classification",
-                    "primaryKey" => ["prefLabel"],
-                    "attribute" => [
-                        "prefLabel"=>[
-                            "resource"=> "thessaloniki",
-                            "source" => "prefLabel"
+        $model = (new BabbageModelResult($name))->model;
+        //dd($model);
 
-                        ]
-                    ]
-                ]
-            ],*/
-            "measures" => [
-                "amount"=>[
-                    "currency"=>"EUR",
-                    "resource"=>"model",
-                    "source"=>"amount"
-                ]
-            ]
-        ];
+        foreach ($model->dimensions as $dimension) {
+            $newDimension = [];
+            if($dimension->ref=="fiscalYear"||$dimension->ref=="fiscalPeriod"){
+                $newDimension["dimensionType"] = "datetime";
+
+
+
+            }elseif($dimension->ref=="organization"||$dimension->ref=="budgetaryUnit"){
+                $newDimension["dimensionType"] = "location";
+
+            }
+            else{
+                $newDimension["dimensionType"] = "classification";
+
+            }
+            $this->model["dimensions"][$dimension->ref] = $newDimension;
+        }
+        foreach ($model->measures as $measure) {
+            $newMeasure = [];
+            $newMeasure["currency"] = $measure->currency;
+            $newMeasure["title"] = $measure->label;
+            $this->model["measures"][$measure->ref] = $newMeasure;
+        }
+        $this->name = $name;
+
+
         
         
         
