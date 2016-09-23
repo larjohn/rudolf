@@ -496,6 +496,9 @@ class GlobalAggregateResult extends AggregateResult
                         $sliceSubGraph->add(new TriplePattern("?slice", "?att_".substr(md5($foundDimension->ref), 0, 5), $drilldownBindings[$datasetURI][$attribute], false));
 
                         $sliceSubGraph->add(new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                        $helperTriple = new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "a", "qb:DimensionProperty", false); //'hack' for virtuoso
+                        $helperTriple->onlyGlobalTriples = true;
+                        $sliceSubGraph->add($helperTriple);
                     }
 
                     //$sliceSubGraph->add(new TriplePattern("?slice", $attribute, $drilldownBindings[$datasetURI][$attribute], false));
@@ -508,6 +511,11 @@ class GlobalAggregateResult extends AggregateResult
                         $dataSetSubGraph->add(new TriplePattern("?dataSet", "?att_".substr(md5($foundDimension->ref), 0, 5), $drilldownBindings[$datasetURI][$attribute], false));
 
                         $dataSetSubGraph->add(new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                        $helperTriple = new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "a", "qb:DimensionProperty", false); //'hack' for virtuoso
+                        $helperTriple->onlyGlobalTriples = true;
+
+                        $dataSetSubGraph->add($helperTriple);
+
                     }
                    // $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $drilldownBindings[$datasetURI][$attribute], false));
                 } else {
@@ -517,6 +525,11 @@ class GlobalAggregateResult extends AggregateResult
                     }
                     else{
                         $patterns[$datasetURI][$foundDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", "?att_".substr(md5($foundDimension->ref), 0, 5), $drilldownBindings[$datasetURI][$attribute], false), new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false)]);
+                        $helperTriple = new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "a", "qb:DimensionProperty", false); //'hack' for virtuoso
+                        $helperTriple->onlyGlobalTriples = true;
+
+                        $patterns[$datasetURI][$foundDimension->getUri()][] =$helperTriple;
+
                     }
 
                    // $patterns[$datasetURI][$foundDimension->getUri()][] = new TriplePattern("?observation", $attribute, $drilldownBindings[$datasetURI][$attribute], false);
@@ -625,7 +638,7 @@ class GlobalAggregateResult extends AggregateResult
                         //  dd($innerMeasure->getDataSet());
                         foreach ($triples as $triple) {
                             $patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = $triple;
-                            $patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = new TriplePattern("?observation", "qb:dataSet", "?dataSet");
+                            //$patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = new TriplePattern("?observation", "qb:dataSet", "?dataSet");
                         }
 
 
@@ -662,7 +675,7 @@ class GlobalAggregateResult extends AggregateResult
         /** @var EasyRdf_Sparql_Result $countResult */
 
        //  dd($chosenDatasets);
-       // echo($queryBuilderC->format());die;
+        //echo($queryBuilderC->format());die;
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()
         );
@@ -797,7 +810,7 @@ class GlobalAggregateResult extends AggregateResult
             $datasetQuery->selectDistinct(array_unique($selectedFields));
             //  var_dump(array_values($drilldownBindings[$dataset]));
             $datasetQuery->where("?observation", "a", "qb:Observation");
-            $datasetQuery->where("?observation", "qb:dataSet", "<$dataset>");
+           // $datasetQuery->where("?observation", "qb:dataSet", "<$dataset>");
             $datasetQueries [$dataset] = $datasetQuery;
 
             if (isset($filterMap[$dataset]))
@@ -942,7 +955,8 @@ class GlobalAggregateResult extends AggregateResult
 
 
         $basicQueryBuilder->values($rateTuples);
-        $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+        $tripleAntiRepeatHashes = [];
+      //  $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
 
         /** @var Collection $dimensionPatterCollections */
         foreach ($flatDimensionPatterns as $dimension => $dimensionPatternsCollections) {
@@ -954,6 +968,7 @@ class GlobalAggregateResult extends AggregateResult
                     foreach ($dimensionPatternsCollection as $pattern) {
                         if ($pattern instanceof TriplePattern) {
                             if (in_array($pattern->object, array_keys($parentDrilldownBindings)) || in_array($pattern->object, $aggregateBindings) || in_array($pattern->object, $allSelectedFields) || in_array($pattern->object, $sorterBindings) || in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
+                            if($pattern->onlyGlobalTriples)continue;
                             if ($pattern->isOptional) {
                                 $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
@@ -962,6 +977,7 @@ class GlobalAggregateResult extends AggregateResult
                         } elseif ($pattern instanceof SubPattern) {
 
                             foreach ($pattern->patterns as $subPattern) {
+                                if($subPattern->onlyGlobalTriples)continue;
                                 if (in_array($subPattern->object, array_keys($parentDrilldownBindings))|| in_array($subPattern->object, $aggregateBindings)|| in_array($subPattern->object, $allSelectedFields) || in_array($subPattern->object, $allSortedFields) || in_array($subPattern->object, $allFilteredFields)) $selections[$subPattern->object] = $subPattern->object;
 
 
@@ -995,7 +1011,9 @@ class GlobalAggregateResult extends AggregateResult
                             if ($pattern->isOptional) {
                                 $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
+                                if(in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes))continue;
                                 $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
                             }
                         } elseif ($pattern instanceof SubPattern) {
 
@@ -1004,7 +1022,9 @@ class GlobalAggregateResult extends AggregateResult
                                 if ($subPattern->isOptional) {
                                     $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 } else {
+                                    if(in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes))continue;
                                     $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                    $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
                                 }
                             }
 
@@ -1018,7 +1038,7 @@ class GlobalAggregateResult extends AggregateResult
         }
         $filterCollection = new Collection(array_flatten($filterMap));
         $filterCollection = $filterCollection->unique(function($item){return json_encode($item);});
-//echo $basicQueryBuilder->format();die;
+
         foreach ($filterCollection as $filter) {
             $filter->value = trim($filter->value, '"');
             $filter->value = trim($filter->value, "'");
@@ -1231,7 +1251,7 @@ class GlobalAggregateResult extends AggregateResult
 
         $basicQueryBuilder->values($rateTuples);
         $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
-
+        $tripleAntiRepeatHashes = [];
         /** @var Collection $dimensionPatterCollections */
         foreach ($flatDimensionPatterns as $dimension => $dimensionPatternsCollections) {
             if ($dimensionPatternsCollections->count() > 1) {
@@ -1243,6 +1263,7 @@ class GlobalAggregateResult extends AggregateResult
                         if ($pattern instanceof TriplePattern) {
                             if (in_array($pattern->object, array_keys($parentDrilldownBindings)) || in_array($pattern->object, $aggregateBindings)|| in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
                             if ($pattern->isOptional) {
+                                if($pattern->onlyGlobalTriples)continue;
                                 $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
                                 $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
@@ -1250,6 +1271,7 @@ class GlobalAggregateResult extends AggregateResult
                         } elseif ($pattern instanceof SubPattern) {
 
                             foreach ($pattern->patterns as $subPattern) {
+                                if($subPattern->onlyGlobalTriples)continue;
                                 if (in_array($subPattern->object, array_keys($parentDrilldownBindings))|| in_array($subPattern->object, $aggregateBindings)|| in_array($subPattern->object, $allFilteredFields)) $selections[$subPattern->object] = $subPattern->object;
                                 if ($subPattern->isOptional) {
                                     $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
@@ -1282,7 +1304,9 @@ class GlobalAggregateResult extends AggregateResult
                             if ($pattern->isOptional) {
                                 $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
+                                if(in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes))continue;
                                 $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
                             }
                         } elseif ($pattern instanceof SubPattern) {
 
@@ -1291,7 +1315,9 @@ class GlobalAggregateResult extends AggregateResult
                                 if ($subPattern->isOptional) {
                                     $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 } else {
+                                    if(in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes))continue;
                                     $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                    $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
                                 }
                             }
 
@@ -1535,8 +1561,9 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
         }
-//dd($flatDimensionPatterns);
         $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+       // $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+
         $dataSets = array_keys($dimensionPatterns);
         $rateTuples = [];
         array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
@@ -1552,15 +1579,18 @@ class GlobalAggregateResult extends AggregateResult
         $basicQueryBuilder->values($rateTuples);
 //dd($flatDimensionPatterns);
         /** @var Collection $dimensionPatterCollections */
+        $tripleAntiRepeatHashes = [];
         foreach ($flatDimensionPatterns as $dimension => $dimensionPatternsCollections) {
             if ($dimensionPatternsCollections->count() > 1) {
                 $multiPatternGraph = [];
                 foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
                     $newQuery = $basicQueryBuilder->newSubquery();
+
                     $selections = ["?observation"];
                     foreach ($dimensionPatternsCollection as $pattern) {
                         if ($pattern instanceof TriplePattern) {
                             if (in_array($pattern->object, array_keys($parentDrilldownBindings))|| in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
+                            if($pattern->onlyGlobalTriples)continue;
                             if ($pattern->isOptional) {
                                 $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
@@ -1569,6 +1599,8 @@ class GlobalAggregateResult extends AggregateResult
                         } elseif ($pattern instanceof SubPattern) {
 
                             foreach ($pattern->patterns as $subPattern) {
+                                if($subPattern->onlyGlobalTriples)continue;
+
                                 if (in_array($subPattern->object, array_keys($parentDrilldownBindings))|| in_array($subPattern->object, $allFilteredFields)) $selections[$subPattern->object] = $subPattern->object;
                                 if ($subPattern->isOptional) {
                                     $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
@@ -1593,14 +1625,15 @@ class GlobalAggregateResult extends AggregateResult
 
 
             } else {                        
-
                 foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {//dd($dimensionPatternsCollections);
                     foreach ($dimensionPatternsCollection as $pattern) {
                         if ($pattern instanceof TriplePattern) {
                             if ($pattern->isOptional) {
                                 $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
+                                if(in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes))continue;
                                 $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
                             }
                         } elseif ($pattern instanceof SubPattern) {
 
@@ -1609,7 +1642,10 @@ class GlobalAggregateResult extends AggregateResult
                                 if ($subPattern->isOptional) {
                                     $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 } else {
+                                    if(in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes))continue;
                                     $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                    $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
+
                                 }
                             }
 
@@ -1622,7 +1658,6 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 
-        $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
 
         $filterCollection = new Collection(array_flatten($filterMap));
         $filterCollection = $filterCollection->unique(function($item){return json_encode($item);});
@@ -1756,3 +1791,6 @@ class GlobalAggregateResult extends AggregateResult
 
 
 }
+
+
+//TODO: remove duplicate ?dataset ?dataset. remove dataset type multiple

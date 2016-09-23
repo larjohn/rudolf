@@ -13,6 +13,8 @@ abstract class SparqlPattern
 {
     public $isOptional;
 
+    public $onlyGlobalTriples = false;
+
     protected function __construct($isOptional)
     {
         $this->isOptional = $isOptional;
