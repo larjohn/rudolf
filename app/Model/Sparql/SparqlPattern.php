@@ -14,6 +14,7 @@ abstract class SparqlPattern
     public $isOptional;
 
     public $onlyGlobalTriples = false;
+    public $onlySubGraphTriples = false;
 
     protected function __construct($isOptional)
     {
