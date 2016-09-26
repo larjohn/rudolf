@@ -27,6 +27,23 @@ After setting up your environment, you can install **rudolf**:
 
 After installing **rudolf**, change the configuration file located at `config/sparql.php` and set the appropriate endpoint URI.
 
+## Command line operations
+The structure of the datasets is dynamically discovered from the SPARQL endpoint the very first time a cube model is requested. The same goes for member values. They are then stored to the local cache.
+ 
+Some operations may take long time in order to finish. There are some commands available to make life easier and avoid browser HTTP timeout:
+* `model:clear {cubename}`: Clears a cube model
+* `model:load {cubename}`: Loads a cube model
+* `search:load`: Loads the whole search endpoint model
+
+To run a command, `cd` to **rudolf**'s root folder and enter 
+`php artisan {command} {parameters}`
+
+For instance:
+```php artisan model:load global```
+loads the global cube
+
+More commands are on the way! In the meantime, you can always use `cache:clear`.
+
 ## Official API Documentation
 
 Documentation for the API can be found in the [official OpenSpending pages](http://docs.openspending.org/en/latest/developers/platform/).
@@ -63,4 +80,4 @@ If you are unable to acccess the API endpoint (e.g., rudolf/public/api/3/cubes p
 
 ## License
 
-The **rudolf** API is open-sourced software licensed under the [MIT license](http://opensource.org/licenses/MIT)
+The **rudolf** API is open-source software licensed under the [MIT license](http://opensource.org/licenses/MIT). It is funded by by the OpenBudgets.eu Horizon 2020 project (Grant Agreement 645833). 
