@@ -282,6 +282,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     if (!isset($globalMeasures[$ref])) {
                         $globalMeasures[$ref] = $newGlobalMeasure;
                         $globalMeasures[$ref]->ref = $ref;
+                        $globalMeasures[$ref]->currency = "EUR";
                         $globalMeasures[$ref]->setOriginalMeasure($globalTuple["originalName"]);
                         $globalMeasures[$ref]->setUri($globalTuple["parent"]);
                         $globalMeasures[$ref]->setSpecialUri($globalTuple["parent"]);
@@ -300,6 +301,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $globalMeasures[$ref]->setSpecialUri($globalTuple["attribute"]);
                         $globalMeasures[$ref]->setOriginalMeasure($globalTuple["originalName"]);
                         $globalMeasures[$ref]->label = "Global " . $globalTuple["label"];
+
                     }
                     $existingInnerMeasure = $this->model->measures[$globalTuple["shortName"]];
                     $globalMeasures[$ref]->addInnerMeasure($existingInnerMeasure);
