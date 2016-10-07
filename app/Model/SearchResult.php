@@ -54,7 +54,7 @@ class SearchResult extends SparqlModel
             ->optional($queryBuilder->newSubgraph()
                 ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in ( qb:MeasureProperty, qb:DimensionProperty, qb:CodedProperty)"))
             ->groupBy('?attribute', "?shortName", "?attachment", "?dataset", "?currency", "?year")        ;
-        //echo($queryBuilder->format());die;
+       // echo($queryBuilder->format());die;
         /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
         $propertiesSparqlResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
@@ -72,6 +72,7 @@ class SearchResult extends SparqlModel
             if(!isset($packages[$property["dataset"]])){
                 $packages[$property["dataset"]] = new BabbageModelResult("");
                 $packages[$property["dataset"]]->id = preg_replace("/^.*(#|\/)/", "", $property["dataset"])."__" . substr(md5($property["dataset"]),0,5) ;
+                $packages[$property["dataset"]]->name = preg_replace("/^.*(#|\/)/", "", $property["dataset"])."__" . substr(md5($property["dataset"]),0,5) ;
                 $packages[$property["dataset"]]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$property["datasetName"]];
             }
             $attribute = $property["attribute"];
@@ -226,11 +227,11 @@ class SearchResult extends SparqlModel
 
             }
 
+
         }
 
         $this->packages = array_values($packages);
         foreach ($this->packages as $packageName=>$package) {
-
             foreach ($package->model->dimensions as $dimension) {
                 $newHierarchy = new Hierarchy();
                 $newHierarchy->label = $dimension->label;
