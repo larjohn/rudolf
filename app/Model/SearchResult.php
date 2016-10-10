@@ -38,7 +38,7 @@ class SearchResult extends SparqlModel
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
-            ->selectDistinct('?attribute', '(MAX(?_label) AS ?label)', '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "(MAX(?_datasetName) AS ?datasetName)", "?dataset", "(SAMPLE(?_datasetLabel) AS ?datasetLabel)", "?currency", "?year"/*, "(count(distinct ?value) AS ?cardinality)"*/)
+            ->select('?attribute', '(MAX(?_label) AS ?label)', '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "(MAX(?_datasetName) AS ?datasetName)", "?dataset", "(SAMPLE(?_datasetLabel) AS ?datasetLabel)", "?currency", "?year"/*, "(count(distinct ?value) AS ?cardinality)"*/)
             ->where("?dsd", 'qb:component', '?component')
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset", "qb:structure", "?dsd")
