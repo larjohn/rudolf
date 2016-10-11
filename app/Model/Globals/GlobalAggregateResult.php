@@ -613,7 +613,6 @@ class GlobalAggregateResult extends AggregateResult
 
                     } else {
                         /** @var Measure $innerMeasure */
-
                         $triples = $currencyService->currencyMagicTriples("?observation", $attribute, $aggregateBindings[$measure->getSpecialUri()], $innerMeasure->currency, $measure->currency, $innerMeasure->getDataSetFiscalYear(), $innerMeasure->getDataSet());
                         //  dd($innerMeasure->getDataSet());
                         foreach ($triples as $triple) {

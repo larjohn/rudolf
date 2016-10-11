@@ -458,7 +458,7 @@ class AggregateResult extends SparqlModel
 
 
         $queryBuilder
-            ->selectDistinct(array_merge($agBindings, $drldnBindings));
+            ->select(array_merge($agBindings, $drldnBindings));
         if (count($drilldownBindings) > 0) {
             $queryBuilder->groupBy(array_unique(array_merge($drldnBindings, $sorterBindings)));
         }
@@ -509,7 +509,7 @@ class AggregateResult extends SparqlModel
 
 
         $queryBuilder
-            ->selectDistinct($agBindings);
+            ->select($agBindings);
 
 
         return $queryBuilder;
@@ -561,7 +561,7 @@ class AggregateResult extends SparqlModel
 
 
         $subQuery
-            ->selectDistinct(array_unique($drldnBindings));
+            ->select(array_unique($drldnBindings));
 
         $queryBuilder->subquery($subQuery);
         $queryBuilder->select("(count(*) AS ?_count)");
