@@ -134,8 +134,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 } else {
                     $subQuery->where("?value", "?extensionProperty", "?extension");
                     $subQuery->subquery($subSubQuery);
-                    $subQuery->selectDistinct("?extensionProperty", "?extension");
-                    $queryBuilder->selectDistinct("?extensionProperty", "?shortName", "?dataType", "?label")
+                    $subQuery->select("?extensionProperty", "?extension");
+                    $queryBuilder->select("?extensionProperty", "?shortName", "?dataType", "?label")
                         ->subquery($subQuery)
                         ->where("?extensionProperty", "rdfs:label", "?label")
                         ->bind("datatype(?extension) AS ?dataType")
