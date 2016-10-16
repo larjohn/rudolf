@@ -134,8 +134,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 } else {
                     $subQuery->where("?value", "?extensionProperty", "?extension");
                     $subQuery->subquery($subSubQuery);
-                    $subQuery->selectDistinct("?extensionProperty", "?extension");
-                    $queryBuilder->selectDistinct("?extensionProperty", "?shortName", "?dataType", "?label")
+                    $subQuery->select("?extensionProperty", "?extension");
+                    $queryBuilder->select("?extensionProperty", "?shortName", "?dataType", "?label")
                         ->subquery($subQuery)
                         ->where("?extensionProperty", "rdfs:label", "?label")
                         ->bind("datatype(?extension) AS ?dataType")
@@ -224,7 +224,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
             $globalsQueryBuilder->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5), '__', REPLACE(str(?attribute), '^.*(#|/)', \"\")) AS ?shortName");
             $globalsQueryBuilder->bind("REPLACE(str(?dataset), '^.*(#|/)', \"\") AS ?originalName");
             $globalsQueryBuilder->optional($globalsQueryBuilder->newSubgraph()->where("?attribute", "rdfs:subPropertyOf", "?parent")->where("?parent", "a", "rdf:Property")->where("?parent", "rdfs:label", "?parentLabel"));
-            $globalsQueryBuilder->selectDistinct(["?dataset", "?attribute", "?label", "?parent", "?parentLabel", "?shortName", "?originalName"]);
+            $globalsQueryBuilder->select(["?dataset", "?attribute", "?label", "?parent", "?parentLabel", "?shortName", "?originalName"]);
             $globalsResult = $this->sparql->query(
                 $globalsQueryBuilder->getSPARQL()
             );
@@ -356,7 +356,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $subQuery->where("?value", "?extensionProperty", "?extension");
                         $subQuery->subquery($subSubQuery);
                         $subQuery->selectDistinct("?extensionProperty", "?extension");
-                        $queryBuilder->selectDistinct("?extensionProperty", "?shortName", "?dataType", "?label")
+                        $queryBuilder->select("?extensionProperty", "?shortName", "?dataType", "?label")
                             ->subquery($subQuery)
                             ->where("?extensionProperty", "rdfs:label", "?label")
                             ->bind("datatype(?extension) AS ?dataType")
