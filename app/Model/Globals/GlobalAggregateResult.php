@@ -616,7 +616,21 @@ class GlobalAggregateResult extends AggregateResult
                         $triples = $currencyService->currencyMagicTriples("?observation", $attribute, $aggregateBindings[$measure->getSpecialUri()], $innerMeasure->currency, $measure->currency, $innerMeasure->getDataSetFiscalYear(), $innerMeasure->getDataSet());
                         //  dd($innerMeasure->getDataSet());
                         foreach ($triples as $triple) {
-                            $patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = $triple;
+                            $alreadyThere = false;
+
+                            if(isset($patterns[$innerMeasure->getDataSet()][$measure->getUri()]))
+                            foreach($patterns[$innerMeasure->getDataSet()][$measure->getUri()] as $patternSearch){
+                              //  dump(reset($patternSearch));
+
+                                if(json_encode($patternSearch)==json_encode($triple)){
+                                    $alreadyThere = true;
+                                    break;
+                                }
+                            }
+                           // dump($alreadyThere);
+
+                            if(!$alreadyThere)
+                                $patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = $triple;
                             //$patterns [$innerMeasure->getDataSet()][$measure->getUri()][] = new TriplePattern("?observation", "qb:dataSet", "?dataSet");
                         }
 
@@ -636,7 +650,7 @@ class GlobalAggregateResult extends AggregateResult
 
 
         }
-
+//dd($patterns);
 
         $mergedAttributes = [];
         foreach ($attributes as $datasetAttributes) {
@@ -1526,7 +1540,6 @@ class GlobalAggregateResult extends AggregateResult
     {
         $flatDimensionPatterns = new Collection();
         $allFilteredFields = array_unique(array_flatten($filterBindings));
-
         foreach (new Collection($dimensionPatterns) as $dataSet => $patternsOfDimension) {
 
             foreach ($patternsOfDimension as $pattern => $patternsArray) {
@@ -1601,8 +1614,9 @@ class GlobalAggregateResult extends AggregateResult
                             }
 
                         } else if ($pattern instanceof BindPattern) {
-                            if (in_array($pattern->getVariable(), array_keys($parentDrilldownBindings)) || in_array($pattern->getVariable(), $allFilteredFields)) $selections[$pattern->getVariable()] = $pattern->getVariable();
-                            $newQuery->bind($pattern->expression);
+                            if (in_array($pattern->getVariable(), array_keys($parentDrilldownBindings)) || in_array($pattern->getVariable(), $allFilteredFields))
+                                $selections[$pattern->getVariable()] = $pattern->getVariable();
+                                $newQuery->bind($pattern->expression);
                         }
                     }
                     $newQuery->select($selections);
@@ -1708,7 +1722,7 @@ class GlobalAggregateResult extends AggregateResult
         $queryBuilder->subquery($midGraph);
         $queryBuilder->select("(COUNT(*) AS ?_count)");
 
-        // echo $queryBuilder->format(); die;
+       //  echo $queryBuilder->format(); die;
 
         return $queryBuilder;
 
