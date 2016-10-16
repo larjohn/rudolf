@@ -18,6 +18,7 @@ use App\Model\Hierarchy;
 use App\Model\Measure;
 use App\Model\SparqlModel;
 use Asparagus\QueryBuilder;
+use Asparagus\Tests\Integration\QueryBuilderTest;
 use Cache;
 use EasyRdf_Sparql_Result;
 
@@ -39,7 +40,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
         if (Cache::has("global")) {
            $this->model = Cache::get("global");
-            return;
+           return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
@@ -60,6 +61,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in ( qb:MeasureProperty, qb:DimensionProperty, qb:CodedProperty)"))
             ->groupBy('?attribute', "?shortName", "?attachment", "?dataset", "?currency", "?year");;
 
+          //  echo $queryBuilder->format();die;
         /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
         $propertiesSparqlResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
@@ -134,8 +136,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 } else {
                     $subQuery->where("?value", "?extensionProperty", "?extension");
                     $subQuery->subquery($subSubQuery);
-                    $subQuery->select("?extensionProperty", "?extension");
-                    $queryBuilder->select("?extensionProperty", "?shortName", "?dataType", "?label")
+                    $subQuery->selectDistinct("?extensionProperty", "?extension");
+                    $queryBuilder->selectDistinct("?extensionProperty", "?shortName", "?dataType", "?label")
                         ->subquery($subQuery)
                         ->where("?extensionProperty", "rdfs:label", "?label")
                         ->bind("datatype(?extension) AS ?dataType")
@@ -214,27 +216,52 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
         {
             $globalsQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
-            $globalsQueryBuilder->where("?type", "rdfs:subClassOf", "qb:ComponentProperty");
-            $globalsQueryBuilder->where("?dsd", "qb:component", "?component");
-            $globalsQueryBuilder->where("?attribute", "rdfs:label", "?label");
-            $globalsQueryBuilder->where("?dataset", "a", "qb:DataSet");
             $globalsQueryBuilder->where("?dataset", "qb:structure", "?dsd");
+            $globalsQueryBuilder->where("?dataset", "a", "qb:DataSet");
+            $globalsQueryBuilder->where("?dsd", "a", "qb:DataStructureDefinition");
+            $globalsQueryBuilder->where("?dsd", "qb:component", "?component");
             $globalsQueryBuilder->where("?component", "?componentProperty", "?attribute");
-            $globalsQueryBuilder->where("?attribute", "a", "?type");
+            $globalsQueryBuilder->where("?attribute", "rdfs:label", "?label");
+            $globalsQueryBuilder->values([["componentProperty"=>"qb:dimension"],["componentProperty"=>"qb:measure"],["componentProperty"=>"qb:attribute"]]);
+            $globalsQueryBuilder->filter('LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")');
             $globalsQueryBuilder->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5), '__', REPLACE(str(?attribute), '^.*(#|/)', \"\")) AS ?shortName");
             $globalsQueryBuilder->bind("REPLACE(str(?dataset), '^.*(#|/)', \"\") AS ?originalName");
-            $globalsQueryBuilder->optional($globalsQueryBuilder->newSubgraph()->where("?attribute", "rdfs:subPropertyOf", "?parent")->where("?parent", "a", "rdf:Property")->where("?parent", "rdfs:label", "?parentLabel"));
-            $globalsQueryBuilder->select(["?dataset", "?attribute", "?label", "?parent", "?parentLabel", "?shortName", "?originalName"]);
+            //$globalsQueryBuilder->optional($globalsQueryBuilder->newSubgraph()->where("?attribute", "rdfs:subPropertyOf", "?parent")->where("?parent", "a", "rdf:Property")->where("?parent", "rdfs:label", "?parentLabel"));
+            $globalsQueryBuilder->selectDistinct(["?dataset", "?attribute", "?label", "?shortName", "?originalName"]);
+            //echo $globalsQueryBuilder->format();die;
             $globalsResult = $this->sparql->query(
                 $globalsQueryBuilder->getSPARQL()
             );
+            //dd($globalsResult);
             /** @var EasyRdf_Sparql_Result $result */
             $globalsResults = $this->rdfResultsToArray($globalsResult);
             /** @var GlobalDimension[] $globalDimensions */
             $globalDimensions = [];
             /** @var GlobalMeasure[] $globalMeasures */
             $globalMeasures = [];
-            foreach ($globalsResults as $globalTuple) {
+            //echo $globalsQueryBuilder->format();die;
+           // dd($globalsResults);
+            foreach ($globalsResults as &$globalTuple) {
+                $globalsSubqueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+                $globalsSubqueryBuilder->selectDistinct("?parent", "(SAMPLE(?_parentLabel) AS ?parentLabel)")
+                    ->where("<{$globalTuple["attribute"]}>", "rdfs:subPropertyOf", "?parent")
+                    ->where("?parent", "a", "rdf:Property")
+                    ->where("?parent", "rdfs:label", "?_parentLabel")
+                    ->filter('LANG(?_parentLabel) = "" || LANGMATCHES(LANG(?_parentLabel), "en")')
+                ;
+                $parentResult = $this->sparql->query(
+                    $globalsSubqueryBuilder->getSPARQL()
+                );
+                $parentResults = $this->rdfResultsToArray($parentResult);
+                $globalTuple["parent"] = isset($parentResults[0]["parent"])?$parentResults[0]["parent"]:null;
+                $globalTuple["parentLabel"] = isset($parentResults[0]["parentLabel"])?$parentResults[0]["parentLabel"]:null;
+
+
+            }
+            //dd($globalsResults);
+
+
+                foreach ($globalsResults as $globalTuple) {
                 //dd($this->model->dimensions);
 
                 if (!isset($this->model->dimensions[$globalTuple["shortName"]])) continue; //need dimensions not measures
@@ -337,6 +364,9 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 }
             }
             $globalMeasures = array_merge($globalMeasures, $globalMeasuresCurrencyVariants);
+
+            //dd($globalDimensions);
+
             foreach ($globalDimensions as $key => &$globalDimensionGroup) {
 
                 $attachment = $globalDimensionGroup->getAttachment();

@@ -138,8 +138,12 @@ class SparqlModel
         return ($selectedDimensions);
     }
 
+    private         $nameCache = [];
+
+
     protected function rdfResultsToArray3(EasyRdf_Sparql_Result $result, array $attributes, BabbageModel $model, array $selectedFields)
     {
+
 
         $results = [];
         $actualFields = $result->getFields();
@@ -190,31 +194,39 @@ class SparqlModel
 
                 else{
                     foreach ($selectedField as $subPropertyName=>$subProperty){
-                        $selectedBinding = $attributes[$selectedFieldName][$subPropertyName];
-                        if(!isset($row->$selectedBinding)){
-
-                            if(!isset($row->{"{$selectedBinding}_"}))
-                                continue;
-                            $value = $row->{"{$selectedBinding}_"};
-                        }
-                        else
-                            $value = $row->$selectedBinding;
-
-                        if ($value instanceof EasyRdf_Literal ) {
-                            /** @var EasyRdf_Literal $value */
-                            $val  = $value->getValue();
-                            if($value instanceof EasyRdf_Literal_Decimal)
-                                $val = floatval($val);
-                            elseif($value instanceof EasyRdf_Literal_Integer)
-                                $val = intval($val);
-
-
-                        } else {
-                            /** @var \EasyRdf_Resource $value */
-                            $val = $value->dumpValue('text');
-                        }
-
                         $finalName = $this->getAttributeRef($model, [$selectedFieldName, $subPropertyName]);
+                        $alternativeBinding = $attributes[$selectedFieldName]["uri"];
+
+                        if(!isset($attributes[$selectedFieldName][$subPropertyName])){
+                           $val =($row->$alternativeBinding->dumpValue('text'));
+                        }
+                        else{
+                            $selectedBinding = $attributes[$selectedFieldName][$subPropertyName];
+                            if(!isset($row->$selectedBinding)){
+
+                                if(!isset($row->{"{$selectedBinding}_"}))
+                                    continue;
+                                $value = $row->{"{$selectedBinding}_"};
+                            }
+                            else
+                                $value = $row->$selectedBinding;
+
+                            if ($value instanceof EasyRdf_Literal ) {
+                                /** @var EasyRdf_Literal $value */
+                                $val  = $value->getValue();
+                                if($value instanceof EasyRdf_Literal_Decimal)
+                                    $val = floatval($val);
+                                elseif($value instanceof EasyRdf_Literal_Integer)
+                                    $val = intval($val);
+
+
+                            } else {
+                                /** @var \EasyRdf_Resource $value */
+                                $val = $value->dumpValue('text');
+                            }
+
+                        }
+
                         $added[$finalName] = $val;
 
                     }
@@ -294,16 +306,22 @@ class SparqlModel
     }
 
     private function getAttributeRef(BabbageModel $model, array $path){
+
+
+        if(isset($this->nameCache[implode(".",$path)])) return $this->nameCache[implode(".",$path)];
         foreach ($model->dimensions as $dimensionName => $dimension){
             if($path[0]==$dimension->getUri()){
                 if(count($path)>1){
                     foreach ($dimension->attributes as $attribute){
                         if($attribute->getUri()== $path[1]){
+                            $this->nameCache[implode(".",$path)] = $attribute->ref;
                             return $attribute->ref;
                         }
                     }
                 }
                 else{
+                    $this->nameCache[implode(".",$path)] =$dimension->key_ref;
+
                     return $dimension->key_ref;
                 }
             }
@@ -315,9 +333,13 @@ class SparqlModel
                             foreach ($inner->attributes as $attribute){
                                 if($attribute->getUri()== $path[1]){
                                     if($attribute->ref == $inner->label_ref){
+                                        $this->nameCache[implode(".",$path)] =$dimension->label_ref;
+
                                         return $dimension->label_ref;
                                     }
                                     else{
+                                        $this->nameCache[implode(".",$path)] =$dimension->key_ref;
+
                                         return $dimension->key_ref;
 
                                     }
@@ -325,6 +347,8 @@ class SparqlModel
                             }
                         }
                         else{
+                            $this->nameCache[implode(".",$path)] =$dimension->key_ref;
+
                             return $dimension->key_ref;
                         }
                     }
@@ -335,11 +359,15 @@ class SparqlModel
         foreach ($model->measures as $measureName => $measure){
             if($measure instanceof GlobalMeasure){
                 if($measure->getUri() == $path[0] || $measure->getSpecialUri() == $path[0]){
+                    $this->nameCache[implode(".",$path)] =$measure->ref;
+
                     return $measure->ref;
                 }
             }
             else {
                 if($measure->getUri() == $path[0]){
+                    $this->nameCache[implode(".",$path)] =$measure->ref;
+
                     return $measure->ref;
                 }
             }

@@ -115,7 +115,6 @@ class CurrencyService extends SparqlModel
             $patterns[] = new BindPattern("?rate__$targetCurrency*{$objectBinding}__source AS {$objectBinding}");
        // }
 
-
         return $patterns;
     }
 

@@ -10,12 +10,14 @@ namespace App\Model\Globals;
 
 
 use App\Model\Dimension;
+use App\Model\Sparql\BindPattern;
 use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use App\Model\SparqlModel;
 use Asparagus\QueryBuilder;
 use Cache;
 use EasyRdf_Resource;
+use Illuminate\Database\Eloquent\Collection;
 
 class GlobalMembersResult extends SparqlModel
 {
@@ -38,6 +40,8 @@ class GlobalMembersResult extends SparqlModel
     public $status;
     public $data;
     protected $fields;
+    protected $currencyService;
+    protected $subPropertiesAcceleration =  [];
 
     public function __construct($dimension, $page, $page_size, $orders)
     {
@@ -57,13 +61,12 @@ class GlobalMembersResult extends SparqlModel
     private function load($attributeShortName, $page, $page_size, $order)
     {
 
-        if(Cache::has("members/global/$attributeShortName/$page/$page_size")){
+        if (Cache::has("members/global/$attributeShortName/$page/$page_size")) {
             $this->data = Cache::get("members/global/$attributeShortName/$page/$page_size");
             return;
         }
 
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
-        $subQueryBuilders = [];
+
         $model = (new BabbageGlobalModelResult())->model;
 
         $this->fields = [];
@@ -74,196 +77,189 @@ class GlobalMembersResult extends SparqlModel
             // dd($model->dimensions[$dimensionShortName]->attributes );
             $this->fields[] = $att->ref;
         }
-        // return $facts;
-        $dimensions = $model->dimensions;
 
         /** @var GlobalDimension $actualDimension */
         $actualDimension = $model->dimensions[explode('.', $dimensionShortName)[0]];
         $selectedPatterns = [];
+        $patterns = [];
+        $parentDrilldownBindings = [];
+        $bindings = [];
+        $attributes = [];
+        $selectedDimensions = [];
         /** @var Dimension $innerDimension */
         foreach ($actualDimension->getInnerDimensions() as $innerDimension) {
+            $labelPatterns = $this->globalDimensionToPatterns([$innerDimension], [$innerDimension->label_ref]);
+            $keyPatterns = $this->globalDimensionToPatterns([$innerDimension], [$innerDimension->key_ref]);
+            if (!isset($selectedDimensions[$actualDimension->getDataSet()]))
+                $selectedDimensions[$actualDimension->getDataSet()] = [];
 
+            $selectedDimensions[$actualDimension->getDataSet()] = array_merge_recursive(
+                $selectedDimensions[$actualDimension->getDataSet()],
+                $labelPatterns,
+                $keyPatterns
+            );
             $myPatterns = $this->globalDimensionToPatterns([$innerDimension], [$innerDimension->label_ref, $innerDimension->key_ref]);
             $selectedPatterns[$innerDimension->ref] = $myPatterns;
-            $selectedDimensions = [];
-            $bindings = [];
-            $attributes = [];
 
+            $bindingName = "binding_" . substr(md5($actualDimension->ref), 0, 5);
+            if (!isset($parentDrilldownBindings["?" . $bindingName])) $parentDrilldownBindings["?" . $bindingName] = [];
 
-            $selectedDimensions[$innerDimension->getUri()] = $innerDimension;
-            $bindingName = "binding_" . substr(md5($innerDimension->ref), 0, 5);
+            $valueAttributeLabel = "uri";
+            $attributes[$innerDimension->getDataSet()][$innerDimension->getUri()][$valueAttributeLabel] = $bindingName;
 
+            $bindings[$innerDimension->getDataSet()][$innerDimension->getUri()] = "?$bindingName";
 
-            $bindings[$innerDimension->getUri()] = "?$bindingName";
+            $sliceSubGraph = $this->initSlice();
 
+            $dataSetSubGraph = $this->initDataSet();
 
-            $sliceSubGraph = new SubPattern([
-                new TriplePattern("?slice", "a", "qb:Slice"),
-                new TriplePattern("?slice", "qb:observation", "?observation"),
-
-            ], true);
-
-            $dataSetSubGraph = new SubPattern([
-                new TriplePattern("?dataset", "a", "qb:DataSet"),
-                new TriplePattern("?observation", "qb:dataSet", "?dataset"),
-
-            ], true);
-
-            $patterns = [];
             $needsSliceSubGraph = false;
             $needsDataSetSubGraph = false;
-            foreach ($selectedDimensions as $dimensionName => $dimension) {
-                $attribute = $dimension->getUri();
-                $attachment = $dimension->getAttachment();
-                if (isset($attachment) && $attachment == "qb:Slice") {
-                    $needsSliceSubGraph = true;
-                    $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$attribute], false));
-                } elseif (isset($attachment) && $attachment == "qb:DataSet") {
-                    $needsDataSetSubGraph = true;
-                    $dataSetSubGraph->add(new TriplePattern("?dataset", $attribute, $bindings[$attribute], false));
+            $attribute = $innerDimension->getUri();
+            $attachment = $innerDimension->getAttachment();
+
+
+            if (isset($attachment) && $attachment == "qb:Slice") {
+
+                $needsSliceSubGraph = true;
+                if ($actualDimension->getUri() == $innerDimension->getUri()) {
+                    $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$innerDimension->getDataSet()][$attribute], false));
                 } else {
-                    $patterns [] = new TriplePattern("?observation", $attribute, $bindings[$attribute], false);
+                    $attName = "att_" . substr(md5($actualDimension->ref), 0, 5);
+                    $sliceSubGraph->add(new TriplePattern("?slice", "?$attName" , $bindings[$innerDimension->getDataSet()][$attribute], false));
+                    $sliceSubGraph->add(new TriplePattern("?$attName", "rdfs:subPropertyOf", "<{$actualDimension->getUri()}>", false));
+                    $helperTriple = new TriplePattern("?$attName", "a", "qb:DimensionProperty", false); //'hack' for virtuoso
+                    $helperTriple->onlyGlobalTriples = true;
+                    $sliceSubGraph->add($helperTriple);
+                    $this->subPropertiesAcceleration[$attName][$innerDimension->getDataSet()] = [$attName=>"<{$innerDimension->getUri()}>", "dataSet"=>"<{$innerDimension->getDataSet()}>"];
                 }
 
-                if ($dimension instanceof Dimension) {
+                if ($innerDimension->orig_dimension != $innerDimension->label_attribute) {
+                    $childBinding = $bindings[$innerDimension->getDataSet()][$attribute] . "_" . substr(md5($innerDimension->label_attribute), 0, 5);
+                    $bindings[$innerDimension->getDataSet()][$childBinding]=$childBinding;
+                    $sliceSubGraph->add(new TriplePattern($bindings[$innerDimension->getDataSet()][$attribute], $innerDimension->attributes[$innerDimension->label_attribute]->getUri(), $childBinding , false));
+                    $parentDrilldownBindings[$bindings[$innerDimension->getDataSet()][$attribute]][$childBinding] = $childBinding;
+                    $attributes[$innerDimension->getDataSet()][$attribute][$innerDimension->attributes[$innerDimension->label_attribute]->getUri()] = ltrim($childBinding,"?");
 
-//dd($dimension->attributes[$dimension->key_attribute]->getUri());
+                }
 
-
-                    if ($dimension->orig_dimension != $dimension->label_attribute) {
-                        $attributes[$attribute][$dimension->attributes[$dimension->label_attribute]->getUri()] = "value";
-
-                        $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5);
-                    }
-
-
-                    //var_dump($dimension->attributes);
-                    //dd($dimension);
-                    if (isset($attachment) && $attachment == "qb:Slice") {
-
-                        if($dimension->orig_dimension !=$dimension->label_attribute){
-                            $sliceSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false));
-                        }
-                        else{
-                            $sliceSubGraph->add(new TriplePattern("?slice", $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false));
-                        }
-
-                        if ($dimension->orig_dimension != $dimension->key_attribute) {
-                            $sliceSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
-                            $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = "value";
-                            $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5);
-
-                        }
-                        else{
-                            $sliceSubGraph->add(new TriplePattern("?slice", $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
-                        }
-                    } elseif (isset($attachment) && $attachment == "qb:DataSet") {
-                        if ($dimension->orig_dimension != $dimension->key_attribute)
-                            $dataSetSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->key_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5), false));
-                        if ($dimension->orig_dimension != $dimension->label_attribute)
-                            $dataSetSubGraph->add(new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), true));
-                        if ($dimension->orig_dimension != $dimension->key_attribute) {
-                            $attributes[$attribute][$dimension->attributes[$dimension->key_attribute]->getUri()] = "value";
-                            $bindings[] = $bindings[$attribute] . "_" . substr(md5($dimension->key_attribute), 0, 5);
-
-                        }
-                    } else {
-                        if ($dimension->orig_dimension != $dimension->label_attribute)
-                            $patterns [] = new TriplePattern($bindings[$attribute], $dimension->attributes[$dimension->label_attribute]->getUri(), $bindings[$attribute] . "_" . substr(md5($dimension->label_attribute), 0, 5), false);
-
-
-                    }
+                if ($innerDimension->orig_dimension != $innerDimension->key_attribute) {
+                    $childBinding = $bindings[$innerDimension->getDataSet()][$attribute] . "_" . substr(md5($innerDimension->key_attribute), 0, 5);
+                    $sliceSubGraph->add(new TriplePattern($bindings[$innerDimension->getDataSet()][$attribute], $innerDimension->attributes[$innerDimension->key_attribute]->getUri(), $childBinding));
+                    $attributes[$innerDimension->getDataSet()][$attribute][$innerDimension->attributes[$innerDimension->key_attribute]->getUri()] = ltrim($childBinding,"?");
+                    $bindings[$innerDimension->getDataSet()][$childBinding] = $childBinding;
+                    $parentDrilldownBindings[$bindings[$innerDimension->getDataSet()][$attribute]][$childBinding] = $childBinding;
 
 
                 }
+
+            } elseif (isset($attachment) && $attachment == "qb:DataSet") {
+                $needsDataSetSubGraph = true;
+                if ($actualDimension->getUri() == $innerDimension->getUri()) {
+                    $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $bindings[$innerDimension->getDataSet()][$attribute], false));
+                } else {
+                    $attName ="att_" . substr(md5($actualDimension->ref), 0, 5);
+                    $dataSetSubGraph->add(new TriplePattern("?dataSet", "?$attName", $bindings[$innerDimension->getDataSet()][$attribute], false));
+
+                    $dataSetSubGraph->add(new TriplePattern("?$attName", "rdfs:subPropertyOf", "<{$actualDimension->getUri()}>", false));
+                    $helperTriple = new TriplePattern("?$attName", "a", "qb:DimensionProperty", false); //'hack' for virtuoso
+                    $helperTriple->onlyGlobalTriples = true;
+                    $this->subPropertiesAcceleration[$attName][$innerDimension->getDataSet()] = [$attName=>"<{$innerDimension->getUri()}>", "dataSet"=>"<{$innerDimension->getDataSet()}>"];
+                    $dataSetSubGraph->add($helperTriple);
+
+                }
+                if ($innerDimension->orig_dimension != $innerDimension->key_attribute){
+                    $childBinding = $bindings[$innerDimension->getDataSet()][$attribute] . "_" . substr(md5($innerDimension->key_attribute), 0, 5);
+                    $dataSetSubGraph->add(new TriplePattern($bindings[$innerDimension->getDataSet()][$attribute], $innerDimension->attributes[$innerDimension->key_attribute]->getUri(), $childBinding , false));
+                    $parentDrilldownBindings[$bindings[$innerDimension->getDataSet()][$attribute]][$childBinding] = $childBinding;
+                    $attributes[$innerDimension->getDataSet()][$attribute][$innerDimension->attributes[$innerDimension->key_attribute]->getUri()] = ltrim($childBinding,"?");
+
+                    $bindings[$innerDimension->getDataSet()][$childBinding] = $childBinding;
+
+                }
+
+                if ($innerDimension->orig_dimension != $innerDimension->label_attribute){
+                    $childBinding = $bindings[$innerDimension->getDataSet()][$attribute] . "_" . substr(md5($innerDimension->label_attribute), 0, 5);
+                    $dataSetSubGraph->add(new TriplePattern($bindings[$innerDimension->getDataSet()][$attribute], $innerDimension->attributes[$innerDimension->label_attribute]->getUri(), $childBinding, false));
+                    $parentDrilldownBindings[$bindings[$innerDimension->getDataSet()][$attribute]][$childBinding] = $childBinding;
+                    $bindings[$innerDimension->getDataSet()][$childBinding] = $childBinding;
+                    $attributes[$innerDimension->getDataSet()][$attribute][$innerDimension->attributes[$innerDimension->label_attribute]->getUri()] = ltrim($childBinding,"?");
+
+                }
+
+
+            } else {
+
+                if ($actualDimension->getUri() == $innerDimension->getUri()) {
+
+                    $patterns[$innerDimension->getDataSet()][$actualDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", $attribute, $bindings[$innerDimension->getDataSet()][$attribute], false)]);
+                } else {
+                    $attName = "att_" . substr(md5($actualDimension->ref), 0, 5);
+                    $patterns[$innerDimension->getDataSet()][$actualDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", "?$attName", $bindings[$innerDimension->getDataSet()][$attribute], false), new TriplePattern("?$attName", "rdfs:subPropertyOf", "<{$actualDimension->getUri()}>", false)]);
+                    $helperTriple = new TriplePattern("?$attName", "a", "qb:DimensionProperty", false); //'hack' for virtuoso
+                    $helperTriple->onlyGlobalTriples = true;
+                    $this->subPropertiesAcceleration[$attName][$innerDimension->getDataSet()] = [$attName=>"<{$innerDimension->getUri()}>", "dataSet"=>"<{$innerDimension->getDataSet()}>"];
+                    $patterns[$innerDimension->getDataSet()][$actualDimension->getUri()][] = $helperTriple;
+
+                }
+
+                if ($innerDimension->orig_dimension != $innerDimension->label_attribute) {
+                    $childBinding = $bindings[$innerDimension->getDataSet()][$attribute] . "_" . substr(md5($innerDimension->label_attribute), 0, 5);
+                    $patterns[$innerDimension->getDataSet()][$actualDimension->getUri()][] = new TriplePattern($bindings[$innerDimension->getDataSet()][$attribute], $innerDimension->attributes[$innerDimension->label_attribute]->getUri(), $childBinding, false);
+                    $parentDrilldownBindings[$bindings[$innerDimension->getDataSet()][$attribute]][$childBinding] = $childBinding;
+                    $bindings[$innerDimension->getDataSet()][$childBinding] = $childBinding;
+                    $attributes[$innerDimension->getDataSet()][$attribute][$innerDimension->attributes[$innerDimension->label_attribute]->getUri()] = ltrim($childBinding,"?");
+
+                }
+                if ($innerDimension->orig_dimension != $innerDimension->key_attribute) {
+                    $childBinding = $bindings[$innerDimension->getDataSet()][$attribute] . "_" . substr(md5($innerDimension->key_attribute), 0, 5);
+                    $patterns[$innerDimension->getDataSet()][$actualDimension->getUri()][] = new TriplePattern($bindings[$innerDimension->getDataSet()][$attribute], $innerDimension->attributes[$innerDimension->key_attribute]->getUri(), $childBinding, false);
+                    $parentDrilldownBindings[$bindings[$innerDimension->getDataSet()][$attribute]][$childBinding] = $childBinding;
+                    $bindings[$innerDimension->getDataSet()][$childBinding] = $childBinding;
+                    $attributes[$innerDimension->getDataSet()][$attribute][$innerDimension->attributes[$innerDimension->key_attribute]->getUri()] = ltrim($childBinding,"?");
+
+
+                }
+
+
             }
-
             if ($needsSliceSubGraph) {
-                $patterns[] = $sliceSubGraph;
+                $patterns[$innerDimension->getDataSet()][$actualDimension->getUri()][] = $sliceSubGraph;
 
             }
             if ($needsDataSetSubGraph) {
-                $patterns[] = $dataSetSubGraph;
+                $patterns[$innerDimension->getDataSet()][$actualDimension->getUri()][] = $dataSetSubGraph;
 
             }
-            $dataset = $innerDimension->getDataSet();
-            //$dsd = $model->getDsd();
-            $patterns[] = new TriplePattern('?observation', 'a', 'qb:Observation');
-            $patterns[] = new TriplePattern('?observation', 'qb:dataSet', "<$dataset>");
-            $subQueryBuilder = $this->build($bindings, $patterns, $queryBuilder);
 
-            $subQueryBuilders[] = $subQueryBuilder;
-           // echo $subQueryBuilder->format();die;
             $selectedPatterns = array_merge_recursive($selectedPatterns, $this->modelFieldsToPatterns($model, [$innerDimension->label_ref, $innerDimension->key_ref]));
         }
+        $mergedAttributes = [];
+        foreach ($attributes as $datasetAttributes) {
+            $mergedAttributes = array_merge($mergedAttributes, $datasetAttributes);
+        }
+        //dd($mergedAttributes);
+
         /** @var QueryBuilder $subQueryBuilder */
-
-        $innerQuery = $queryBuilder->newSubquery();
-        $innerQuery->union(array_map(function (QueryBuilder $subQueryBuilder) use ($innerQuery) {
-            return $innerQuery->newSubgraph()->subquery($subQueryBuilder);
-        }, $subQueryBuilders));
-        $innerQuery->selectDistinct(["?_key", "?_value", "?_notation"]);
-     //   $innerQuery->filterNotExists($innerQuery->newSubgraph()->where("?key", "(skos:similar|^skos:similar)", "?elem_")->filter("str(?elem_) < str(?key )"));
-        $queryBuilder->subquery($innerQuery);
-        $queryBuilder->select(["(?_key AS ?key)", "(GROUP_CONCAT(?_value  ; separator='/') AS ?value)", "(GROUP_CONCAT(?_notation; separator='/') AS ?notation)"]);
-        $queryBuilder->limit($page_size);
-        $queryBuilder->offset($page * $page_size);
-        $queryBuilder->groupBy("?_key");
+        $queryBuilder = $this->build2($bindings, $patterns, $parentDrilldownBindings);
         //echo $queryBuilder->format();die;
-
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
+        $mergedSelectedDimensions = [];
+        foreach ($selectedDimensions as $datasetSelectedDimensions) {
+            $mergedSelectedDimensions = array_merge($mergedSelectedDimensions, $datasetSelectedDimensions);
+        }
+       // dd($result);
 
-
-        //$results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns);
+//dd($selectedDimensions);
+        $results = $this->rdfResultsToArray3($result,$mergedAttributes, $model, $mergedSelectedDimensions);
+       // dd($results);
         //return $result;
         // dd($result);
         // dd($selectedPatterns);
         // dd($selectedPatterns);
-        $results = [];
-       // dd($result);
-        //dd($actualDimension);
-        foreach ($result as $row) {
-            if (!isset($row->key)) continue;
-            if(isset($row->notation)){
-                if($row->notation instanceof EasyRdf_Resource){
-                    $key = $row->notation->dumpValue("text");
-                }
-                else{
-                    $key = $row->notation->getValue();
 
-                }
-            }
-            else {
-                if($row->key instanceof EasyRdf_Resource){
-                    $key = $row->key->dumpValue("text");
-                }
-                else{
-                    $key = $row->key->getValue();
-
-                }
-            }
-            if(isset($row->value)){
-                if($row->value instanceof EasyRdf_Resource){
-                    $value = $row->value->dumpValue("text");
-                }
-                else{
-                    $value = $row->value->getValue();
-
-                }
-            }
-            else {
-                if($row->key instanceof EasyRdf_Resource){
-                    $value = $row->key->dumpValue("text");
-                }
-                else{
-                    $value = $row->key->getValue();
-
-                }
-            }
-            $results[] = [$actualDimension->key_ref => $key, $actualDimension->label_ref => $value];
-        }
 
 
         $this->data = $results;
@@ -313,57 +309,182 @@ class GlobalMembersResult extends SparqlModel
         return ($selectedDimensions);
     }
 
-    private function build(array $bindings, array $filters, QueryBuilder $queryBuilder)
-    {
-        $myQueryBuilder = $queryBuilder->newSubquery();
-        foreach ($filters as $filter) {
-            if ($filter instanceof TriplePattern || ($filter instanceof SubPattern && !$filter->isOptional)) {
-                if ($filter->isOptional) {
-                    $myQueryBuilder->optional($filter->subject, self::expand($filter->predicate), $filter->object);
-                } else {
-                    $myQueryBuilder->where($filter->subject, self::expand($filter->predicate), $filter->object);
-                }
-            } elseif ($filter instanceof SubPattern) {
-                $subGraph = $myQueryBuilder->newSubgraph();
-                //dd($filter);
-                foreach ($filter->patterns as $pattern) {
 
-                    if ($pattern->isOptional) {
-                        $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    } else {
-                        $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+    private function build2(array $drilldownBindings, array $dimensionPatterns, array $parentDrilldownBindings)
+    {
+        $allSelectedFields = array_unique(array_flatten($drilldownBindings));
+        $flatDimensionPatterns = new Collection();
+
+        foreach (new Collection($dimensionPatterns) as $dataSet => $patternsOfDimension) {
+
+            foreach ($patternsOfDimension as $pattern => $patternsArray) {
+                if ($flatDimensionPatterns->has($pattern)) {
+                    /** @var Collection $existing */
+                    $existing = $flatDimensionPatterns->get($pattern);
+                    $found = false;
+                    /** @var Collection $existingPatternsArray */
+                    foreach ($existing as $existingPatternsArray) {
+                        /** @var Collection $patternsArray */
+                        $patternsArrayCol = new Collection($patternsArray);
+                        if (json_encode($existingPatternsArray) == json_encode($patternsArrayCol)) {
+                            $found = true;
+                        }
+                    }
+                    if (!$found) {
+                        $flatDimensionPatterns->get($pattern)->add(new Collection($patternsArray));
+                    }
+                } else {
+                    $flatDimensionPatterns->put($pattern, new Collection([new Collection($patternsArray)]));
+                }
+            }
+        }
+
+        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+        $basicQueryBuilder->where("?observation", "a", "qb:Observation");
+
+        $tripleAntiRepeatHashes = [];
+        //  $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+//dd($this->subPropertiesAcceleration);
+        /** @var Collection $dimensionPatterCollections */
+        foreach ($flatDimensionPatterns as $dimension => $dimensionPatternsCollections) {
+            if ($dimensionPatternsCollections->count() > 1) {
+                $multiPatternGraph = [];
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
+                    $newQuery = $basicQueryBuilder->newSubquery();
+                    $selections = ["?observation"];
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+                            if (in_array($pattern->object, array_keys($parentDrilldownBindings)) || in_array($pattern->object, $allSelectedFields) ) $selections[$pattern->object] = $pattern->object;
+                            if ($pattern->onlyGlobalTriples) continue;
+                            if ($pattern->isOptional) {
+                                $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            } else {
+                                if($pattern->predicate == "rdfs:subPropertyOf"){
+                                    $newQuery->values($this->subPropertiesAcceleration[ltrim($pattern->subject,"?")]);
+                                }
+                                else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            foreach ($pattern->patterns as $subPattern) {
+                                if ($subPattern->onlyGlobalTriples) continue;
+                                if (in_array($subPattern->object, array_keys($parentDrilldownBindings)) || in_array($subPattern->object, $allSelectedFields)  ) $selections[$subPattern->object] = $subPattern->object;
+
+
+                                if ($subPattern->isOptional) {
+                                    $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                } else {
+                                    if($subPattern->predicate == "rdfs:subPropertyOf"){
+                                        $newQuery->values($this->subPropertiesAcceleration[ltrim($subPattern->subject,"?")]);
+                                    }
+                                    else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                }
+                            }
+
+                        }
+                    }
+                    $newQuery->select($selections);
+
+                    $multiPatternGraph[] = $newQuery;
+                }
+
+                $basicQueryBuilder->union(array_map(function (QueryBuilder $subQueryBuilder) use ($basicQueryBuilder) {
+                    return $basicQueryBuilder->newSubgraph()->subquery($subQueryBuilder);
+                }, $multiPatternGraph));
+
+
+            } else {
+                foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
+                    foreach ($dimensionPatternsCollection as $pattern) {
+                        if ($pattern instanceof TriplePattern) {
+                            if ($pattern->isOptional) {
+                                $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            } else {
+                                if (in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes)) continue;
+                                $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
+                            }
+                        } elseif ($pattern instanceof SubPattern) {
+
+                            foreach ($pattern->patterns as $subPattern) {
+                                if($subPattern->onlySubGraphTriples) continue;
+
+                                if ($subPattern->isOptional) {
+                                    $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                } else {
+                                    if (in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes)) continue;
+                                    $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                    $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
+                                }
+                            }
+
+                        }
+
                     }
                 }
-
-                $myQueryBuilder->optional($subGraph);
-
-
             }
         }
 
 
-//dd(array_map(function($key, $value){ return $value . " AS ". $key;}, ["key", "value"], $bindings) );
-        if (count($bindings) == 1) {
-            $bindings[] = "STR(" . reset($bindings) . ")";
+        $drldnBindings = [];
+
+        foreach ($drilldownBindings as $dataset => $bindings) {
+            foreach ($bindings as $binding) {
+                $drldnBindings [] = "{$binding}";
+
+            }
         }
-       // $bindings = array_slice($bindings, 0, 3);
-        //dd($bindings);
-        if(count($bindings)==2) {
-            $bindings[1] = reset($bindings);
-        }
-
-
-        
-            $myQueryBuilder
-                ->selectDistinct(array_map(function ($key, $value) {
-                    return "(" . $value . " AS " . $key . ")";
-                }, ["?_key", "?_value", "?_notation"], $bindings));
+        $selections = array_keys($parentDrilldownBindings);
+        $selections = array_merge($selections, array_map(function($binding){return "(SAMPLE($binding) AS {$binding}_)";}, array_flatten($parentDrilldownBindings)));
+        $basicQueryBuilder->select($selections);
+        $basicQueryBuilder->groupBy(array_keys($parentDrilldownBindings));
+        $basicQueryBuilder->orderBy("COUNT(?observation)");
+        return $basicQueryBuilder;
 
 
 
+    }
 
-        return $myQueryBuilder;
 
+    private function initSlice(){
+        $observationTypePattern = new TriplePattern("?observation", "a", "qb:Observation");
+        $observationTypePattern->onlySubGraphTriples = true;
+
+        $observationTypePattern = new TriplePattern("?observation", "qb:dataSet", "?dataSet");
+        $observationTypePattern->onlySubGraphTriples = true;
+
+        $sliceTypePattern = new TriplePattern("?slice", "a", "qb:Slice");
+        $sliceTypePattern->onlySubGraphTriples = true;
+
+        $attachmentTriple = new TriplePattern("?slice", "qb:observation", "?observation");
+        $attachmentTriple->onlySubGraphTriples = true;
+
+        return new SubPattern([
+            $observationTypePattern,
+            $sliceTypePattern,
+            $attachmentTriple,
+
+        ], false);
+    }
+
+    private function initDataSet(){
+        $observationTypePattern = new TriplePattern("?observation", "a", "qb:Observation");
+        $observationTypePattern->onlySubGraphTriples = true;
+
+        $dataSetTypePattern = new TriplePattern("?dataSet", "a", "qb:DataSet");
+        $dataSetTypePattern->onlySubGraphTriples = true;
+
+        $attachmentTriple = new TriplePattern("?observation", "qb:dataSet", "?dataSet");
+        $attachmentTriple->onlySubGraphTriples = true;
+
+
+
+        return new SubPattern([
+            $observationTypePattern,
+            $dataSetTypePattern,
+            $attachmentTriple,
+        ], false);
     }
 
 
