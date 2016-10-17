@@ -74,8 +74,8 @@ class BabbageModelResult extends SparqlModel
 
     public function load($name){
         if(Cache::has($name)){
-           // $this->model =  Cache::get($name);
-            //return;
+            $this->model =  Cache::get($name);
+            return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
