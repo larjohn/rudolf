@@ -74,8 +74,8 @@ class BabbageModelResult extends SparqlModel
 
     public function load($name){
         if(Cache::has($name)){
-            $this->model =  Cache::get($name);
-            return;
+           // $this->model =  Cache::get($name);
+            //return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
@@ -89,6 +89,7 @@ class BabbageModelResult extends SparqlModel
             ->optional('?attribute', 'rdfs:label', '?label')
             ->bind("REPLACE(str(?attribute), '^.*(#|/)', \"\") AS ?shortName")
             ->optional('?component', 'qb:componentAttachment', '?attachment')
+            ->filter('LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")')
 
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
             ->filter("?name = '$name'")
@@ -157,7 +158,7 @@ class BabbageModelResult extends SparqlModel
 
                 foreach (Aggregate::$functions as $function) {
                     $newAggregate = new Aggregate();
-                    $newAggregate->label = $newMeasure->ref ;
+                    $newAggregate->label = $newMeasure->label ;
                     $newAggregate->ref = $newMeasure->ref.'.'.$function;
                     $newAggregate->measure = $newMeasure->ref;
                     $newAggregate->function = $function;
@@ -175,6 +176,7 @@ class BabbageModelResult extends SparqlModel
                 $queryBuilder->select("?extensionProperty", "?shortName", "?dataType", "?label")
                     ->subquery($subQuery)
                     ->where("?extensionProperty", "rdfs:label", "?label")
+                    ->filter('LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")')
                     ->bind("datatype(?extension) AS ?dataType")
                     ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
                 //echo($queryBuilder->format());
