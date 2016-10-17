@@ -110,7 +110,7 @@ class CurrencyService extends SparqlModel
 //        if ($sourceCurrency == 'EUR' && $targetCurrency == 'EUR') {
 //            $patterns[] = new TriplePattern($subjectBinding, $attributePredicate, $objectBinding, false);
 //        } else {
-            $patterns[] = new TriplePattern($subjectBinding, $attributePredicate, "{$objectBinding}__source", false);
+            $patterns[] = new TriplePattern($subjectBinding, $attributePredicate, "{$objectBinding}", false);
 
             $patterns[] = new BindPattern("?rate__$targetCurrency*{$objectBinding}__source AS {$objectBinding}");
        // }

@@ -26,6 +26,7 @@ use Illuminate\Database\Eloquent\Collection;
 
 class GlobalFactsResult extends FactsResult
 {
+    protected $subPropertiesAcceleration = [];
     private $currencyService ;
 
 
@@ -66,7 +67,7 @@ class GlobalFactsResult extends FactsResult
         // return $facts;
 
         if(empty($fields)||$fields[0]==""){
-            foreach ($model->dimensions as $dimensionName => $dimension) {
+            foreach (array_slice($model->dimensions,0,0) as $dimensionName => $dimension) {
                 $fields[]=$dimension->ref;
             }
 
@@ -183,32 +184,44 @@ class GlobalFactsResult extends FactsResult
                         $needsSliceSubGraph = true;
 
                         if($foundDimension->getUri() == $innerDimension->getUri()){
-                            $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $dimensionBindings[$datasetURI][$attribute], true));
+                            $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $dimensionBindings[$datasetURI][$attribute], false));
                         }
                         else{
-                            $sliceSubGraph->add(new TriplePattern("?slice", "?att_".substr(md5($foundDimension->ref), 0, 5), $dimensionBindings[$datasetURI][$attribute], false));
+                            $attName = "att_" . substr(md5($foundDimension->ref), 0, 5);
 
-                            $sliceSubGraph->add(new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                            $sliceSubGraph->add(new TriplePattern("?slice", "?$attName", $dimensionBindings[$datasetURI][$attribute], false));
+
+                            $sliceSubGraph->add(new TriplePattern("?$attName", "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                            $this->subPropertiesAcceleration[$attName][$innerDimension->getUri()] = [$attName=>"<{$innerDimension->getUri()}>"];
+
                         }
                     } elseif (isset($attachment) && $attachment == "qb:DataSet") {
                         $needsDataSetSubGraph = true;
 
 
                         if($foundDimension->getUri() == $innerDimension->getUri()){
-                            $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $dimensionBindings[$datasetURI][$attribute], true));
+                            $dataSetSubGraph->add(new TriplePattern("?dataSet", $attribute, $dimensionBindings[$datasetURI][$attribute], false));
                         }
                         else{
-                            $dataSetSubGraph->add(new TriplePattern("?dataSet", "?att_".substr(md5($foundDimension->ref), 0, 5), $dimensionBindings[$datasetURI][$attribute], false));
+                            $attName = "att_" . substr(md5($foundDimension->ref), 0, 5);
 
-                            $dataSetSubGraph->add(new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                            $dataSetSubGraph->add(new TriplePattern("?dataSet", "?$attName", $dimensionBindings[$datasetURI][$attribute], false));
+
+                            $dataSetSubGraph->add(new TriplePattern("?$attName", "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false));
+                            $this->subPropertiesAcceleration[$attName][$innerDimension->getUri()] = [$attName=>"<{$innerDimension->getUri()}>"];
+
                         }
                     } else {
                         if($foundDimension->getUri() == $innerDimension->getUri()){
 
-                            $patterns[$datasetURI][$foundDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", $attribute, $dimensionBindings[$datasetURI][$attribute], true)]);
+                            $patterns[$datasetURI][$foundDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", $attribute, $dimensionBindings[$datasetURI][$attribute], false)]);
                         }
                         else{
-                            $patterns[$datasetURI][$foundDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", "?att_".substr(md5($foundDimension->ref), 0, 5), $dimensionBindings[$datasetURI][$attribute], false), new TriplePattern("?att_".substr(md5($foundDimension->ref), 0, 5), "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false)]);
+                            $attName = "att_" . substr(md5($foundDimension->ref), 0, 5);
+
+                            $patterns[$datasetURI][$foundDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", "?$attName", $dimensionBindings[$datasetURI][$attribute], false), new TriplePattern("?$attName", "rdfs:subPropertyOf", "<{$foundDimension->getUri()}>", false)]);
+                            $this->subPropertiesAcceleration[$attName][$innerDimension->getUri()] = [$attName=>"<{$innerDimension->getUri()}>"];
+
                         }
 
                     }
@@ -375,7 +388,7 @@ class GlobalFactsResult extends FactsResult
 
         $queryBuilder = $this->build2(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs),array_merge_recursive($dimensionBindings, $measureBindings), $finalFilters);
         /** @var EasyRdf_Sparql_Result $countResult */
-        //echo($queryBuilderC->format());die;
+       // echo($queryBuilder->format());die;
 
         $queryBuilder
             ->limit($page_size)
@@ -435,6 +448,8 @@ class GlobalFactsResult extends FactsResult
         $queryBuilderC->subquery($this->build2(array_merge_recursive($patterns, $sliceSubGraphs, $dataSetSubGraphs),array_merge_recursive($dimensionBindings, $measureBindings), $finalFilters));
         $queryBuilderC->selectDistinct("(COUNT(?observation) AS ?_count)");
         /** @var EasyRdf_Sparql_Result $countResult */
+       // echo $queryBuilderC->format();die;
+
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()
         );
@@ -487,15 +502,16 @@ class GlobalFactsResult extends FactsResult
 
         array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
             $value = ["dataSet" => "<$dataSet>"];
-            foreach ($this->currencyService->dataSetRates[$dataSet] as $target=>$dataSetRate) {
-                $value["rate__{$target}"] = $dataSetRate;
-            }
+            if(isset($this->currencyService->dataSetRates[$dataSet] ))
+                foreach ($this->currencyService->dataSetRates[$dataSet] as $target=>$dataSetRate) {
+                    $value["rate__{$target}"] = $dataSetRate;
+                }
             $rateTuples[] = $value;
 
         });
 
 
-        $basicQueryBuilder->values($rateTuples);
+        //$basicQueryBuilder->values($rateTuples);
 
         $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
 //dd($flatDimensionPatterns);
@@ -512,7 +528,9 @@ class GlobalFactsResult extends FactsResult
                             //if ($pattern->isOptional) {
                                // $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                           //  } else {
-                                $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                            if($pattern->predicate == "rdfs:subPropertyOf"){
+                                $newQuery->values($this->subPropertiesAcceleration[ltrim($pattern->subject,"?")]);
+                            }else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                            // }
                         } elseif ($pattern instanceof SubPattern) {
 
@@ -521,15 +539,17 @@ class GlobalFactsResult extends FactsResult
                                // if ($subPattern->isOptional) {
                                   //  $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                // } else {
-                                    $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                if($subPattern->predicate == "rdfs:subPropertyOf"){
+                                    $newQuery->values($this->subPropertiesAcceleration[ltrim($subPattern->subject,"?")]);
+                                }else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                               //  }
                             }
 
                         } else if ($pattern instanceof BindPattern) {
-                            $newQuery->values($rateTuples);
-                            if (in_array($pattern->getVariable(), $allSelectedFields)) $selections[$pattern->getVariable()] = $pattern->getVariable();
+                           // $newQuery->values($rateTuples);
+                           // if (in_array($pattern->getVariable(), $allSelectedFields)) $selections[$pattern->getVariable()] = $pattern->getVariable();
                             //dd($pattern->getVariable());
-                            $newQuery->bind($pattern->expression);
+                            //$newQuery->bind($pattern->expression);
                         }
                     }
                    // dump($selections);
@@ -542,14 +562,12 @@ class GlobalFactsResult extends FactsResult
                 }
 
                 /** @var GraphBuilder $optional */
-                $optional = $basicQueryBuilder->newSubgraph();
-                $optional->union(array_map(function (QueryBuilder $subQueryBuilder) use ($optional, $basicQueryBuilder) {
+                $basicQueryBuilder->union(array_map(function (QueryBuilder $subQueryBuilder) use ($basicQueryBuilder) {
                     return $basicQueryBuilder->newSubgraph()->subquery($subQueryBuilder);
                 }, $multiPatternGraph));
 
 
 
-                $basicQueryBuilder->optional($optional);
 
 
             } else {
@@ -560,25 +578,27 @@ class GlobalFactsResult extends FactsResult
                             if ($pattern->isOptional) {
                                 $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
-                                $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                                if($pattern->predicate == "rdfs:subPropertyOf"){
+                                    $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($pattern->subject,"?")]);
+                                }else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
                         } elseif ($pattern instanceof SubPattern) {
 
-                            $subPatternGraph = $basicQueryBuilder->newSubgraph();
 
                             foreach ($pattern->patterns as $subPattern) {
 
                                 if ($subPattern->isOptional) {
-                                    $subPatternGraph->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                    $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 } else {
-                                    $subPatternGraph->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                    if($subPattern->predicate == "rdfs:subPropertyOf"){
+                                        $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($subPattern->subject,"?")]);
+                                    }else $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
                             }
 
-                            $basicQueryBuilder->optional($subPatternGraph);
 
                         } else if ($pattern instanceof BindPattern) {
-                            $basicQueryBuilder->bind($pattern->expression);
+                            //$basicQueryBuilder->bind($pattern->expression);
                         }
 
                     }
@@ -609,100 +629,6 @@ class GlobalFactsResult extends FactsResult
 
 
 
-    private function build( array $dimensionPatterns, array $bindings, array $filterMap = [])
-    {
-        //  dd($aggregateBindings);
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
-        $midGraph = $queryBuilder->newSubquery();
-//dd($attributes);
-        $queryBuilder = $midGraph->newSubquery();
-//dd($dimensionPatterns);
-        $datasetQueries = [];
-        //dd($dimensionPatterns);
-        foreach ($dimensionPatterns as $dataset => $dimensionPatternGroup) {
-            $datasetQuery = $queryBuilder->newSubquery();
-            foreach ($dimensionPatternGroup as $uri => $dimensions) {
-
-                foreach ($dimensions as $dimensionPattern) {
-                    if ($dimensionPattern instanceof TriplePattern) {
-                        if ($dimensionPattern->isOptional) {
-                            $datasetQuery->optional($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
-                        } else {
-                            $datasetQuery->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate), $dimensionPattern->object);
-                        }
-                    } elseif ($dimensionPattern instanceof SubPattern) {
-                        $subGraph = $datasetQuery->newSubgraph();
-
-                        foreach ($dimensionPattern->patterns as $pattern) {
-
-                            if ($pattern->isOptional) {
-                                $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                            } else {
-                                $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                            }
-                        }
-
-                        $datasetQuery->optional($subGraph);
-                    }
-                }
-            }
-            $datasetQuery->selectDistinct(array_unique(array_merge(["?observation"], array_values($bindings[$dataset]))));
-
-            $datasetQuery->where("?observation", "a", "qb:Observation");
-            $datasetQuery->where("?observation", "qb:dataSet", "<$dataset>");
-
-
-
-            $datasetQueries [$dataset]= $datasetQuery;
-        }
-
-        foreach ($filterMap as $filter) {
-            $queryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
-        }
-
-        $queryBuilder->union(array_map(function (QueryBuilder $subQueryBuilder) use($queryBuilder) {
-            return $queryBuilder->newSubgraph()->subquery($subQueryBuilder);
-        }, $datasetQueries));
-
-
-        $flatBindings =  array_unique(array_flatten(array_map(function($datasetBindings){return array_values($datasetBindings);}, $bindings))) ;
-        $flatBindings[] ="?observation";
-        $queryBuilder
-            ->selectDistinct($flatBindings);
-        // echo $queryBuilder->format();die;
-       /* $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
-        foreach ($flatParentBindings as $flatParentBinding) {
-            $midGraph->filterNotExists($midGraph->newSubgraph()->where($flatParentBinding."_", "(skos:similar|^skos:similar)*",
-                "?elem_")->filter("str(?elem_) < str($flatParentBinding"."_)"));
-        }
-
-        $outerSelections = [];
-        $outerGroupings = [];
-        foreach ($parentDrilldownBindings as $parentBinding=>$childrenBindings) {
-            $midGraph->where($parentBinding, "(skos:similar|^skos:similar)*", $parentBinding."_");
-
-            $outerSelections[] = "(".$parentBinding."_ AS $parentBinding)";
-            $outerGroupings[] = $parentBinding."_";
-
-        }
-
-
-
-
-
-        $midGraph->selectDistinct($outerSelections);
-        if(!empty($outerGroupings))
-            $midGraph->groupBy($outerGroupings);
-        $midGraph->subquery($innerGraph);
-        $queryBuilder->subquery($midGraph);
-        $queryBuilder->select("(COUNT(*) AS ?_count)");*/
-
-
-
-        //echo $queryBuilder->format();die;
-        return $queryBuilder;
-
-    }
 
     protected function globalDimensionToPatterns(array $dimensions, $fields)
     {
