@@ -767,10 +767,11 @@ class GlobalAggregateResult extends AggregateResult
 
 
         $flatDimensionPatterns = new Collection();
-
         foreach (new Collection($dimensionPatterns) as $dataSet => $patternsOfDimension) {
 
             foreach ($patternsOfDimension as $pattern => $patternsArray) {
+               // dump(json_encode($patternsArray) );
+
                 if ($flatDimensionPatterns->has($pattern)) {
                     /** @var Collection $existing */
                     $existing = $flatDimensionPatterns->get($pattern);
@@ -791,6 +792,8 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
         }
+
+        //dd($dimensionPatterns);
 
         $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
@@ -815,17 +818,20 @@ class GlobalAggregateResult extends AggregateResult
 
         $tripleAntiRepeatHashes = [];
         //  $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
-
         /** @var Collection $dimensionPatterCollections */
+
+        $outerSelectedFields = [];
         foreach ($flatDimensionPatterns as $dimension => $dimensionPatternsCollections) {
+            //dump($dimensionPatternsCollections);
+
             if ($dimensionPatternsCollections->count() > 1) {
                 $multiPatternGraph = [];
                 foreach ($dimensionPatternsCollections as &$dimensionPatternsCollection) {
+
                     $newQuery = $basicQueryBuilder->newSubquery();
                     $selections = ["?observation"];
                     $bindingAntiRepeatHashes = [];
                     $dimensionPatternsCollection =  $dimensionPatternsCollection->unique(function($dimensionPattern){return json_encode($dimensionPattern);});
-
                     foreach ($dimensionPatternsCollection as $pattern) {
                         if ($pattern instanceof TriplePattern) {
                             if (in_array($pattern->object, array_keys($parentDrilldownBindings)) || in_array($pattern->object, $aggregateBindings) || in_array($pattern->object, $allSelectedFields) || in_array($pattern->object, $sorterBindings) || in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
@@ -883,6 +889,7 @@ class GlobalAggregateResult extends AggregateResult
                                 $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
                                 if (in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes)) continue;
+                                if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
                                 if($pattern->predicate == "rdfs:subPropertyOf"){
                                     $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($pattern->subject,"?")]);
                                 }else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
@@ -896,6 +903,8 @@ class GlobalAggregateResult extends AggregateResult
                                 if ($subPattern->isOptional) {
                                     $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 } else {
+                                    if (in_array($subPattern->object, $allSelectedFields)) $outerSelectedFields[$subPattern->object] = $subPattern->object;
+
                                     if (in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes)) continue;
                                     if($subPattern->predicate == "rdfs:subPropertyOf"){
                                         $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($subPattern->subject,"?")]);
@@ -945,13 +954,16 @@ class GlobalAggregateResult extends AggregateResult
 
             }
         }
+        //dump(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
+        //echo $innerGraph->format();
+
         // dd(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
         if (count($dimensionPatterns) > 0) {
             $innerGraph
-                ->select(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
+                ->select(array_unique(array_merge($agBindings, $outerSelectedFields, array_flatten($sorterBindings))));
             if (count($drilldownBindings) > 0) {
 
-                $innerGraph->groupBy(array_unique(array_merge($allSelectedFields, array_flatten($sorterBindings))));
+                $innerGraph->groupBy(array_unique(array_merge($outerSelectedFields, array_flatten($sorterBindings))));
             }
         }
 
@@ -971,6 +983,7 @@ class GlobalAggregateResult extends AggregateResult
                 $outerGroupings[] = $parentBinding . "";
                 //dump($childrenBindings);
                 foreach (array_unique($childrenBindings) as $childrenBinding) {
+                    if(!in_array($childrenBinding, $outerSelectedFields))continue;
                     $outerSelections[] = "({$childrenBinding} AS {$childrenBinding}_)";
                     $outerGroupings[] = $childrenBinding . "";
 
@@ -981,16 +994,14 @@ class GlobalAggregateResult extends AggregateResult
 
             }
         }
-
         $outerSelections[] = "(SUM(?count) AS ?_count)";
         $queryBuilder->subquery($innerGraph);
-        //dd($outerSelections);
+       // dd($outerSelections);
 
         $queryBuilder->select($outerSelections);
 
         if (!empty($outerGroupings))
             $queryBuilder->groupBy(array_unique(array_merge($outerGroupings, array_flatten($sorterBindings))));
-        //echo $queryBuilder->format();die;
 
         //echo $queryBuilder->format();
       //  die;
