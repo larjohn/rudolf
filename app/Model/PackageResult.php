@@ -22,6 +22,7 @@ class PackageResult extends SparqlModel
 
     public $model = [];
     public $name;
+    public $title;
 
     public function __construct($name)
     {
@@ -54,6 +55,7 @@ class PackageResult extends SparqlModel
             $this->model["measures"][$measure->ref] = $newMeasure;
         }
         $this->name = $name;
+        $this->title = $model->getTitle();
 
 
         

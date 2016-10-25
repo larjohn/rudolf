@@ -435,8 +435,9 @@ class GlobalMembersResult extends SparqlModel
 
             }
         }
+
         $selections = array_keys($parentDrilldownBindings);
-        $selections = array_merge($selections, array_map(function($binding){return "(SAMPLE($binding) AS {$binding}_)";}, array_flatten($parentDrilldownBindings)));
+        $selections = array_merge($selections, array_map(function($binding){return "(MAX($binding) AS {$binding}_)";}, array_flatten($parentDrilldownBindings)));
         $basicQueryBuilder->select($selections);
         $basicQueryBuilder->groupBy(array_keys($parentDrilldownBindings));
         $basicQueryBuilder->orderBy("COUNT(?observation)");

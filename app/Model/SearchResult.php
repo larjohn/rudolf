@@ -38,7 +38,7 @@ class SearchResult extends SparqlModel
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
-            ->select('?attribute', '(MAX(?_label) AS ?label)', '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "(MAX(?_datasetName) AS ?datasetName)", "?dataset", "(SAMPLE(?_datasetLabel) AS ?datasetLabel)", "?currency", "?year"/*, "(count(distinct ?value) AS ?cardinality)"*/)
+            ->select('?attribute', '(MAX(?_label) AS ?label)', "(SAMPLE(?_title) AS ?title)", '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "(MAX(?_datasetName) AS ?datasetName)", "?dataset", "(SAMPLE(?_datasetLabel) AS ?datasetLabel)", "?currency", "?year"/*, "(count(distinct ?value) AS ?cardinality)"*/)
             ->where("?dsd", 'qb:component', '?component')
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset", "qb:structure", "?dsd")
@@ -51,6 +51,7 @@ class SearchResult extends SparqlModel
             ->optional('?component', 'qb:componentAttachment', '?attachment')
             ->optional("?dataset", "<http://data.openbudgets.eu/ontology/dsd/dimension/fiscalYear>", "?year")
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?_datasetName")
+            ->where("?dataset","<http://purl.org/dc/terms/title>" ,"?_title")
             ->optional($queryBuilder->newSubgraph()
                 ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in ( qb:MeasureProperty, qb:DimensionProperty, qb:CodedProperty)"))
             ->groupBy('?attribute', "?shortName", "?attachment", "?dataset", "?currency", "?year")        ;
@@ -73,7 +74,7 @@ class SearchResult extends SparqlModel
                 $packages[$property["dataset"]] = new BabbageModelResult("");
                 $packages[$property["dataset"]]->id = preg_replace("/^.*(#|\/)/", "", $property["dataset"])."__" . substr(md5($property["dataset"]),0,5) ;
                 $packages[$property["dataset"]]->name = preg_replace("/^.*(#|\/)/", "", $property["dataset"])."__" . substr(md5($property["dataset"]),0,5) ;
-                $packages[$property["dataset"]]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$property["datasetName"]];
+                $packages[$property["dataset"]]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$property["title"]];
             }
             $attribute = $property["attribute"];
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));

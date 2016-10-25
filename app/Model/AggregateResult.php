@@ -87,7 +87,6 @@ class AggregateResult extends SparqlModel
         // return $facts;
         $selectedAggregates = $this->modelFieldsToPatterns($model, $aggregates);
         $selectedDrilldowns = $this->modelFieldsToPatterns($model, $drilldowns);
-//dd($selectedAggregates);
 
         $offset = $this->page_size * $this->page;
 
@@ -176,8 +175,14 @@ class AggregateResult extends SparqlModel
 
         ], false);
 
+        $dataSetSubGraph = new SubPattern([
+            new TriplePattern("?observation", "qb:dataSet", "<{$model->getDataset()}>"),
+
+        ], false);
+
 
         $needsSliceSubGraph = false;
+        $needsDataSetSubGraph = false;
 
         foreach ($selectedDrilldownDimensions as $dimensionName => $dimension) {
             $attribute = $dimensionName;
@@ -185,7 +190,13 @@ class AggregateResult extends SparqlModel
             if (isset($attachment) && $attachment == "qb:Slice") {
                 $needsSliceSubGraph = true;
                 $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $drilldownBindings[$attribute], false));
-            } else {
+            }
+            elseif (isset($attachment) && $attachment == "qb:DataSet") {
+                $needsDataSetSubGraph = true;
+                $dataSetSubGraph->add(new TriplePattern( "<{$model->getDataset()}>", $attribute, $drilldownBindings[$attribute], false));
+            }
+
+            else {
                 $patterns [] = new TriplePattern("?observation", $attribute, $drilldownBindings[$attribute], false);
             }
 
@@ -199,6 +210,9 @@ class AggregateResult extends SparqlModel
 
                     if (isset($attachment) && $attachment == "qb:Slice") {
                         $sliceSubGraph->add(new TriplePattern($drilldownBindings[$attribute], $patternName, $drilldownBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false));
+                    }
+                    elseif (isset($attachment) && $attachment == "qb:DataSet") {
+                        $dataSetSubGraph->add(new TriplePattern($drilldownBindings[$attribute], $patternName, $drilldownBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false));
                     } else {
                         $patterns [] = new TriplePattern($drilldownBindings[$attribute], $patternName, $drilldownBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false);
 
@@ -214,6 +228,9 @@ class AggregateResult extends SparqlModel
             if (isset($attachment) && $attachment == "qb:Slice") {
                 $needsSliceSubGraph = true;
                 $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $filterBindings[$attribute], false));
+            } elseif (isset($attachment) && $attachment == "qb:DataSet") {
+                $needsDataSetSubGraph = true;
+                $dataSetSubGraph->add(new TriplePattern("<{$model->getDataset()}>", $attribute, $filterBindings[$attribute], false));
             } else {
                 $patterns [] = new TriplePattern("?observation", $attribute, $filterBindings[$attribute], false);
             }
@@ -237,6 +254,8 @@ class AggregateResult extends SparqlModel
                         $finalFilters[] = $filterMap[$attribute][$patternName];
                         if (isset($attachment) && $attachment == "qb:Slice") {
                             $sliceSubGraph->add(new TriplePattern($filterBindings[$attribute], $patternName, $filterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false, $transitivity));
+                        } elseif (isset($attachment) && $attachment == "qb:DataSet") {
+                            $dataSetSubGraph->add(new TriplePattern($filterBindings[$attribute], $patternName, $filterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false, $transitivity));
                         } else {
                             $patterns [] = new TriplePattern($filterBindings[$attribute], $patternName, $filterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false, $transitivity);
 
@@ -260,6 +279,9 @@ class AggregateResult extends SparqlModel
             if (isset($attachment) && $attachment == "qb:Slice") {
                 $needsSliceSubGraph = true;
                 $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $sorterBindings[$attribute], false));
+            }  elseif (isset($attachment) && $attachment == "qb:DataSet") {
+                $needsDataSetSubGraph = true;
+                $dataSetSubGraph->add(new TriplePattern("<{$model->getDataset()}>", $attribute, $sorterBindings[$attribute], false));
             } else {
                 $patterns [] = new TriplePattern("?observation", $attribute, $sorterBindings[$attribute], false);
             }
@@ -284,6 +306,8 @@ class AggregateResult extends SparqlModel
                         $finalSorters[] = $sorterMap[$attribute][$patternName];
                         if (isset($attachment) && $attachment == "qb:Slice") {
                             $sliceSubGraph->add(new TriplePattern($sorterBindings[$attribute], $patternName, $sorterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false));
+                        } elseif (isset($attachment) && $attachment == "qb:DataSet") {
+                            $dataSetSubGraph->add(new TriplePattern($sorterBindings[$attribute], $patternName, $sorterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false));
                         } else {
                             $patterns [] = new TriplePattern($sorterBindings[$attribute], $patternName, $sorterBindings[$attribute] . "_" . substr(md5($patternName), 0, 5), false);
 
@@ -307,6 +331,9 @@ class AggregateResult extends SparqlModel
             if (isset($attachment) && $attachment == "qb:Slice") {
                 $needsSliceSubGraph = true;
                 $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $aggregateBindings[$attribute], false));
+            }if (isset($attachment) && $attachment == "qb:DataSet") {
+                $needsDataSetSubGraph = true;
+                $dataSetSubGraph->add(new TriplePattern("<{$model->getDataset()}>", $attribute, $aggregateBindings[$attribute], false));
             } else {
                 $patterns [] = new TriplePattern("?observation", $attribute, $aggregateBindings[$attribute], false);
             }
@@ -327,6 +354,9 @@ class AggregateResult extends SparqlModel
 
         if ($needsSliceSubGraph) {
             $patterns[] = $sliceSubGraph;
+        }
+        if ($needsDataSetSubGraph) {
+            $patterns[] = $dataSetSubGraph;
         }
         $dataset = $model->getDataset();
         //$dsd = $model->getDsd();

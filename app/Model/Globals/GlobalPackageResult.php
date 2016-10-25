@@ -53,6 +53,7 @@ class GlobalPackageResult extends SparqlModel
             $this->model["measures"][$measure->ref] = $newMeasure;
         }
         $this->name = "global";
+        $this->title = "Global dataset";
 
 
     }

@@ -49,10 +49,11 @@ class BabbageModelResult extends SparqlModel
     public function identify($name){
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
-            ->selectDistinct('?dataset', '?dsd')
+            ->selectDistinct('?dataset', '?dsd',  "(SAMPLE(?_title) AS ?title)")
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset","qb:structure", "?dsd" )
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
+            ->where("?dataset","<http://purl.org/dc/terms/title>" ,"?_title")
             ->filter("?name = '$name'")
         ;
 
@@ -66,6 +67,7 @@ class BabbageModelResult extends SparqlModel
         //dd($identifyQueryResult);
         $identifyQueryResult = $this->rdfResultsToArray($identifyQueryResult)[0];
         $this->model->setDataset($identifyQueryResult["dataset"]);
+        $this->model->setTitle($identifyQueryResult["title"]);
         $this->model->setDsd($identifyQueryResult["dsd"]);
     }
 
@@ -74,8 +76,8 @@ class BabbageModelResult extends SparqlModel
 
     public function load($name){
         if(Cache::has($name)){
-            $this->model =  Cache::get($name);
-            return;
+          //  $this->model =  Cache::get($name);
+         //   return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
@@ -90,7 +92,6 @@ class BabbageModelResult extends SparqlModel
             ->bind("REPLACE(str(?attribute), '^.*(#|/)', \"\") AS ?shortName")
             ->optional('?component', 'qb:componentAttachment', '?attachment')
             ->filter('LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")')
-
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
             ->filter("?name = '$name'")
             ->optional($queryBuilder->newSubgraph()
