@@ -14,8 +14,10 @@ class FilterDefinition
 
     public $property;
     public $value;
+    public $values;
     public $binding;
     public $transitivity;
+    public $isCardinal = false;
 
     public function __construct($cut)
     {
@@ -29,7 +31,15 @@ class FilterDefinition
         }
 
         $this->value = $values[1];
+        $this->values[] = $values[1];
 
+
+    }
+
+    public function addValue($cut){
+        $values = explode(":", $cut,2);
+        $this->values[] = $values[1];
+        $this->isCardinal = true;
 
     }
 

@@ -14,6 +14,7 @@ use App\Model\Sparql\TriplePattern;
 use Asparagus\QueryBuilder;
 use EasyRdf_Sparql_Result;
 use Log;
+use URL;
 
 class AggregateResult extends SparqlModel
 {
@@ -468,10 +469,29 @@ class AggregateResult extends SparqlModel
         }
 
         foreach ($filterMap as $filter) {
-            $filter->value = trim($filter->value, '"');
-            $filter->value = trim($filter->value, "'");
+            if(!$filter->isCardinal){
+                $filter->value = trim($filter->value, '"');
+                $filter->value = trim($filter->value, "'");
 
-            $queryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                $queryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+            }
+            else{
+
+                $values = [];
+                foreach ($filter->values as $value){
+                    $binding = ltrim($filter->binding, "?");
+                    $val = trim($value, "'\"");
+                    if(URL::isValidUrl($val)){
+                        $val = "<{$val}>";
+                    }
+                    else{
+                        $val = "'{$val}'";
+                    }
+
+                    $values[]=[$binding=>"$val"];
+                }
+                $queryBuilder->values($values);
+            }
         }
 
         $agBindings = [];
@@ -526,9 +546,29 @@ class AggregateResult extends SparqlModel
         }
 
         foreach ($filterMap as $filter) {
-            $filter->value = trim($filter->value, '"');
-            $filter->value = trim($filter->value, "'");
-            $queryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+            if(!$filter->isCardinal){
+                $filter->value = trim($filter->value, '"');
+                $filter->value = trim($filter->value, "'");
+
+                $queryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+            }
+            else{
+
+                $values = [];
+                foreach ($filter->values as $value){
+                    $binding = ltrim($filter->binding, "?");
+                    $val = trim($value, "'\"");
+                    if(URL::isValidUrl($val)){
+                        $val = "<{$val}>";
+                    }
+                    else{
+                        $val = "'{$val}'";
+                    }
+
+                    $values[]=[$binding=>"$val"];
+                }
+                $queryBuilder->values($values);
+            }
         }
 
         $agBindings = [];
@@ -576,10 +616,29 @@ class AggregateResult extends SparqlModel
             }
         }
         foreach ($filterMap as $filter) {
-            $filter->value = trim($filter->value, '"');
-            $filter->value = trim($filter->value, "'");
+            if(!$filter->isCardinal){
+                $filter->value = trim($filter->value, '"');
+                $filter->value = trim($filter->value, "'");
 
-            $subQuery->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                $queryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+            }
+            else{
+
+                $values = [];
+                foreach ($filter->values as $value){
+                    $binding = ltrim($filter->binding, "?");
+                    $val = trim($value, "'\"");
+                    if(URL::isValidUrl($val)){
+                        $val = "<{$val}>";
+                    }
+                    else{
+                        $val = "'{$val}'";
+                    }
+
+                    $values[]=[$binding=>"$val"];
+                }
+                $queryBuilder->values($values);
+            }
         }
 
 

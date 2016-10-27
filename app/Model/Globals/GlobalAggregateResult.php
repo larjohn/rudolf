@@ -24,6 +24,7 @@ use App\Model\SparqlModel;
 use Asparagus\QueryBuilder;
 use EasyRdf_Sparql_Result;
 use Illuminate\Database\Eloquent\Collection;
+use URL;
 
 class GlobalAggregateResult extends AggregateResult
 {
@@ -56,10 +57,16 @@ class GlobalAggregateResult extends AggregateResult
             $this->order[] = [$newSorter->property, $newSorter->direction];
         }
 
+        /** @var FilterDefinition[] $filters */
         $filters = [];
         foreach ($cuts as $cut) {
             $newFilter = new FilterDefinition($cut);
-            $filters[$newFilter->property] = $newFilter;
+            if(!isset($filters[$newFilter->property])){
+                $filters[$newFilter->property] = $newFilter;
+            }
+            else{
+                $filters[$newFilter->property]->addValue($cut);
+            }
             $this->cells[] = ["operator" => ":", "ref" => $newFilter->property, "value" => $newFilter->value];
 
         }
@@ -926,12 +933,31 @@ class GlobalAggregateResult extends AggregateResult
             return json_encode($item);
         });
 
+        /** @var FilterDefinition $filter */
         foreach ($filterCollection as $filter) {
-            $filter->value = trim($filter->value, '"');
-            $filter->value = trim($filter->value, "'");
+            if(!$filter->isCardinal){
+                $filter->value = trim($filter->value, '"');
+                $filter->value = trim($filter->value, "'");
 
-            $basicQueryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                $basicQueryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+            }
+            else{
 
+                $values = [];
+                foreach ($filter->values as $value){
+                    $binding = ltrim($filter->binding, "?");
+                    $val = trim($value, "'\"");
+                    if(URL::isValidUrl($val)){
+                        $val = "<{$val}>";
+                    }
+                    else{
+                        $val = "'{$val}'";
+                    }
+
+                    $values[]=[$binding=>"$val"];
+                }
+                $basicQueryBuilder->values($values);
+            }
 
         }
 
@@ -1003,8 +1029,7 @@ class GlobalAggregateResult extends AggregateResult
         if (!empty($outerGroupings))
             $queryBuilder->groupBy(array_unique(array_merge($outerGroupings, array_flatten($sorterBindings))));
 
-        //echo $queryBuilder->format();
-      //  die;
+       // echo $queryBuilder->format(); die;
         return $queryBuilder;
 
     }
@@ -1160,12 +1185,29 @@ class GlobalAggregateResult extends AggregateResult
             return json_encode($item);
         });
         foreach ($filterCollection as $filter) {
-            $filter->value = trim($filter->value, '"');
-            $filter->value = trim($filter->value, "'");
+            if(!$filter->isCardinal){
+                $filter->value = trim($filter->value, '"');
+                $filter->value = trim($filter->value, "'");
 
-            $basicQueryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                $basicQueryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+            }
+            else{
 
+                $values = [];
+                foreach ($filter->values as $value){
+                    $binding = ltrim($filter->binding, "?");
+                    $val = trim($value, "'\"");
+                    if(URL::isValidUrl($val)){
+                        $val = "<{$val}>";
+                    }
+                    else{
+                        $val = "'{$val}'";
+                    }
 
+                    $values[]=[$binding=>"$val"];
+                }
+                $basicQueryBuilder->values($values);
+            }
         }
         //echo $basicQueryBuilder->format();die;
         $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
@@ -1354,11 +1396,29 @@ class GlobalAggregateResult extends AggregateResult
         });
 //dd($filterCollection);
         foreach ($filterCollection as $filter) {
-            $filter->value = trim($filter->value, '"');
-            $filter->value = trim($filter->value, "'");
+            if(!$filter->isCardinal){
+                $filter->value = trim($filter->value, '"');
+                $filter->value = trim($filter->value, "'");
 
-            $basicQueryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                $basicQueryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+            }
+            else{
 
+                $values = [];
+                foreach ($filter->values as $value){
+                    $binding = ltrim($filter->binding, "?");
+                    $val = trim($value, "'\"");
+                    if(URL::isValidUrl($val)){
+                        $val = "<{$val}>";
+                    }
+                    else{
+                        $val = "'{$val}'";
+                    }
+
+                    $values[]=[$binding=>"$val"];
+                }
+                $basicQueryBuilder->values($values);
+            }
 
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));

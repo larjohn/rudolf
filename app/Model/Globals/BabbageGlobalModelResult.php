@@ -25,6 +25,8 @@ use EasyRdf_Sparql_Result;
 class BabbageGlobalModelResult extends BabbageModelResult
 {
 
+
+
     public function __construct()
     {
         SparqlModel::__construct();
