@@ -23,6 +23,7 @@ use Asparagus\GraphBuilder;
 use Asparagus\QueryBuilder;
 use EasyRdf_Sparql_Result;
 use Illuminate\Database\Eloquent\Collection;
+use URL;
 
 class GlobalFactsResult extends FactsResult
 {
@@ -44,7 +45,12 @@ class GlobalFactsResult extends FactsResult
         $filters = [];
         foreach ($cuts as $cut) {
             $newFilter = new FilterDefinition($cut);
-            $filters[$newFilter->property] = $newFilter;
+            if(!isset($filters[$newFilter->property])){
+                $filters[$newFilter->property] = $newFilter;
+            }
+            else{
+                $filters[$newFilter->property]->addValue($cut);
+            }
             $this->cells[] = ["operator" => ":", "ref" => $newFilter->property, "value" => $newFilter->value];
 
         }
@@ -609,13 +615,32 @@ class GlobalFactsResult extends FactsResult
         $filterCollection = $filterCollection->unique(function($item){return json_encode($item);});
 
         foreach ($filterCollection as $filter) {
-            $filter->value = trim($filter->value, '"');
-            $filter->value = trim($filter->value, "'");
+            if(!$filter->isCardinal){
+                $filter->value = trim($filter->value, '"');
+                $filter->value = trim($filter->value, "'");
 
-            $basicQueryBuilder->filter("str(" . $filter->binding . ")='" . $filter->value . "'");
+                $basicQueryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+            }
+            else{
 
+                $values = [];
+                foreach ($filter->values as $value){
+                    $binding = ltrim($filter->binding, "?");
+                    $val = trim($value, "'\"");
+                    if(URL::isValidUrl($val)){
+                        $val = "<{$val}>";
+                    }
+                    else{
+                        $val = "'{$val}'";
+                    }
 
+                    $values[]=[$binding=>"$val"];
+                }
+                $basicQueryBuilder->values($values);
+            }
         }
+
+
        // dd($flatDimensionPatterns);
 
         $basicQueryBuilder->select(array_unique(array_merge(["?observation"], array_values($allSelectedFields))));

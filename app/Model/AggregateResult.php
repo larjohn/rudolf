@@ -56,9 +56,16 @@ class AggregateResult extends SparqlModel
         }
 
         $filters = [];
+
+
         foreach ($cuts as $cut) {
             $newFilter = new FilterDefinition($cut);
-            $filters[$newFilter->property] = $newFilter;
+            if(!isset($filters[$newFilter->property])){
+                $filters[$newFilter->property] = $newFilter;
+            }
+            else{
+                $filters[$newFilter->property]->addValue($cut);
+            }
             $this->cells[] = ["operator" => ":", "ref" => $newFilter->property, "value" => $newFilter->value];
 
         }

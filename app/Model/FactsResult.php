@@ -17,6 +17,7 @@ use EasyRdf_Literal_Decimal;
 use EasyRdf_Literal_Integer;
 use EasyRdf_Sparql_Result;
 use Log;
+use URL;
 
 class FactsResult extends SparqlModel
 {
@@ -45,11 +46,15 @@ class FactsResult extends SparqlModel
         $filters = [];
         foreach ($cuts as $cut) {
             $newFilter = new FilterDefinition($cut);
-            $filters[$newFilter->property] = $newFilter;
-            $this->cells[]=["operator"=>":", "ref"=> $newFilter->property, "value"=> $newFilter->value];
+            if(!isset($filters[$newFilter->property])){
+                $filters[$newFilter->property] = $newFilter;
+            }
+            else{
+                $filters[$newFilter->property]->addValue($cut);
+            }
+            $this->cells[] = ["operator" => ":", "ref" => $newFilter->property, "value" => $newFilter->value];
 
         }
-
         $this->load($name, $page, $page_size, $fields, $sorters, $filters);
         $this->status = "ok";
     }
@@ -273,7 +278,29 @@ class FactsResult extends SparqlModel
         }
 
         foreach ($filterMap as $filter) {
-            $queryBuilder->filter("str(".$filter->binding.")='".$filter->value."'");
+            if(!$filter->isCardinal){
+                $filter->value = trim($filter->value, '"');
+                $filter->value = trim($filter->value, "'");
+
+                $queryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+            }
+            else{
+
+                $values = [];
+                foreach ($filter->values as $value){
+                    $binding = ltrim($filter->binding, "?");
+                    $val = trim($value, "'\"");
+                    if(URL::isValidUrl($val)){
+                        $val = "<{$val}>";
+                    }
+                    else{
+                        $val = "'{$val}'";
+                    }
+
+                    $values[]=[$binding=>"$val"];
+                }
+                $queryBuilder->values($values);
+            }
         }
 
         $queryBuilder
