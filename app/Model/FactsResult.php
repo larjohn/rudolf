@@ -28,7 +28,7 @@ class FactsResult extends SparqlModel
     public $page_size;
     public $data;
     public $order;
-    public $cells;
+    public $cell;
     public $total_fact_count;
     public $fields;
 
@@ -37,6 +37,7 @@ class FactsResult extends SparqlModel
     {
         parent::__construct();
         $sorters = [];
+        $this->order = [];
         foreach ($orders as $order) {
             $newSorter = new Sorter($order);
             $sorters[$newSorter->property] = $newSorter;
@@ -44,6 +45,7 @@ class FactsResult extends SparqlModel
         }
 
         $filters = [];
+        $this->cell = [];
         foreach ($cuts as $cut) {
             $newFilter = new FilterDefinition($cut);
             if(!isset($filters[$newFilter->property])){
@@ -52,7 +54,7 @@ class FactsResult extends SparqlModel
             else{
                 $filters[$newFilter->property]->addValue($cut);
             }
-            $this->cells[] = ["operator" => ":", "ref" => $newFilter->property, "value" => $newFilter->value];
+            $this->cell[] = ["operator" => ":", "ref" => $newFilter->property, "value" => $newFilter->value];
 
         }
         $this->load($name, $page, $page_size, $fields, $sorters, $filters);
@@ -75,8 +77,25 @@ class FactsResult extends SparqlModel
 
         $model = (new BabbageModelResult($name))->model;
        // return $facts;
-        $selectedPatterns = $this->modelFieldsToPatterns($model,$fields);
+        if (count($fields) < 1 || $fields[0] == "") {
+            $fields = [];
+            foreach ($model->dimensions as $dimension) {
+                if($dimension->getAttachment()!="qb:DataSet")
+                $fields[] = $dimension->label_ref;
 
+
+            }
+
+            foreach ($model->measures as $measure) {
+
+                $fields[] = $measure->ref;
+            }
+
+
+
+        }
+
+        $selectedPatterns = $this->modelFieldsToPatterns($model,$fields);
         $offset = $page_size * $page ;
 
         $dimensions = $model->dimensions;
@@ -129,14 +148,25 @@ class FactsResult extends SparqlModel
 
         ], true);
 
+        $dataSetSubGraph = new SubPattern([
+            new TriplePattern("?observation", "qb:dataSet", "<{$model->getDataset()}>"),
+
+        ], true);
+
 
         $needsSliceSubGraph = false;
+        $needsDataSetSubGraph = false;
         foreach ($selectedDimensions as $dimensionName=>$dimension) {
             $attribute = $dimensionName;
             $attachment = $dimension->getAttachment();
             if(isset($attachment) && $attachment=="qb:Slice"){
                 $needsSliceSubGraph = true;
                 $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$attribute] , false));
+            }
+            elseif(isset($attachment) && $attachment=="qb:DataSet"){
+                $needsDataSetSubGraph = true;
+                $dataSetSubGraph->add(new TriplePattern( "<{$model->getDataset()}>", $attribute, $bindings[$attribute], false));
+
             }
             else{
                 $patterns [] = new TriplePattern("?observation", $attribute, $bindings[$attribute], false);
@@ -168,6 +198,9 @@ class FactsResult extends SparqlModel
                     if(isset($attachment) && $attachment=="qb:Slice"){
                         $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$patternName,$bindings[$attribute]."_". substr(md5($patternName),0,5), true));
                     }
+                    if(isset($attachment) && $attachment=="qb:DataSet"){
+                        $dataSetSubGraph->add(new TriplePattern($bindings[$attribute],$patternName,$bindings[$attribute]."_". substr(md5($patternName),0,5), true));
+                    }
                     else{
                         $patterns [] = new TriplePattern($bindings[$attribute],$patternName,$bindings[$attribute]."_". substr(md5($patternName),0,5), true);
 
@@ -188,6 +221,10 @@ class FactsResult extends SparqlModel
             $patterns[] = $sliceSubGraph;
 
         }
+        if($needsDataSetSubGraph){
+            $patterns[] = $dataSetSubGraph;
+
+        }
         $dataset = $model->getDataset();
         //$dsd = $model->getDsd();
         $patterns[] = new TriplePattern('?observation', 'a', 'qb:Observation');
@@ -196,6 +233,9 @@ class FactsResult extends SparqlModel
 
         $queryBuilderC = $this->build(["(COUNT(?observation) AS ?_count)"], $patterns,$finalFilters );
         /** @var EasyRdf_Sparql_Result $countResult */
+
+//echo $queryBuilderC->format();
+
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()
         );
@@ -252,7 +292,7 @@ class FactsResult extends SparqlModel
         foreach ($dimensionPatterns as $dimensionPattern) {
             if($dimensionPattern instanceof TriplePattern || ($dimensionPattern instanceof SubPattern && !$dimensionPattern->isOptional)){
                 if($dimensionPattern->isOptional){
-                    $queryBuilder->optional($dimensionPattern->subject,  self::expand($dimensionPattern->predicate), $dimensionPattern->object);
+                    $queryBuilder->where($dimensionPattern->subject,  self::expand($dimensionPattern->predicate), $dimensionPattern->object);
                 }
                 else{
                     $queryBuilder->where($dimensionPattern->subject,  self::expand($dimensionPattern->predicate), $dimensionPattern->object);
@@ -262,16 +302,10 @@ class FactsResult extends SparqlModel
                 $subGraph = $queryBuilder->newSubgraph();
 
                 foreach($dimensionPattern->patterns as $pattern){
+                    $queryBuilder->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
 
-                    if($pattern->isOptional){
-                        $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
-                    else{
-                        $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
                 }
 
-                $queryBuilder->optional($subGraph);
 
 
             }
