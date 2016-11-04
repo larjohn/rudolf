@@ -76,9 +76,30 @@ class BabbageModel
     {
         return $this->dsd;
     }
+    public function __get($name)
+    {
+        $fn_name = 'get_' . ucfirst($name);
+        if (method_exists($this, $fn_name))
+        {
+            return $this->$fn_name();
+        }
+        else
+        {
+            return null;
+        }
+    }
 
-    public $currency;
-    public $fiscalYear;
+    public function __set($name, $value)
+    {
+        $fn_name = 'set_' . ucfirst($name);
+        if (method_exists($this, $fn_name))
+        {
+            $this->$fn_name($value);
+        }
+    }
+
+    private $currency;
+    private $fiscalYear;
 
     private $title;
 
@@ -96,6 +117,38 @@ class BabbageModel
     public function setTitle($title)
     {
         $this->title = $title;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getCurrency()
+    {
+        return $this->currency;
+    }
+
+    /**
+     * @param mixed $currency
+     */
+    public function setCurrency($currency)
+    {
+        $this->currency = $currency;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getFiscalYear()
+    {
+        return $this->fiscalYear;
+    }
+
+    /**
+     * @param mixed $fiscalYear
+     */
+    public function setFiscalYear($fiscalYear)
+    {
+        $this->fiscalYear = $fiscalYear;
     }
 
 }

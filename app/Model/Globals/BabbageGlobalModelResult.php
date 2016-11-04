@@ -31,6 +31,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
     {
         SparqlModel::__construct();
         $this->model = new BabbageModel();
+        $this->model->fact_table = "global";
 
         $this->load2();
         $this->name = "global";

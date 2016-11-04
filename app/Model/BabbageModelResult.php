@@ -36,6 +36,7 @@ class BabbageModelResult extends SparqlModel
         parent::__construct();
 
         $this->model = new BabbageModel();
+        $this->model->fact_table = "$name";
         if(!isset($name) || $name =="")return;
         $this->identify($name);
         $this->load($name);
@@ -76,8 +77,8 @@ class BabbageModelResult extends SparqlModel
 
     public function load($name){
         if(Cache::has($name)){
-          //  $this->model =  Cache::get($name);
-         //   return;
+            $this->model =  Cache::get($name);
+            return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
