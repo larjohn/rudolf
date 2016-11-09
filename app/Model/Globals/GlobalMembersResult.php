@@ -131,7 +131,7 @@ class GlobalMembersResult extends SparqlModel
                     $helperTriple = new TriplePattern("?$attName", "a", "qb:DimensionProperty", false); //'hack' for virtuoso
                     $helperTriple->onlyGlobalTriples = true;
                     $sliceSubGraph->add($helperTriple);
-                    $this->subPropertiesAcceleration[$attName][$innerDimension->getDataSet()] = [$attName=>"<{$innerDimension->getUri()}>", "dataSet"=>"<{$innerDimension->getDataSet()}>"];
+                    $this->subPropertiesAcceleration[$attName]["<{$innerDimension->getUri()}>"]/*[$innerDimension->getDataSet()] */= [$attName=>"<{$innerDimension->getUri()}>", /*"dataSet"=>"<{$innerDimension->getDataSet()}>"*/];
                 }
 
                 if ($innerDimension->orig_dimension != $innerDimension->label_attribute) {
@@ -164,7 +164,7 @@ class GlobalMembersResult extends SparqlModel
                     $dataSetSubGraph->add(new TriplePattern("?$attName", "rdfs:subPropertyOf", "<{$actualDimension->getUri()}>", false));
                     $helperTriple = new TriplePattern("?$attName", "a", "qb:DimensionProperty", false); //'hack' for virtuoso
                     $helperTriple->onlyGlobalTriples = true;
-                    $this->subPropertiesAcceleration[$attName][$innerDimension->getDataSet()] = [$attName=>"<{$innerDimension->getUri()}>", "dataSet"=>"<{$innerDimension->getDataSet()}>"];
+                    $this->subPropertiesAcceleration[$attName]["<{$innerDimension->getUri()}>"]/*[$innerDimension->getDataSet()]*/ = [$attName=>"<{$innerDimension->getUri()}>",/* "dataSet"=>"<{$innerDimension->getDataSet()}>"*/];
                     $dataSetSubGraph->add($helperTriple);
 
                 }
@@ -198,7 +198,7 @@ class GlobalMembersResult extends SparqlModel
                     $patterns[$innerDimension->getDataSet()][$actualDimension->getUri()][] = new SubPattern([new TriplePattern("?observation", "?$attName", $bindings[$innerDimension->getDataSet()][$attribute], false), new TriplePattern("?$attName", "rdfs:subPropertyOf", "<{$actualDimension->getUri()}>", false)]);
                     $helperTriple = new TriplePattern("?$attName", "a", "qb:DimensionProperty", false); //'hack' for virtuoso
                     $helperTriple->onlyGlobalTriples = true;
-                    $this->subPropertiesAcceleration[$attName][$innerDimension->getDataSet()] = [$attName=>"<{$innerDimension->getUri()}>", "dataSet"=>"<{$innerDimension->getDataSet()}>"];
+                    $this->subPropertiesAcceleration[$attName]["<{$innerDimension->getUri()}>"]/*[$innerDimension->getDataSet()]*/ = [$attName=>"<{$innerDimension->getUri()}>", /*"dataSet"=>"<{$innerDimension->getDataSet()}>"*/];
                     $patterns[$innerDimension->getDataSet()][$actualDimension->getUri()][] = $helperTriple;
 
                 }
@@ -242,7 +242,7 @@ class GlobalMembersResult extends SparqlModel
 
         /** @var QueryBuilder $subQueryBuilder */
         $queryBuilder = $this->build2($bindings, $patterns, $parentDrilldownBindings);
-        //echo $queryBuilder->format();die;
+      //  echo $queryBuilder->format();die;
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );

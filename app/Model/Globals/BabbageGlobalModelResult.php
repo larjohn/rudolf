@@ -43,7 +43,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
         if (Cache::has("global")) {
            $this->model = Cache::get("global");
-           return;
+          return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
@@ -64,13 +64,14 @@ class BabbageGlobalModelResult extends BabbageModelResult
                 ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in ( qb:MeasureProperty, qb:DimensionProperty, qb:CodedProperty)"))
             ->groupBy('?attribute', "?shortName", "?attachment", "?dataset", "?currency", "?year");;
 
-          //  echo $queryBuilder->format();die;
+        //   echo $queryBuilder->format();die;
         /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
         $propertiesSparqlResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
         /** @var EasyRdf_Sparql_Result $result */
         $propertiesSparqlResult = $this->rdfResultsToArray($propertiesSparqlResult);
+        //dd($propertiesSparqlResult);
         //echo(json_encode($propertiesSparqlResult));die;
 
         foreach ($propertiesSparqlResult as $property) {
@@ -216,6 +217,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
             }
         }
+
+        //dd($this->model->dimensions);
 
         {
             $globalsQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
@@ -369,7 +372,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
             $globalMeasures = array_merge($globalMeasures, $globalMeasuresCurrencyVariants);
 
             //dd($globalDimensions);
-
+//dd($globalDimensions);
             foreach ($globalDimensions as $key => &$globalDimensionGroup) {
 
                 $attachment = $globalDimensionGroup->getAttachment();

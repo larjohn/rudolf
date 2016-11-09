@@ -338,7 +338,7 @@ class FactsResult extends SparqlModel
         }
 
         $queryBuilder
-            ->selectDistinct($bindings)
+            ->select($bindings)
 
         ;
 
