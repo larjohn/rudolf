@@ -46,4 +46,26 @@ class GenericProperty
         $this->uri = $uri;
     }
 
+    /**
+     * @var string[]
+     */
+    protected $labels;
+
+    /**
+     * @return \string[]
+     */
+    public function getLabels(): array
+    {
+        return $this->labels;
+    }
+
+    /**
+     * @param \string[] $labels
+     */
+    public function setLabels(array $labels)
+    {
+        $this->labels = $labels;
+    }
+
+
 }

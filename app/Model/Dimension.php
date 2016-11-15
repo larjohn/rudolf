@@ -22,6 +22,9 @@ class Dimension extends GenericProperty
      */
     public $hierarchy;
 
+
+
+
     /**
      * @var string
      */
@@ -84,6 +87,7 @@ class Dimension extends GenericProperty
     {
         $this->dataSet = $dataSet;
     }
+
 
 
 }

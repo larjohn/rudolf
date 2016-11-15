@@ -42,11 +42,11 @@ class MembersResult extends SparqlModel
 
     private function load($name, $attributeShortName,  $page, $page_size, $order)
     {
-/*
+
         if(Cache::has($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order))){
             $this->data =  Cache::get($name.'/'.$attributeShortName);
             return;
-        }*/
+        }
 
         $model = (new BabbageModelResult($name))->model;
         $this->fields=[];
@@ -73,6 +73,7 @@ class MembersResult extends SparqlModel
             $bindings[$dimension->getUri()] = "?$bindingName";
             break;
         }
+        $dataset = $model->getDataset();
 
 
 
@@ -81,9 +82,14 @@ class MembersResult extends SparqlModel
             new TriplePattern("?slice", "qb:observation", "?observation"),
 
         ], true);
+        $dataSetSubGraph = new SubPattern([
+            new TriplePattern("<$dataset>", "a", "qb:DataSet"),
+
+        ], true);
 
 
         $needsSliceSubGraph = false;
+        $needsDataSetSubGraph = false;
         //dd($selectedDimensions);
         foreach ($selectedDimensions as $dimensionName=>$dimension) {
             $attribute = $dimensionName;
@@ -91,6 +97,10 @@ class MembersResult extends SparqlModel
             if(isset($attachment) && $attachment=="qb:Slice"){
                 $needsSliceSubGraph = true;
                 $sliceSubGraph->add(new TriplePattern("?slice", $attribute, $bindings[$attribute] , false));
+            }
+            elseif(isset($attachment) && $attachment=="qb:DataSet"){
+                $needsDataSetSubGraph = true;
+                $dataSetSubGraph->add(new TriplePattern("<$dataset>", $attribute, $bindings[$attribute] , false));
             }
             else{
                 $patterns [] = new TriplePattern("?observation", $attribute, $bindings[$attribute], false);
@@ -115,8 +125,23 @@ class MembersResult extends SparqlModel
                 //var_dump($dimension->attributes);
               //  var_dump($dimension->key_attribute);
                 if(isset($attachment) && $attachment=="qb:Slice"){
-                    $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->key_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->key_attribute),0,5), true));
-                    $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->label_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->label_attribute),0,5), true));
+                    if($dimension->ref!=$dimension->key_attribute)
+
+                        $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->key_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->key_attribute),0,5), true));
+
+                    if($dimension->ref!=$dimension->label_attribute)
+
+                        $sliceSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->label_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->label_attribute),0,5), true));
+                }
+
+                elseif(isset($attachment) && $attachment=="qb:DataSet"){
+                    if($dimension->ref!=$dimension->key_attribute)
+
+                        $dataSetSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->key_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->key_attribute),0,5), true));
+
+                    if($dimension->ref!=$dimension->label_attribute)
+
+                        $dataSetSubGraph->add(new TriplePattern($bindings[$attribute],$dimension->attributes[$dimension->label_attribute]->getUri(),$bindings[$attribute]."_". substr(md5($dimension->label_attribute),0,5), true));
                 }
                 else{
                     if($dimension->ref!=$dimension->key_attribute)
@@ -135,11 +160,14 @@ class MembersResult extends SparqlModel
             $patterns[] = $sliceSubGraph;
 
         }
-        $dataset = $model->getDataset();
+
+        if($needsDataSetSubGraph){
+            $patterns[] = $dataSetSubGraph;
+
+        }
         //$dsd = $model->getDsd();
         $patterns[] = new TriplePattern('?observation', 'a', 'qb:Observation');
         $patterns[] = new TriplePattern('?observation', 'qb:dataSet', "<$dataset>");
-
 
         $queryBuilder = $this->build($bindings, $patterns );
         $queryBuilderC = $this->buildC($bindings, $patterns );
@@ -151,13 +179,13 @@ class MembersResult extends SparqlModel
         $queryBuilder->limit($page_size);
         $queryBuilder->offset($page* $page_size);
         Log::info($queryBuilder->format());
-
-        //  echo $queryBuilder->format();die;
+       // echo $queryBuilder->format();die;
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
-        //dd($selectedPatterns);
         $results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns);
+        //dd($results);
+
         if($results!=null)
             $this->data = $results;
         else $this->data = [];
@@ -170,39 +198,59 @@ class MembersResult extends SparqlModel
 
     private function build(array $bindings, array $filters){
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
-
+        $innerQueryBuilder = $queryBuilder->newSubquery();
+        $outsiderFilteredLabels=[];
         foreach ($filters as $filter) {
-            if($filter instanceof TriplePattern || ($filter instanceof SubPattern && !$filter->isOptional)){
-                if($filter->isOptional){
-                    $queryBuilder->optional($filter->subject,  self::expand($filter->predicate), $filter->object);
+            if($filter instanceof TriplePattern ){
+
+
+                if ($filter->predicate == "skos:prefLabel") {
+
+                    $outsiderFilteredLabels[] = $filter->object;
+                    $queryBuilder->optional($queryBuilder->newSubgraph()->filter("LANG({$filter->object}) = 'en' || LANG({$filter->object}) = 'el'")->where($filter->subject, self::expand($filter->predicate, $filter->transitivity), $filter->object));
+
+
+                } else {
+                    if (in_array($filter->object, $filters)) $innerSelectedFields[$filter->object] = $filter->object;
+                    $innerQueryBuilder->where($filter->subject, self::expand($filter->predicate, $filter->transitivity), $filter->object);
+
                 }
-                else{
-                    $queryBuilder->where($filter->subject,  self::expand($filter->predicate), $filter->object);
-                }
+
+
             }
             elseif($filter instanceof SubPattern){
-                $subGraph = $queryBuilder->newSubgraph();
 
                 foreach($filter->patterns as $pattern){
 
-                    if($pattern->isOptional){
-                        $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
-                    else{
-                        $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
-                }
+                    if ($pattern->predicate == "skos:prefLabel") {
 
-                $queryBuilder->optional($subGraph);
+                        $outsiderFilteredLabels[] = $pattern->object;
+                        $queryBuilder->optional($queryBuilder->newSubgraph()->filter("LANG({$pattern->object}) = 'en' || LANG({$pattern->object}) = 'el'")->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object));
+
+
+                    } else {
+                        if (in_array($pattern->object, $bindings)) $innerSelectedFields[$pattern->object] = $pattern->object;
+                        $innerQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+
+                    }
+
+                    $innerQueryBuilder->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+
+                }
 
 
             }
         }
 
-        $queryBuilder
-            ->selectDistinct(array_unique($bindings))
+        $innerQueryBuilder
+            ->groupBy(array_unique(array_diff($bindings, $outsiderFilteredLabels)))
+            ->select(array_unique(array_diff($bindings, $outsiderFilteredLabels)))
 
         ;
+
+        $queryBuilder->subquery($innerQueryBuilder);
+        $queryBuilder->select($bindings);
+        $queryBuilder->groupBy($bindings);
 
 
         return $queryBuilder;

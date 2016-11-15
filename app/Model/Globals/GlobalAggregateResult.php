@@ -18,6 +18,7 @@ use App\Model\GenericProperty;
 use App\Model\Measure;
 use App\Model\Sorter;
 use App\Model\Sparql\BindPattern;
+use App\Model\Sparql\FilterPattern;
 use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use App\Model\SparqlModel;
@@ -344,7 +345,7 @@ class GlobalAggregateResult extends AggregateResult
                 $valueAttributeLabel = "uri";
                 $attributes[$innerDimension->getDataSet()][$innerDimension->getUri()][$valueAttributeLabel] = $bindingName;
                 $selectedFilterDimensions[$innerDimension->getDataSet()][$innerDimension->getUri()] = $innerDimension;
-                $filterBindings[$innerDimension->getDataSet()][$innerDimension->getUri()] = "?{$bindingName}__filter";
+                $filterBindings[$innerDimension->getDataSet()][$innerDimension->getUri()] = "?{$bindingName}";
                 $datasetURI = $innerDimension->getDataSet();
                 if (isset($sliceSubGraphs[$datasetURI][$foundDimension->getUri()]) && isset($sliceSubGraphs[$datasetURI][$foundDimension->getUri()][0]))
                     $sliceSubGraph = $sliceSubGraphs[$datasetURI][$foundDimension->getUri()][0];
@@ -595,7 +596,7 @@ class GlobalAggregateResult extends AggregateResult
 
                 /** @var Measure $innerMeasureName */
                 foreach ($measure->getInnerMeasures() as $innerMeasureName => $innerMeasure) {
-                    if($innerMeasure->currency!=$measure->currency) continue;
+                    if ($innerMeasure->currency != $measure->currency) continue;
                     $datasetURI = $innerMeasure->getDataSet();
                     if (!empty($alreadyRestrictedDatasets) && !in_array($innerMeasure->getDataSet(), $alreadyRestrictedDatasets)) continue; ///should not include this dataset, as aggregates have been selected that are specific NOT to this dataset
                     $attribute = $measure->getUri();
@@ -645,7 +646,7 @@ class GlobalAggregateResult extends AggregateResult
 
 
         }
-       // dd($patterns["http://data.openbudgets.eu/resource/dataset/budget-athens-expenditure-2009"]);
+        // dd($patterns["http://data.openbudgets.eu/resource/dataset/budget-athens-expenditure-2009"]);
 
         $mergedAttributes = [];
         foreach ($attributes as $datasetAttributes) {
@@ -661,7 +662,7 @@ class GlobalAggregateResult extends AggregateResult
         /** @var EasyRdf_Sparql_Result $countResult */
         //dd($mergedAttributes);
 
-  //      echo($queryBuilderC->format());die;
+        //echo($queryBuilderC->format());die;
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()
         );
@@ -677,8 +678,10 @@ class GlobalAggregateResult extends AggregateResult
         $summaryResult = $this->sparql->query(
             $queryBuilderS->getSPARQL()
         );
-//dd($summaryResult);
+        //dd($selectedAggregates);
         $summaryResults = $this->rdfResultsToArray3($summaryResult, $mergedAttributes, $model, $selectedAggregates);
+        //dd($summaryResults);
+
         if (!empty($summaryResults)) $this->summary = $summaryResults[0];
         else {
             $this->summary = [];
@@ -702,7 +705,8 @@ class GlobalAggregateResult extends AggregateResult
         }
 //dd($selectedAggregates);
         //echo $queryBuilder->format(); die;
-     //   die;
+        //die;
+        //   die;
         /* $queryBuilder
              ->orderBy("?observation");*/
 
@@ -749,9 +753,15 @@ class GlobalAggregateResult extends AggregateResult
     private function build2(array $aggregateBindings, array $drilldownBindings, array $dimensionPatterns, array $parentDrilldownBindings, array $sorterBindings, array $filterBindings = [], array $filterMap = [])
     {
 
+//dd($dimensionPatterns);
+
         $allSelectedFields = array_unique(array_flatten($drilldownBindings));
         $allFilteredFields = array_unique(array_flatten($filterBindings));
         $allSortedFields = array_unique(array_flatten($sorterBindings));
+
+        $outsiderFilteredLabels = [];
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $langTriplesArray = [];
 
 
         $flatDimensionPatterns = new Collection();
@@ -780,6 +790,7 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
         }
+        //dd($flatDimensionPatterns);
 
         //dd($dimensionPatterns);
 
@@ -789,16 +800,16 @@ class GlobalAggregateResult extends AggregateResult
         //$basicQueryBuilder->where("?dataSet", "http://data.openbudgets.eu/ontology/dsd/attribute/currency", "<http://data.openbudgets.eu/codelist/currency/{$this->currency}>");
 
 
-        $dataSets = array_keys($dimensionPatterns);
-      /*  $rateTuples = [];
-        array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
-            $value = ["dataSet" => "<$dataSet>"];
-            foreach ($this->currencyService->dataSetRates[$dataSet] as $target => $dataSetRate) {
-                $value["rate__{$target}"] = $dataSetRate;
-            }
-            $rateTuples[] = $value;
+        // $dataSets = array_keys($dimensionPatterns);
+        /*  $rateTuples = [];
+          array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
+              $value = ["dataSet" => "<$dataSet>"];
+              foreach ($this->currencyService->dataSetRates[$dataSet] as $target => $dataSetRate) {
+                  $value["rate__{$target}"] = $dataSetRate;
+              }
+              $rateTuples[] = $value;
 
-        });*/
+          });*/
 
 //dd($rateTuples);
         // $basicQueryBuilder->values($rateTuples);
@@ -824,36 +835,56 @@ class GlobalAggregateResult extends AggregateResult
                     });
                     foreach ($dimensionPatternsCollection as $pattern) {
                         if ($pattern instanceof TriplePattern) {
-                            if (in_array($pattern->object, array_keys($parentDrilldownBindings)) || in_array($pattern->object, $aggregateBindings) || in_array($pattern->object, $allSelectedFields) || in_array($pattern->object, $sorterBindings) || in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
+
                             if ($pattern->onlyGlobalTriples) continue;
 
-                            if ($pattern->isOptional) {
-                                $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
-                            } else {
-                                if($pattern->predicate=="skos:prefLabel"){
-                                    $newQuery->filter("LANG({$pattern->object}) = '' || LANGMATCHES(LANG({$pattern->object}), '')");
+
+                            if ($pattern->predicate == "skos:prefLabel") {
+                                if (in_array($pattern->object, $allFilteredFields)) {
+                                    $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 }
+                                $outsiderFilteredLabels[] = $pattern->object;
+                                $langTriplesArray[$pattern->object][$pattern->object] = $pattern;
+                                $langTriplesArray[$pattern->object]["{$pattern->object}__filter"] = new FilterPattern("LANG({$pattern->object}) = 'en' || LANG({$pattern->object}) = ''");
+
+
+                            } else {
+                                if (in_array($pattern->object, array_keys($parentDrilldownBindings)) || in_array($pattern->object, $aggregateBindings) || in_array($pattern->object, $allSelectedFields) || in_array($pattern->object, $sorterBindings) || in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
+                                if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
+
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
                                     $newQuery->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
                                 } else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
+
+
                         } elseif ($pattern instanceof SubPattern) {
 
                             foreach ($pattern->patterns as $subPattern) {
                                 if ($subPattern->onlyGlobalTriples) continue;
-                                if (in_array($subPattern->object, array_keys($parentDrilldownBindings)) || in_array($subPattern->object, $aggregateBindings) || in_array($subPattern->object, $allSelectedFields) || in_array($subPattern->object, $allSortedFields) || in_array($subPattern->object, $allFilteredFields)) $selections[$subPattern->object] = $subPattern->object;
 
 
-                                if ($subPattern->isOptional) {
-                                    $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
-                                } else {
-                                    if($subPattern->predicate=="skos:prefLabel"){
-                                        $newQuery->filter("LANG({$subPattern->object}) = '' || LANGMATCHES(LANG({$subPattern->object} ), '')");
+                                if ($subPattern->predicate == "skos:prefLabel") {
+                                    if (in_array($subPattern->object, $allFilteredFields)) {
+                                        $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                     }
+
+                                    $outsiderFilteredLabels[] = $subPattern->object;
+
+                                    $langTriplesArray[$subPattern->object][$subPattern->object] = $subPattern;
+                                    $langTriplesArray[$subPattern->object]["{$subPattern->object}__filter"] = new FilterPattern("LANG({$subPattern->object}) = 'en' || LANG({$subPattern->object}) = ''");
+
+
+                                } else {
+                                    if (in_array($subPattern->object, array_keys($parentDrilldownBindings)) || in_array($subPattern->object, $aggregateBindings) || in_array($subPattern->object, $allSelectedFields) || in_array($subPattern->object, $allSortedFields) || in_array($subPattern->object, $allFilteredFields)) $selections[$subPattern->object] = $subPattern->object;
+                                    if (in_array($subPattern->object, $allSelectedFields)) $outerSelectedFields[$subPattern->object] = $subPattern->object;
+
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
                                         $newQuery->values($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
                                     } else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+
                                 }
+
                             }
 
                         } else if ($pattern instanceof BindPattern) {
@@ -881,38 +912,53 @@ class GlobalAggregateResult extends AggregateResult
                 foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
                     foreach ($dimensionPatternsCollection as $pattern) {
                         if ($pattern instanceof TriplePattern) {
-                            if ($pattern->isOptional) {
-                                $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
-                            } else {
-                                if (in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes)) continue;
-                                if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
-                                if($pattern->predicate=="skos:prefLabel"){
-                                    $basicQueryBuilder->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
+
+                            if (in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes)) continue;
+                            if ($pattern->predicate == "skos:prefLabel") {
+                                if (in_array($pattern->object, $allFilteredFields)) {
+                                    $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 }
+
+                                $outsiderFilteredLabels[] = $pattern->object;
+                                $langTriplesArray[$pattern->object][$pattern->object] = $pattern;
+                                $langTriplesArray[$pattern->object]["{$pattern->object}__filter"] = new FilterPattern("LANG({$pattern->object}) = 'en' || LANG({$pattern->object}) = ''");
+
+
+                            } else {
+                                if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
                                     $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
                                 } else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
-                                $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
                             }
+
+                            $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
+
                         } elseif ($pattern instanceof SubPattern) {
 
                             foreach ($pattern->patterns as $subPattern) {
                                 if ($subPattern->onlySubGraphTriples) continue;
 
-                                if ($subPattern->isOptional) {
-                                    $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+
+                                if (in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes)) continue;
+                                if ($subPattern->predicate == "skos:prefLabel") {
+                                    if (in_array($subPattern->object, $allFilteredFields)) {
+                                        $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
+                                    }
+
+                                    $outsiderFilteredLabels[] = $subPattern->object;
+                                    $langTriplesArray[$subPattern->object][$subPattern->object] = $subPattern;
+                                    $langTriplesArray[$subPattern->object]["{$subPattern->object}__filter"] = new FilterPattern("LANG({$subPattern->object}) = 'en' || LANG({$subPattern->object}) = ''");
+
+
                                 } else {
                                     if (in_array($subPattern->object, $allSelectedFields)) $outerSelectedFields[$subPattern->object] = $subPattern->object;
-
-                                    if (in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes)) continue;
-                                    if($subPattern->predicate=="skos:prefLabel"){
-                                        $basicQueryBuilder->filter("LANG({$subPattern->object}) = '' || LANGMATCHES(LANG({$subPattern->object} ), '')");
-                                    }
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
                                         $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
                                     } else $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
-                                    $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
                                 }
+
+                                $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
+
                             }
 
                         } else if ($pattern instanceof BindPattern) {
@@ -956,36 +1002,31 @@ class GlobalAggregateResult extends AggregateResult
         }
 
 
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
-
         $innerGraph = $basicQueryBuilder;
+
+        $interMediateQuery = $queryBuilder->newSubquery();
 
 
         $agBindings = [];
+
         foreach ($aggregateBindings as $binding) {
             $agBindings [] = "(SUM($binding) AS {$binding}__)";
         }
         $agBindings[] = "(COUNT(?observation) AS ?count)";
 
-        $drldnBindings = [];
 
-        foreach ($drilldownBindings as $dataset => $bindings) {
-            foreach ($bindings as $binding) {
-                $drldnBindings [] = "{$binding}";
-
-            }
-        }
         //dump(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
         //echo $innerGraph->format();
         $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
-
+        $innerGraph->select(array_unique(array_merge($aggregateBindings, $outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings, ["?observation"])));
+        $innerGraph->groupBy("?observation");
         // dd(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
         if (count($dimensionPatterns) > 0) {
-            $innerGraph
+            $interMediateQuery
                 ->select(array_unique(array_merge($agBindings, $outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings)));
             if (count($drilldownBindings) > 0) {
 
-                $innerGraph->groupBy(array_unique(array_merge($outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings)));
+                $interMediateQuery->groupBy(array_unique(array_merge($outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings)));
             }
 
 
@@ -995,12 +1036,12 @@ class GlobalAggregateResult extends AggregateResult
                $queryBuilder->filterNotExists($queryBuilder->newSubgraph()->where($flatParentBinding . "__", "(skos:similar|^skos:similar)",
                    "?elem_")->filter("str(?elem_) < str($flatParentBinding" . "__)"));
            }*/
-        $outerSelections = [];
-        $outerGroupings = [];
+        $outerSelections = $outsiderFilteredLabels;
+        $outerGroupings = $outsiderFilteredLabels;
         if (count($dimensionPatterns) > 0) {
             foreach ($parentDrilldownBindings as $parentBinding => $childrenBindings) {
                 //    $queryBuilder->where($parentBinding, "(skos:similar|^skos:similar)?", $parentBinding . "__");
-                $innerGraph->orderBy($parentBinding, "ASC");
+                //$innerGraph->orderBy($parentBinding, "ASC");
                 $outerSelections[] = "(" . $parentBinding . " AS {$parentBinding}_)";
                 $outerGroupings[] = $parentBinding . "";
                 //dump($childrenBindings);
@@ -1012,21 +1053,41 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
             foreach ($aggregateBindings as $aggregateBinding) {
-                $outerSelections[] = "(SUM({$aggregateBinding}__) AS {$aggregateBinding})";
+                $outerSelections[] = "(MAX({$aggregateBinding}__) AS {$aggregateBinding})";
 
             }
         }
-        $outerSelections[] = "(SUM(?count) AS ?_count)";
-        $queryBuilder->subquery($innerGraph);
+
+
+        foreach ($langTriplesArray as $group) {
+            $optional = $queryBuilder->newSubgraph();
+
+            foreach ($group as $triple) {
+                if ($triple instanceof FilterPattern) {
+                    $optional->filter($triple->expression);
+
+                } else {
+                    $optional->where($triple->subject, self::expand($triple->predicate, $triple->transitivity), $triple->object);
+                }
+            }
+
+            $queryBuilder->optional($optional);
+
+        }
+
+
+        $outerSelections[] = "?count";
+        $interMediateQuery->subquery($innerGraph);
+        $queryBuilder->subquery($interMediateQuery);
         // dd($outerGroupings);
 
 
         //dd($outerSelections);
 
         if (!empty($outerGroupings))
-            $queryBuilder->groupBy(array_unique(array_merge($outerGroupings, array_flatten($sorterBindings))));
-        $queryBuilder->select($outerSelections);
-        // echo $queryBuilder->format(); die;
+            $queryBuilder->groupBy(array_unique(array_merge($outerGroupings, array_flatten($sorterBindings), ["?count"])));
+        $queryBuilder->select(array_unique($outerSelections));
+        //echo $queryBuilder->format(); die;
 
         return $queryBuilder;
 
@@ -1037,7 +1098,6 @@ class GlobalAggregateResult extends AggregateResult
     {
         //dd($aggregateBindings);
         $allFilteredFields = array_unique(array_flatten($filterBindings));
-
         $flatDimensionPatterns = new Collection();
 
         foreach (new Collection($dimensionPatterns) as $dataSet => $patternsOfDimension) {
@@ -1064,7 +1124,7 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
         $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
-        $dataSets = array_keys($dimensionPatterns);
+        //$dataSets = array_keys($dimensionPatterns);
 
 
         // $basicQueryBuilder->values($rateTuples);
@@ -1085,32 +1145,39 @@ class GlobalAggregateResult extends AggregateResult
                     foreach ($dimensionPatternsCollection as $pattern) {
                         if ($pattern instanceof TriplePattern) {
                             if (in_array($pattern->object, array_keys($parentDrilldownBindings)) || in_array($pattern->object, $aggregateBindings) || in_array($pattern->object, $allFilteredFields)) $selections[$pattern->object] = $pattern->object;
-                            if ($pattern->isOptional) {
-                                if ($pattern->onlyGlobalTriples) continue;
-                                $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
-                            } else {
-                                if($pattern->predicate=="skos:prefLabel"){
-                                    $newQuery->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
+
+                            if ($pattern->predicate == "skos:prefLabel") {
+                                if (in_array($pattern->object, $allFilteredFields)) {
+                                    $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 }
+                                //TODO: take care of filters
+                                // $newQuery->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
+                            } else {
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
                                     $newQuery->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
                                 } else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
+
+
                         } elseif ($pattern instanceof SubPattern) {
 
                             foreach ($pattern->patterns as $subPattern) {
                                 if ($subPattern->onlyGlobalTriples) continue;
                                 if (in_array($subPattern->object, array_keys($parentDrilldownBindings)) || in_array($subPattern->object, $aggregateBindings) || in_array($subPattern->object, $allFilteredFields)) $selections[$subPattern->object] = $subPattern->object;
-                                if ($subPattern->isOptional) {
-                                    $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
-                                } else {
-                                    if($subPattern->predicate=="skos:prefLabel"){
-                                        $newQuery->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
+
+                                if ($subPattern->predicate == "skos:prefLabel") {
+                                    //TODO: filters
+                                    if (in_array($subPattern->object, $allFilteredFields)) {
+                                        $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                     }
+                                    // $newQuery->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
+                                } else {
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
                                         $newQuery->values($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
                                     } else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
+
+
                             }
 
                         } else if ($pattern instanceof BindPattern) {
@@ -1139,35 +1206,43 @@ class GlobalAggregateResult extends AggregateResult
                     foreach ($dimensionPatternsCollection as $pattern) {
                         if ($pattern instanceof TriplePattern) {
 
-                            if ($pattern->isOptional) {
-                                $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
-                            } else {
-                                if (in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes)) continue;
-                                if($pattern->predicate=="skos:prefLabel"){
-                                    $basicQueryBuilder->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
+
+                            if (in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes)) continue;
+                            if ($pattern->predicate == "skos:prefLabel") {
+                                //TODO: filters
+                                if (in_array($pattern->object, $allFilteredFields)) {
+                                    $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 }
+                                // $basicQueryBuilder->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
+
+                            } else {
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
                                     $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
                                 } else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
-                                $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
                             }
+
+                            $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
+
                         } elseif ($pattern instanceof SubPattern) {
 
                             foreach ($pattern->patterns as $subPattern) {
                                 if ($subPattern->onlySubGraphTriples) continue;
 
-                                if ($subPattern->isOptional) {
-                                    $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
-                                } else {
-                                    if (in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes)) continue;
-                                    if($subPattern->predicate=="skos:prefLabel"){
-                                        $basicQueryBuilder->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
+                                if (in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes)) continue;
+                                if ($subPattern->predicate == "skos:prefLabel") {
+                                    //TODO: filters
+                                    if (in_array($subPattern->object, $allFilteredFields)) {
+                                        $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                     }
+                                    //  $basicQueryBuilder->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
+                                } else {
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
                                         $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
                                     } else $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                     $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
                                 }
+
+
                             }
 
                         } else if ($pattern instanceof BindPattern) {
@@ -1208,7 +1283,7 @@ class GlobalAggregateResult extends AggregateResult
         //echo $basicQueryBuilder->format();die;
         $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
         $basicQueryBuilder->where("?observation", "a", "qb:Observation");
-
+        $basicQueryBuilder->groupBy("?observation");
         $basicQueryBuilder->select(array_merge(["?observation"], $aggregateBindings));
 
 
@@ -1267,15 +1342,15 @@ class GlobalAggregateResult extends AggregateResult
         // $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
 
         $dataSets = array_keys($dimensionPatterns);
-/*        $rateTuples = [];
-        array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
-            $value = ["dataSet" => "<$dataSet>"];
-            foreach ($this->currencyService->dataSetRates[$dataSet] as $target => $dataSetRate) {
-                $value["rate__{$target}"] = $dataSetRate;
-            }
-            $rateTuples[] = $value;
+        /*        $rateTuples = [];
+                array_walk($dataSets, function ($dataSet) use (&$rateTuples) {
+                    $value = ["dataSet" => "<$dataSet>"];
+                    foreach ($this->currencyService->dataSetRates[$dataSet] as $target => $dataSetRate) {
+                        $value["rate__{$target}"] = $dataSetRate;
+                    }
+                    $rateTuples[] = $value;
 
-        });*/
+                });*/
 
 
         // $basicQueryBuilder->values($rateTuples);
@@ -1306,8 +1381,8 @@ class GlobalAggregateResult extends AggregateResult
                             if ($pattern->isOptional) {
                                 $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
-                                if($pattern->predicate=="skos:prefLabel"){
-                                    $newQuery->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
+                                if ($pattern->predicate == "skos:prefLabel") {
+                                    // $newQuery->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
                                 }
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
                                     $newQuery->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
@@ -1322,8 +1397,8 @@ class GlobalAggregateResult extends AggregateResult
                                 if ($subPattern->isOptional) {
                                     $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 } else {
-                                    if($subPattern->predicate=="skos:prefLabel"){
-                                        $newQuery->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
+                                    if ($subPattern->predicate == "skos:prefLabel") {
+                                        //   $newQuery->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
                                     }
                                     //dd($this->subPropertiesAcceleration);
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
@@ -1342,7 +1417,7 @@ class GlobalAggregateResult extends AggregateResult
                         }
                     }
                     $newQuery->select($selections);
-                  //  echo $newQuery->format();
+                    //  echo $newQuery->format();
                     $multiPatternGraph[] = $newQuery;
                 }
 
@@ -1357,10 +1432,12 @@ class GlobalAggregateResult extends AggregateResult
                         if ($pattern instanceof TriplePattern) {
 
                             if (in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes)) continue;
+                            //dump($pattern);
+                            if ($pattern->predicate == "skos:prefLabel") {
+                                //  $basicQueryBuilder->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
+                            }
                             if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                if($pattern->predicate=="skos:prefLabel"){
-                                    $basicQueryBuilder->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
-                                }
+
                                 $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
                             } else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
@@ -1374,8 +1451,8 @@ class GlobalAggregateResult extends AggregateResult
                                     $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 } else {
                                     if (in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes)) continue;
-                                    if($subPattern->predicate=="skos:prefLabel"){
-                                        $basicQueryBuilder->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
+                                    if ($subPattern->predicate == "skos:prefLabel") {
+                                        //   $basicQueryBuilder->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
                                     }
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
                                         $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
@@ -1449,7 +1526,7 @@ class GlobalAggregateResult extends AggregateResult
                 ->select(array_merge($agBindings, array_keys($parentDrilldownBindings)), $filterBindings);
 //dd(array_merge($agBindings, array_keys($parentDrilldownBindings)), $filterBindings);
         //dd($dimensionPatterns);
-          //echo $innerGraph->format();die;
+        //echo $innerGraph->format();die;
         // $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
         /*foreach ($flatParentBindings as $flatParentBinding) {
             $midGraph->filterNotExists($midGraph->newSubgraph()->where($flatParentBinding . "__", "(skos:similar|^skos:similar)?",

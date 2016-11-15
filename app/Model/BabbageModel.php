@@ -150,5 +150,25 @@ class BabbageModel
     {
         $this->fiscalYear = $fiscalYear;
     }
+    /**
+     * @var string[]
+     */
+    private $titles;
+
+    /**
+     * @return \string[]
+     */
+    public function getTitles(): array
+    {
+        return $this->titles;
+    }
+
+    /**
+     * @param \string[] $titles
+     */
+    public function setTitles(array $titles)
+    {
+        $this->titles = $titles;
+    }
 
 }

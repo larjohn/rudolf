@@ -42,6 +42,8 @@ class Attribute extends GenericProperty
      */
     private $virtual = false;
 
+    protected $languages = [];
+
     /**
      * @return mixed
      */
@@ -56,6 +58,22 @@ class Attribute extends GenericProperty
     public function setVirtual($virtual)
     {
         $this->virtual = $virtual;
+    }
+
+    /**
+     * @return array
+     */
+    public function getLanguages(): array
+    {
+        return $this->languages;
+    }
+
+    /**
+     * @param array $languages
+     */
+    public function setLanguages(array $languages)
+    {
+        $this->languages = $languages;
     }
 
 }

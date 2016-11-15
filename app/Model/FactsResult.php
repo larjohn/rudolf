@@ -115,6 +115,7 @@ class FactsResult extends SparqlModel
             $fullName = $this->getAttributePathByName($model, $path );
             $this->array_set($filterMap, $fullName, $filter);
         }
+       // dd($filterMap);
         $attributes = [];
         $bindings = [];
         $patterns = [];
@@ -190,7 +191,8 @@ class FactsResult extends SparqlModel
                         $finalSorters[] =  $sorterMap[$attribute][$patternName] ;
 
                     }
-                    if(isset($filterMap[$attribute][$patternName])){
+                    //dd($filterMap);
+                    if(isset($filterMap[$attribute])&&is_array($filterMap[$attribute])&&isset($filterMap[$attribute][$patternName])){
                         $filterMap[$attribute][$patternName]->binding = $bindings[$attribute]."_". substr(md5($patternName),0,5) ;
                         $finalFilters[] = $filterMap[$attribute][$patternName];
 
@@ -258,7 +260,7 @@ class FactsResult extends SparqlModel
             ->orderBy("?observation");
         Log::info($queryBuilder->format());
 
-//echo  $queryBuilder->format();
+//echo  $queryBuilder->format(); die;
 //
      //   dd($bindings);
       //   die;

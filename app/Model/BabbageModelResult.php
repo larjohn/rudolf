@@ -50,15 +50,16 @@ class BabbageModelResult extends SparqlModel
     public function identify($name){
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
-            ->selectDistinct('?dataset', '?dsd',  "(SAMPLE(?_title) AS ?title)")
+            ->selectDistinct('?dataset', '?dsd',   "(GROUP_CONCAT(distinct ?titles; separator='||') AS ?titles)")
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset","qb:structure", "?dsd" )
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
-            ->where("?dataset","<http://purl.org/dc/terms/title>" ,"?_title")
+            ->where("?dataset","<http://purl.org/dc/terms/title>" ,"?title")
+            ->bind("CONCAT(LANG(?title),'=',?title) AS ?titles")
+
             ->filter("?name = '$name'")
         ;
 
-       // echo ($queryBuilder->format());
         /** @var EasyRdf_Sparql_Result $identifyQueryResult */
         $identifyQueryResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
@@ -67,8 +68,9 @@ class BabbageModelResult extends SparqlModel
 //dd($identifyQueryResult);
         //dd($identifyQueryResult);
         $identifyQueryResult = $this->rdfResultsToArray($identifyQueryResult)[0];
+        $this->model->setTitles($this->resolveLabels($identifyQueryResult["titles"]));
         $this->model->setDataset($identifyQueryResult["dataset"]);
-        $this->model->setTitle($identifyQueryResult["title"]);
+        $this->model->setTitle($this->preferLabel($this->model->getTitles()));
         $this->model->setDsd($identifyQueryResult["dsd"]);
     }
 
@@ -77,13 +79,13 @@ class BabbageModelResult extends SparqlModel
 
     public function load($name){
         if(Cache::has($name)){
-            $this->model =  Cache::get($name);
-            return;
+         //   $this->model =  Cache::get($name);
+          //  return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
         $queryBuilder
-            ->selectDistinct('?attribute', '?label', '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName")
+            ->selectDistinct('?attribute', "(GROUP_CONCAT(distinct ?labels; separator='||') AS ?labels)", '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "?dataset")
             ->where("?dsd", 'qb:component', '?component')
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset","qb:structure", "?dsd" )
@@ -92,13 +94,13 @@ class BabbageModelResult extends SparqlModel
             ->optional('?attribute', 'rdfs:label', '?label')
             ->bind("REPLACE(str(?attribute), '^.*(#|/)', \"\") AS ?shortName")
             ->optional('?component', 'qb:componentAttachment', '?attachment')
-            ->filter('LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")')
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
             ->filter("?name = '$name'")
+            ->bind("CONCAT(LANG(?label),'=',?label) AS ?labels")
             ->optional($queryBuilder->newSubgraph()
                 ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"))
 /*            ->filterNotExists('?component', 'qb:componentAttachment', 'qb:DataSet')*/
-            ->groupBy('?attribute', '?label',  "?shortName", "?attachment");
+            ->groupBy('?attribute',   "?shortName", "?attachment", "?dataset");
         ;
 
         //echo($queryBuilder->format());die;
@@ -110,7 +112,6 @@ class BabbageModelResult extends SparqlModel
         Log::info($queryBuilder->format());
 
         $propertiesSparqlResult = $this->rdfResultsToArray($propertiesSparqlResult);
-        //dd($propertiesSparqlResult);
 
         foreach ($propertiesSparqlResult as $property) {
             $newMeasure = new Measure();
@@ -127,34 +128,30 @@ class BabbageModelResult extends SparqlModel
                 $subSubQuery
                     ->where('?observation', 'a', 'qb:Observation')
                     ->where("?slice", "qb:observation", "?observation")
+                    ->where("?observation", "qb:dataSet", "<{$property['dataset']}>")
                     ->where("?slice",  "<$attribute>", "?value");
             }
             elseif(isset($property["attachment"]) &&  $property["attachment"]=="qb:DataSet"){
-                $subSubQuery->where("?dataset", "a", "qb:DataSet")
-                        ->where("?dataset", "<$attribute>", "?value");
+                $subSubQuery
+                    ->where("<{$property['dataset']}>", "<$attribute>", "?value");
                 
             }
             else{
-                $subSubQuery->where("?observation", "<$attribute>" ,"?value")->where('?observation', 'a', 'qb:Observation')
+                $subSubQuery
+                    ->where("?observation", "qb:dataSet", "<{$property['dataset']}>")
+                    ->where("?observation", "<$attribute>" ,"?value")->where('?observation', 'a', 'qb:Observation')
                 ;
             }
 
             if($property["propertyType"]=="qb:MeasureProperty"){
 
-                $queryBuilder->selectDistinct("?dataType")
-                    ->bind("datatype(?value) AS ?dataType");
-
-                /** @var EasyRdf_Sparql_Result $subResult */
-                $subResult = $this->sparql->query(
-                    $queryBuilder->getSPARQL()
-                );
-                /** @var EasyRdf_Sparql_Result $result */
 
                 $newMeasure->setUri($attribute);
 
                 $newMeasure->ref = $property["shortName"];
                 $newMeasure->column = $property["shortName"];// $attribute;
-                $newMeasure->label = $property["label"];
+                $newMeasure->setLabels($this->resolveLabels($property["labels"]));
+                $newMeasure->label = $this->preferLabel($newMeasure->getLabels());
                 $newMeasure->orig_measure = $property["shortName"];// $attribute;
                 $this->model->measures[$property["shortName"]] = $newMeasure;
 
@@ -174,14 +171,13 @@ class BabbageModelResult extends SparqlModel
             else{
                 $subQuery->where("?value", "?extensionProperty", "?extension");
                 $subQuery->subquery($subSubQuery);
-                $subQuery->select("?extensionProperty", "?extension");
-                $queryBuilder->select("?extensionProperty", "?shortName", "?dataType", "?label")
+                $subQuery->selectDistinct("?extensionProperty", "?extension", "?attLang", "?dataType");
+                $subQuery->bind("datatype (?extension) AS ?dataType")->bind("LANG(?extension) AS ?attLang");
+                $queryBuilder->selectDistinct("?extensionProperty", "?shortName", "?dataType", "?label", "(GROUP_CONCAT(distinct ?attLang  ; separator = \"|\") AS ?attLang)")
                     ->subquery($subQuery)
                     ->where("?extensionProperty", "rdfs:label", "?label")
-                    ->filter('LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")')
-                    ->bind("datatype(?extension) AS ?dataType")
                     ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
-                //echo($queryBuilder->format());
+               // echo($queryBuilder->format());
 
                 $subResult = $this->sparql->query(
                     $queryBuilder->getSPARQL()
@@ -192,7 +188,9 @@ class BabbageModelResult extends SparqlModel
                // var_dump($property);
 
                 $newDimension = new Dimension();
-                $newDimension->label =  $property["label"];
+                $newDimension->setLabels($this->resolveLabels($property["labels"]));
+
+                $newDimension->label =  $this->preferLabel($newDimension->getLabels());
                 $newDimension->cardinality_class = "";// $this->getCardinality($property["cardinality"]);
                 $newDimension->ref= $property["shortName"];
                 $newDimension->orig_dimension= $property["shortName"];
@@ -224,6 +222,7 @@ class BabbageModelResult extends SparqlModel
                     $newAttribute->setUri($subResult["extensionProperty"]);
                     $newAttribute->label = $subResult["label"];
                     $newAttribute->orig_attribute = /*$property["shortName"].".".*/$subResult["shortName"];
+                    $newAttribute->setLanguages( explode("|", $subResult["attLang"]));
 
                     $newDimension->attributes[$subResult["shortName"]] = $newAttribute;
 
@@ -236,7 +235,7 @@ class BabbageModelResult extends SparqlModel
                     $selfAttribute->ref = $property["shortName"].".".$property["shortName"];
                     $selfAttribute->column = $attribute;
                     $selfAttribute->datatype = isset($property["dataType"])? $this->flatten_data_type($property["dataType"]):"string";
-                    $selfAttribute->label = $property["label"];
+                    $selfAttribute->label = $newDimension->label;
                     $selfAttribute->orig_attribute =  /*$property["shortName"].".".*/$property["shortName"];
                     $selfAttribute->setUri($attribute);
                     $newDimension->attributes[$property["shortName"]] = $selfAttribute;
@@ -301,6 +300,8 @@ class BabbageModelResult extends SparqlModel
             }
         }
 
+      //  dd($this->model);
+
 
 
 
@@ -336,6 +337,22 @@ class BabbageModelResult extends SparqlModel
             return "tiny";
 
 
+    }
+
+    public function resolveLabels($concat){
+
+        $re = '/(\w{1,6})=([[:punct:]\w\s]*)(\|\||$)/uU';
+        $matches = [];
+        preg_match_all($re, $concat, $matches);
+        $dictionary = array_combine($matches[1], $matches[2]);
+        return $dictionary;
+
+    }
+
+    public function preferLabel($labels){
+        if(isset($labels["en"]))
+            return $labels["en"];
+        else return $labels["el"];
     }
 
     protected function convertCurrency($value)
