@@ -14,22 +14,22 @@ class BabbageModel
     /**
      * @var Aggregate[]
      */
-    public $aggregates;
+    public $aggregates = [];
 
     /**
      * @var Dimension[]
      */
-    public $dimensions;
+    public $dimensions = [];
 
     /**
      * @var Measure[]
      */
-    public $measures;
+    public $measures = [];
 
     /**
      * @var Hierarchy[]
      */
-    public $hierarchies;
+    public $hierarchies = [];
 
     /**
      * @var string

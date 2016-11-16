@@ -141,7 +141,7 @@ class SparqlModel
     private $nameCache = [];
 
 
-    protected function rdfResultsToArray3(EasyRdf_Sparql_Result $result, array $attributes, BabbageModel $model, array $selectedFields)
+    protected function rdfResultsToArray3(EasyRdf_Sparql_Result $result, array $attributes, BabbageModel $model, array $selectedFields, $forceCompleteness=false)
     {
 
         $results = [];
@@ -198,7 +198,7 @@ class SparqlModel
                         $alternativeBinding = $attributes[$selectedFieldName]["uri"];
                         $altName = $this->getAttributeRef($model, [$selectedFieldName, $selectedFieldName]);
                         $alternativeBinding2 = $attributes[$selectedFieldName]["uri"].'_';
-                        if(isset($altName) && (isset($alternativeBinding)||isset($alternativeBinding2))){
+                        if($forceCompleteness && isset($altName) && (isset($alternativeBinding)||isset($alternativeBinding2))){
                             if(is_array($altName)){
                                 foreach ($altName as $item) {
                                     if(isset($row->$alternativeBinding))
@@ -216,15 +216,7 @@ class SparqlModel
 
                             }
                         }
-                      //  dd($altName);
-                        /*if(isset($alternativeBinding)&&isset($row->$alternativeBinding)){
-                            $altName =  $this->getAttributeRef($model, [$selectedFieldName, $selectedFieldName]);
-                           $added[$altName] = ($row->$alternativeBinding->dumpValue('text'));
-                        }
-                        if(isset($alternativeBinding2)&&isset($row->$alternativeBinding2)){
-                            $altName =  $this->getAttributeRef($model, [$selectedFieldName, $selectedFieldName]);
-                            $added[$altName] = ($row->$alternativeBinding2->dumpValue('text'));
-                        }*/
+
                         if(!isset($attributes[$selectedFieldName][$subPropertyName])){
                            $val =($row->$alternativeBinding->dumpValue('text'));
                         }

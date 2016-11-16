@@ -33,205 +33,54 @@ class SearchResult extends SparqlModel
 
         if(Cache::has("search")){
             $this->packages = Cache::get("search");
-            return;
+           return;
         }
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
-            ->select('?attribute', '(MAX(?_label) AS ?label)', "(SAMPLE(?_title) AS ?title)", '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "(MAX(?_datasetName) AS ?datasetName)", "?dataset", "(SAMPLE(?_datasetLabel) AS ?datasetLabel)", "?currency", "?year"/*, "(count(distinct ?value) AS ?cardinality)"*/)
-            ->where("?dsd", 'qb:component', '?component')
+            ->select("?datasetName", "?dataset"/*, "(count(distinct ?value) AS ?cardinality)"*/)
+
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset", "qb:structure", "?dsd")
-            ->optional("?dataset", "<http://data.openbudgets.eu/ontology/dsd/attribute/currency>", "?currency")
-            ->optional("?dataset", "rdfs:label", "?_datasetLabel")
-            ->where('?component', '?componentProperty', '?attribute')
-            ->where('?componentProperty', 'rdfs:subPropertyOf', 'qb:componentProperty')
-            ->optional('?attribute', 'rdfs:label', '?_label')
-            ->bind("REPLACE(str(?attribute), '^.*(#|/)', \"\") AS ?shortName")
-            ->optional('?component', 'qb:componentAttachment', '?attachment')
-            ->optional("?dataset", "<http://data.openbudgets.eu/ontology/dsd/dimension/fiscalYear>", "?year")
-            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?_datasetName")
-            ->where("?dataset","<http://purl.org/dc/terms/title>" ,"?_title")
-            ->optional($queryBuilder->newSubgraph()
-                ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in ( qb:MeasureProperty, qb:DimensionProperty, qb:CodedProperty)"))
-            ->groupBy('?attribute', "?shortName", "?attachment", "?dataset", "?currency", "?year")        ;
-       // echo($queryBuilder->format());die;
-        /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
-        $propertiesSparqlResult = $this->sparql->query(
+            ->where("?dataset","<http://purl.org/dc/terms/title>" ,"?title")
+
+            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?datasetName")
+            ->groupBy("?datasetName", "?dataset")
+            ;
+
+        $dataSetsResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
 
 
         /** @var EasyRdf_Sparql_Result $result */
 
-        $propertiesSparqlResult = $this->rdfResultsToArray($propertiesSparqlResult);
+        $dataSetsResult = $this->rdfResultsToArray($dataSetsResult);
         //dd($propertiesSparqlResult);
         $packages = [];
-        foreach ($propertiesSparqlResult as $property) {
-            if(!isset($property["attribute"])||!isset($property["propertyType"]))continue;
 
-            if(!isset($packages[$property["dataset"]])){
-                $packages[$property["dataset"]] = new BabbageModelResult("");
-                $packages[$property["dataset"]]->id = preg_replace("/^.*(#|\/)/", "", $property["dataset"])."__" . substr(md5($property["dataset"]),0,5) ;
-                $packages[$property["dataset"]]->name = preg_replace("/^.*(#|\/)/", "", $property["dataset"])."__" . substr(md5($property["dataset"]),0,5) ;
-                $packages[$property["dataset"]]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$property["title"]];
-            }
-            $attribute = $property["attribute"];
-            $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
-            $subQuery = $queryBuilder->newSubquery();
-            $subSubQuery = $subQuery->newSubquery();
-            $subSubQuery->where('?observation', 'a', 'qb:Observation');
-            $subSubQuery->select("?value");
-            $subSubQuery->limit(1);
-
-            if(isset($property["attachment"]) &&  $property["attachment"]=="qb:Slice"){
-                $subSubQuery
-                    ->where("?slice", "qb:observation", "?observation")
-                    ->where("?slice",  "<$attribute>", "?value");
-            }
-            else{
-                $subSubQuery->where("?observation", "<$attribute>" ,"?value");
-            }
-
-            if($property["propertyType"]=="qb:MeasureProperty"){
-                if(Cache::has($property["dataset"]."/".$property["shortName"])){
-                    $packages[$property["dataset"]]->model->dimensions[$property["shortName"]] = Cache::get($property["dataset"]."/".$property["shortName"]);
-
-                }
-                else{
-                    $newMeasure = new Measure();
-
-                    $queryBuilder->selectDistinct("?dataType")
-                        ->bind("datatype(?value) AS ?dataType");
-
-                    /** @var EasyRdf_Sparql_Result $subResult */
-                    $subResult = $this->sparql->query(
-                        $queryBuilder->getSPARQL()
-                    );
-                    /** @var EasyRdf_Sparql_Result $result */
-                    Log::info($subSubQuery->format());
-
-                    $subResults = $this->rdfResultsToArray($subResult);
-                    $newMeasure->setUri($attribute);
-
-                    $newMeasure->ref = $property["shortName"];
-                    $newMeasure->column = $property["shortName"];// $attribute;
-                    $newMeasure->label = isset($property["label"])?$property["label"]:$property["shortName"];
-                    $newMeasure->orig_measure = $property["shortName"];;// $attribute;
-                    $packages[$property["dataset"]]->model->measures[$property["shortName"]] = $newMeasure;
-
-                    foreach (Aggregate::$functions as $function) {
-                        $newAggregate = new Aggregate();
-                        $newAggregate->label = $newMeasure->ref . ' ' . $function;
-                        $newAggregate->ref = $newMeasure->ref.'.'.$function;
-                        $newAggregate->measure = $newMeasure->ref;
-                        $newAggregate->function = $function;
-                        $packages[$property["dataset"]]->model->aggregates[$newAggregate->ref] = $newAggregate;
-
-                    }
-
-
-                    Cache::forever($property["dataset"]."/".$property["shortName"], $newMeasure);
-
-                }
-
-            }
-            else{
-
-                if(Cache::has($property["dataset"]."/".$property["shortName"])){
-                    $packages[$property["dataset"]]->model->dimensions[$property["shortName"]] = Cache::get($property["dataset"]."/".$property["shortName"]);
-                }
-                else{
-                    $subQuery->where("?value", "?extensionProperty", "?extension");
-                    $subQuery->subquery($subSubQuery);
-                    $subQuery->select("?extensionProperty", "?extension");
-                    $queryBuilder->select("?extensionProperty", "?shortName", "?dataType", "?label")
-                        ->subquery($subQuery)
-                        ->where("?extensionProperty", "rdfs:label", "?label")
-                        ->bind("datatype(?extension) AS ?dataType")
-                        ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
-
-                    $subResult = $this->sparql->query(
-                        $queryBuilder->getSPARQL()
-                    );
-                    $subResults = $this->rdfResultsToArray($subResult);
-                    // var_dump($property);
-                    //echo($queryBuilder->format());
-
-                    $newDimension = new Dimension();
-                    $newDimension->label =  isset($property["label"])?$property["label"]:$property["shortName"];
-                    //$newDimension->cardinality_class = $this->getCardinality($property["cardinality"]);
-                    $newDimension->ref= $property["shortName"];
-                    $newDimension->orig_dimension= $property["shortName"];
-                    $newDimension->setUri($attribute);
-                    if(isset($property["attachment"]))
-                        $newDimension->setAttachment($property["attachment"]);
+        foreach ($dataSetsResult as $dataSetResult) {
+            $dataSetName = $dataSetResult["datasetName"];
+            $datasetURI = $dataSetResult["dataset"];
+            $model = new BabbageModelResult($dataSetName);
+            $packages[$datasetURI] = $model;
+            $packages[$datasetURI]->id = $dataSetName ;
+            $packages[$datasetURI]->name = $dataSetName;
+            $packages[$datasetURI]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$model->getModel()->getTitle()];
 
 
 
-                    foreach ($subResults as $subResult) {
-                        // dd($subResults);
-                        // if(!isset($subResult["dataType"]))continue;
 
-                        $newAttribute = new Attribute();
-                        if($subResult["extensionProperty"] == "skos:prefLabel"){
-                            $newDimension->label_ref =  $property["shortName"].".".$subResult["shortName"];
-                            $newDimension->label_attribute = $subResult["shortName"];
-
-                        }
-                        if($subResult["extensionProperty"] == "skos:notation"){
-                            $newDimension->key_ref =  $property["shortName"].".".$subResult["shortName"];
-                            $newDimension->key_attribute = $subResult["shortName"];
-
-                        }
-
-                        $newAttribute->ref = $property["shortName"].".".$subResult["shortName"];
-                        $newAttribute->column = $subResult["extensionProperty"];
-                        $newAttribute->datatype = isset($subResult["dataType"])?$this->flatten_data_type($subResult["dataType"]):"string";
-                        $newAttribute->setUri($subResult["extensionProperty"]);
-                        $newAttribute->label = $subResult["label"];
-                        $newAttribute->orig_attribute = /*$property["shortName"].".".*/$subResult["shortName"];
-
-                        $newDimension->attributes[$subResult["shortName"]] = $newAttribute;
-
-
-                    }
-                    if(!isset($newDimension->label_ref) || !isset($newDimension->key_ref)){
-
-                        $selfAttribute = new Attribute();
-
-                        $selfAttribute->ref = $property["shortName"].".".$property["shortName"];
-                        $selfAttribute->column = $attribute;
-                        $selfAttribute->datatype = isset($property["dataType"])? $this->flatten_data_type($property["dataType"]):"string";
-                        $selfAttribute->label = isset($property["label"])?$property["label"]:$property["shortName"];
-                        $selfAttribute->orig_attribute =  /*$property["shortName"].".".*/$property["shortName"];
-                        $selfAttribute->setUri($attribute);
-                        $newDimension->attributes[$property["shortName"]] = $selfAttribute;
-
-                    }
-                    if(!isset($newDimension->label_ref)){
-                        $newDimension->label_ref = $property["shortName"].".".$property["shortName"];
-                        $newDimension->label_attribute = $property["shortName"];
-                    }
-
-                    if(!isset($newDimension->key_ref)){
-                        $newDimension->key_ref = $property["shortName"].".".$property["shortName"];
-                        $newDimension->key_attribute = $property["shortName"];
-                    }
-
-                    $packages[$property["dataset"]]->model->dimensions[$property["shortName"]] = $newDimension;
-                    Cache::forever($property["dataset"]."/".$property["shortName"], $newDimension);
-                }
-
-
-                //dd($newDimension);
-
-            }
-
-
+            //dd($dataSetResult["datasetName"]);
         }
 
+
+
+
+
         $this->packages = array_values($packages);
+       // dd($this->packages);
+
         foreach ($this->packages as $packageName=>$package) {
             foreach ($package->model->dimensions as $dimension) {
                 $newHierarchy = new Hierarchy();

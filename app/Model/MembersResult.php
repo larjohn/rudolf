@@ -49,12 +49,10 @@ class MembersResult extends SparqlModel
         }
 
         $model = (new BabbageModelResult($name))->model;
-        $this->fields=[];
         //($model->dimensions[$dimensionShortName]);
         $dimensionShortName = explode(".",$attributeShortName )[0];
-        foreach ($model->dimensions[$dimensionShortName]->attributes as $att){
-            $this->fields[]=$att->ref;
-        }
+        $this->fields = [$model->dimensions[$dimensionShortName]->key_ref, $model->dimensions[$dimensionShortName]->label_ref];
+
         // return $facts;
         $dimensions = $model->dimensions;
 
@@ -183,17 +181,15 @@ class MembersResult extends SparqlModel
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
-        $results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns);
+        $results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns, true);
         //dd($results);
 
         if($results!=null)
             $this->data = $results;
         else $this->data = [];
 
-       /* Cache::forget($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order));
-        Cache::add($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order), $this->data, 100);*/
-    }/* Cache::forget($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order));
-        Cache::add($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order), $this->data, 100);*/
+
+    }
 
 
     private function build(array $bindings, array $filters){
@@ -258,39 +254,66 @@ class MembersResult extends SparqlModel
     }
 
   private function buildC(array $bindings, array $filters){
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
-
-        foreach ($filters as $filter) {
-            if($filter instanceof TriplePattern || ($filter instanceof SubPattern && !$filter->isOptional)){
-                if($filter->isOptional){
-                    $queryBuilder->optional($filter->subject,  self::expand($filter->predicate), $filter->object);
-                }
-                else{
-                    $queryBuilder->where($filter->subject,  self::expand($filter->predicate), $filter->object);
-                }
-            }
-            elseif($filter instanceof SubPattern){
-                $subGraph = $queryBuilder->newSubgraph();
-
-                foreach($filter->patterns as $pattern){
-
-                    if($pattern->isOptional){
-                        $subGraph->optional($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
-                    else{
-                        $subGraph->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
-                    }
-                }
-
-                $queryBuilder->optional($subGraph);
 
 
-            }
-        }
-        $queryBuilder
-            ->select("(count  (*) AS ?count)")
 
-        ;
+      $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+      $innerQueryBuilder = $queryBuilder->newSubquery();
+      $outsiderFilteredLabels=[];
+      foreach ($filters as $filter) {
+          if($filter instanceof TriplePattern ){
+
+
+              if ($filter->predicate == "skos:prefLabel") {
+
+                  $outsiderFilteredLabels[] = $filter->object;
+                  $queryBuilder->optional($queryBuilder->newSubgraph()->filter("LANG({$filter->object}) = 'en' || LANG({$filter->object}) = 'el'")->where($filter->subject, self::expand($filter->predicate, $filter->transitivity), $filter->object));
+
+
+              } else {
+                  if (in_array($filter->object, $filters)) $innerSelectedFields[$filter->object] = $filter->object;
+                  $innerQueryBuilder->where($filter->subject, self::expand($filter->predicate, $filter->transitivity), $filter->object);
+
+              }
+
+
+          }
+          elseif($filter instanceof SubPattern){
+
+              foreach($filter->patterns as $pattern){
+
+                  if ($pattern->predicate == "skos:prefLabel") {
+
+                      $outsiderFilteredLabels[] = $pattern->object;
+                      $queryBuilder->optional($queryBuilder->newSubgraph()->filter("LANG({$pattern->object}) = 'en' || LANG({$pattern->object}) = 'el'")->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object));
+
+
+                  } else {
+                      if (in_array($pattern->object, $bindings)) $innerSelectedFields[$pattern->object] = $pattern->object;
+                      $innerQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+
+                  }
+
+                  $innerQueryBuilder->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+
+              }
+
+
+          }
+      }
+      $basicBindings = array_diff($bindings, $outsiderFilteredLabels);
+
+      $innerQueryBuilder
+          ->groupBy($basicBindings)
+          ->select($basicBindings)
+
+      ;
+
+
+      $queryBuilder->subquery($innerQueryBuilder);
+      $queryBuilder->select(array_map(function ($item){ return "(COUNT (distinct $item) AS ?count)";}, $basicBindings));
+
+
 
 
         return $queryBuilder;
