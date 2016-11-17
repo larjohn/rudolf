@@ -143,7 +143,6 @@ class SparqlModel
 
     protected function rdfResultsToArray3(EasyRdf_Sparql_Result $result, array $attributes, BabbageModel $model, array $selectedFields, $forceCompleteness=false)
     {
-
         $results = [];
         $actualFields = $result->getFields();
         foreach ($result as $row) {
@@ -192,30 +191,31 @@ class SparqlModel
 
                 else{
                    // dump($actualFields);
+                    $alternativeBinding = $attributes[$selectedFieldName]["uri"];
 
-                    foreach ($selectedField as $subPropertyName=>$subProperty){
-                        $finalName = $this->getAttributeRef($model, [$selectedFieldName, $subPropertyName]);
-                        $alternativeBinding = $attributes[$selectedFieldName]["uri"];
-                        $altName = $this->getAttributeRef($model, [$selectedFieldName, $selectedFieldName]);
-                        $alternativeBinding2 = $attributes[$selectedFieldName]["uri"].'_';
-                        if($forceCompleteness && isset($altName) && (isset($alternativeBinding)||isset($alternativeBinding2))){
-                            if(is_array($altName)){
-                                foreach ($altName as $item) {
-                                    if(isset($row->$alternativeBinding))
-                                    $added[$item] = $row->$alternativeBinding->dumpValue('text');
-                                    if(isset($row->$alternativeBinding2))
-                                    $added[$item] = $row->$alternativeBinding2->dumpValue('text');
-
-                                }
-                            }
-                            else{
+                    $altName = $this->getAttributeRef($model, [$selectedFieldName, $selectedFieldName]);
+                    $alternativeBinding2 = $attributes[$selectedFieldName]["uri"].'_';
+                    if($forceCompleteness && isset($altName) && (isset($alternativeBinding)||isset($alternativeBinding2))){
+                        if(is_array($altName)){
+                            foreach ($altName as $item) {
                                 if(isset($row->$alternativeBinding))
-                                    $added[$altName] = $row->$alternativeBinding->dumpValue('text');
+                                    $added[$item] = $row->$alternativeBinding->dumpValue('text');
                                 if(isset($row->$alternativeBinding2))
-                                    $added[$altName] = $row->$alternativeBinding2->dumpValue('text');
+                                    $added[$item] = $row->$alternativeBinding2->dumpValue('text');
 
                             }
                         }
+                        else{
+                            if(isset($row->$alternativeBinding))
+                                $added[$altName] = $row->$alternativeBinding->dumpValue('text');
+                            if(isset($row->$alternativeBinding2))
+                                $added[$altName] = $row->$alternativeBinding2->dumpValue('text');
+
+                        }
+                    }
+                    foreach ($selectedField as $subPropertyName=>$subProperty){
+                        $finalName = $this->getAttributeRef($model, [$selectedFieldName, $subPropertyName]);
+
 
                         if(!isset($attributes[$selectedFieldName][$subPropertyName])){
                            $val =($row->$alternativeBinding->dumpValue('text'));
@@ -230,7 +230,6 @@ class SparqlModel
                             }
                             else
                                 $value = $row->$selectedBinding;
-
                             if ($value instanceof EasyRdf_Literal ) {
                                 /** @var EasyRdf_Literal $value */
                                 $val  = $value->getValue();
@@ -246,8 +245,8 @@ class SparqlModel
                             }
 
                         }
-
                         $added[$finalName] = $val;
+
 
                     }
                 }
@@ -333,9 +332,16 @@ class SparqlModel
     private function getAttributeRef(BabbageModel $model, array $path){
 
         if(isset($this->nameCache[implode(".",$path)])) return $this->nameCache[implode(".",$path)];
+       // dump($path);
         foreach ($model->dimensions as $dimensionName => $dimension){
             if($path[0]==$dimension->getUri()){
+
                 if(count($path)>1){
+                    if($path[0]==$path[1]) {
+                        $this->nameCache[implode(".",$path)] =[$dimension->label_ref, $dimension->key_ref];
+
+                        return [$dimension->label_ref, $dimension->key_ref];
+                    }
                     foreach ($dimension->attributes as $attribute){
                         if($attribute->getUri()== $path[1]){
                             $this->nameCache[implode(".",$path)] = $attribute->ref;
@@ -405,6 +411,30 @@ class SparqlModel
 
         return null;
 
+    }
+
+    protected $bindingsToLanguages = [];
+
+    public function buildLanguageFilterExpression($binding){
+        if(!isset($this->bindingsToLanguages[$binding]))return "true";
+        $language = $this->resolveLanguages($this->bindingsToLanguages[$binding]);
+        return "LANG({$binding}) = '$language' || LANG({$binding}) = ''";
+    }
+
+    public function resolveLanguages($availableLanguages){
+        $preferredLanguages = config("sparql.languagesOrder", ["en"]);
+        $selectedLanguage = "en";
+            foreach ($preferredLanguages as $preferredLanguage) {
+                foreach ($availableLanguages as $availableLanguage){
+                    if($preferredLanguage==$availableLanguage){
+                    $selectedLanguage = $preferredLanguage;
+                    break 2;
+                }
+
+            }
+        }
+
+        return $selectedLanguage;
     }
 
 }

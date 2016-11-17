@@ -760,7 +760,7 @@ class GlobalAggregateResult extends AggregateResult
         $allSortedFields = array_unique(array_flatten($sorterBindings));
 
         $outsiderFilteredLabels = [];
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         $langTriplesArray = [];
 
 
@@ -794,7 +794,7 @@ class GlobalAggregateResult extends AggregateResult
 
         //dd($dimensionPatterns);
 
-        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
         $basicQueryBuilder->where("?observation", "a", "qb:Observation");
         //$basicQueryBuilder->where("?dataSet", "http://data.openbudgets.eu/ontology/dsd/attribute/currency", "<http://data.openbudgets.eu/codelist/currency/{$this->currency}>");
@@ -977,11 +977,11 @@ class GlobalAggregateResult extends AggregateResult
 
         /** @var FilterDefinition $filter */
         foreach ($filterCollection as $filter) {
-            if (!$filter->isCardinal) {
+            if (!$filter->isCardinal && !URL::isValidUrl($filter->value)) {
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
 
-                $basicQueryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+                $this->doFilter($basicQueryBuilder, $filter->binding, $filter->value);
             } else {
 
                 $values = [];
@@ -1123,7 +1123,7 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
         }
-        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         //$dataSets = array_keys($dimensionPatterns);
 
 
@@ -1258,11 +1258,11 @@ class GlobalAggregateResult extends AggregateResult
             return json_encode($item);
         });
         foreach ($filterCollection as $filter) {
-            if (!$filter->isCardinal) {
+            if (!$filter->isCardinal && !URL::isValidUrl($filter->value)) {
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
 
-                $basicQueryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+                $this->doFilter($basicQueryBuilder, $filter->binding, $filter->value);
             } else {
 
                 $values = [];
@@ -1290,7 +1290,7 @@ class GlobalAggregateResult extends AggregateResult
         //
         //  dump($dimensionPatterns);
         //  dump($aggregateBindings);
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         $datasetQueries = [];
         $queryBuilder->subquery($basicQueryBuilder);
 
@@ -1338,7 +1338,7 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
         //dd($flatDimensionPatterns);
-        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $basicQueryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         // $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
 
         $dataSets = array_keys($dimensionPatterns);
@@ -1482,11 +1482,11 @@ class GlobalAggregateResult extends AggregateResult
         });
 //dd($filterCollection);
         foreach ($filterCollection as $filter) {
-            if (!$filter->isCardinal) {
+            if (!$filter->isCardinal && !URL::isValidUrl($filter->value)) {
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
+                $this->doFilter($basicQueryBuilder, $filter->binding, $filter->value);
 
-                $basicQueryBuilder->filter("str({$filter->binding})='{$filter->value}'");
             } else {
 
                 $values = [];
@@ -1505,7 +1505,7 @@ class GlobalAggregateResult extends AggregateResult
             }
 
         }
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         $midGraph = $queryBuilder->newSubquery();
 
         $innerGraph = $basicQueryBuilder;

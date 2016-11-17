@@ -212,7 +212,9 @@ class AggregateResult extends SparqlModel
             if ($dimension instanceof Dimension) {
                 $dimensionPatterns = &$selectedDrilldowns[$attribute];
                 foreach ($dimensionPatterns as $patternName => $dimensionPattern) {
+                    $actualAttribute = array_filter($dimension->attributes, function ($attribute)use($patternName){return $attribute->getUri()==$patternName;});
                     $childBinding = $drilldownBindings[$attribute] . "_" . substr(md5($patternName), 0, 5);
+                    $this->bindingsToLanguages[$childBinding] = reset($actualAttribute)->getLanguages();
                     $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"] . "_" . substr(md5($patternName), 0, 5);
                     $drilldownBindings[] = $childBinding;
                     $parentDrilldownBindings[$drilldownBindings[$attribute]][$childBinding] = $childBinding;
@@ -402,17 +404,16 @@ class AggregateResult extends SparqlModel
             ->limit($this->page_size)
             ->offset($offset);
 
-        foreach ($finalSorters as $sorter) {
+        foreach (($finalSorters) as $sorter) {
             if ($sorter->property == "_count") {
-                $queryBuilder->orderBy("?" . $sorter->property, strtoupper($sorter->direction));
+                $queryBuilder = $queryBuilder->orderBy("?" . $sorter->property, strtoupper($sorter->direction));
                 continue;
             }
             if (in_array($sorter->property, $aggregates)) {
-                $queryBuilder->orderBy($sorter->binding . "__", strtoupper($sorter->direction));
+                $queryBuilder = $queryBuilder->orderBy($sorter->binding . "__", strtoupper($sorter->direction));
 
             } else {
-                $queryBuilder->orderBy($sorter->binding, strtoupper($sorter->direction));
-
+                $queryBuilder = $queryBuilder->orderBy($sorter->binding, strtoupper($sorter->direction));
             }
         }
         /* $queryBuilder
@@ -453,7 +454,7 @@ class AggregateResult extends SparqlModel
     {
         $allFilteredFields =  array_unique($filterBindings);
         $allSelectedFields = array_unique(array_flatten($drilldownBindings));
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         $interMediateQuery = $queryBuilder->newSubquery();
         $basicQueryBuilder = $queryBuilder->newSubquery();
         $outsiderFilteredLabels = [];
@@ -469,7 +470,7 @@ class AggregateResult extends SparqlModel
                         $basicQueryBuilder->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
                     }
                         $outsiderFilteredLabels[] = $dimensionPattern->object;
-                        $queryBuilder->optional($queryBuilder->newSubgraph()->filter("LANG({$dimensionPattern->object}) = 'en' || LANG({$dimensionPattern->object}) = ''")->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object));
+                        $queryBuilder->optional($queryBuilder->newSubgraph()->filter($this->buildLanguageFilterExpression($dimensionPattern->object))->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object));
 
 
                 } else {
@@ -486,7 +487,7 @@ class AggregateResult extends SparqlModel
                             $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                         }
                             $outsiderFilteredLabels[] = $pattern->object;
-                        $queryBuilder->optional($queryBuilder->newSubgraph()->filter("LANG({$pattern->object}) = 'en' || LANG({$pattern->object}) = ''")->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object));
+                        $queryBuilder->optional($queryBuilder->newSubgraph()->filter( $this->buildLanguageFilterExpression($pattern->object) )->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object));
 
 
                     } else {
@@ -512,7 +513,7 @@ class AggregateResult extends SparqlModel
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
 
-                $basicQueryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+                $this->doFilter($basicQueryBuilder, $filter->binding, $filter->value);
             } else {
 
                 $values = [];
@@ -551,7 +552,7 @@ class AggregateResult extends SparqlModel
         $interMediateQuery
             ->select(array_merge($agBindings, $innerSelectedFields));
         if (count($drilldownBindings) > 0) {
-            $interMediateQuery->groupBy(array_unique(array_merge($innerSelectedFields, $sorterBindings)));
+            $interMediateQuery->groupBy(array_unique(array_merge($innerSelectedFields)));
         }
 
 
@@ -567,14 +568,14 @@ class AggregateResult extends SparqlModel
         $queryBuilder->subquery($interMediateQuery);
         $queryBuilder->select($outerSelections);
 
-       // echo $queryBuilder->format();die;
+
         return $queryBuilder;
 
     }
 
     private function buildS(array $aggregateBindings, array $dimensionPatterns, array $filterMap = [])
     {
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         $basicQueryBuilder = $queryBuilder->newSubquery();
         $patternsCollection = new Collection($dimensionPatterns);
         $uniques = $patternsCollection->unique(function($item){ return json_encode($item);  });
@@ -606,8 +607,8 @@ class AggregateResult extends SparqlModel
             if (!$filter->isCardinal) {
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
+                $this->doFilter($basicQueryBuilder, $filter->binding, $filter->value);
 
-                $basicQueryBuilder->filter("str({$filter->binding})='{$filter->value}'");
             } else {
 
                 $values = [];
@@ -648,7 +649,7 @@ class AggregateResult extends SparqlModel
     private function buildC(array $parentDrilldownBindings, array $dimensionPatterns, array $filterBindings, array $filterMap = [])
     {
        // dd($parentDrilldownBindings);
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         $subQuery = $queryBuilder->newSubquery();
 
         $patternsCollection = new Collection($dimensionPatterns);
@@ -681,7 +682,7 @@ class AggregateResult extends SparqlModel
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
 
-                $subQuery->filter("str({$filter->binding})='{$filter->value}'");
+                $this->doFilter($subQuery, $filter->binding, $filter->value);
             } else {
 
                 $values = [];
@@ -717,6 +718,16 @@ class AggregateResult extends SparqlModel
 
         return $queryBuilder;
 
+    }
+
+    protected function doFilter(QueryBuilder $queryBuilder, string $binding, $value){
+        if(!config("sparql.virtuoso",false)){
+
+            return $queryBuilder->filter("STR({$binding})='{$value}'");
+        }
+        else{
+            return $queryBuilder->where($binding, "bif:contains", '"'.$value.'"');
+        }
     }
 
 
