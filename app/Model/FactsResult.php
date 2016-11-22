@@ -272,7 +272,7 @@ class FactsResult extends SparqlModel
 //dd($selectedPatterns);
         //dd($attributes);
         $results = $this->rdfResultsToArray3($result,$attributes, $model, $selectedPatterns);
-
+//dump($results[94]);
         $this->data = $results;
         $this->page_size = $page_size;
         $this->page = $page;

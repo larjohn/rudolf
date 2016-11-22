@@ -64,14 +64,18 @@ class BabbageModelResult extends SparqlModel
         $identifyQueryResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
+        //echo $queryBuilder->format();die;
         /** @var EasyRdf_Sparql_Result $result */
 //dd($identifyQueryResult);
-        //dd($identifyQueryResult);
-        $identifyQueryResult = $this->rdfResultsToArray($identifyQueryResult)[0];
-        $this->model->setTitles($this->resolveLabels($identifyQueryResult["titles"]));
-        $this->model->setDataset($identifyQueryResult["dataset"]);
-        $this->model->setTitle($this->preferLabel($this->model->getTitles()));
-        $this->model->setDsd($identifyQueryResult["dsd"]);
+        if($identifyQueryResult->count()>0){
+
+            $identifyQueryResult = $this->rdfResultsToArray($identifyQueryResult);
+            $this->model->setTitles($this->resolveLabels($identifyQueryResult["titles"]));
+            $this->model->setDataset($identifyQueryResult["dataset"]);
+            $this->model->setTitle($this->preferLabel($this->model->getTitles()));
+            $this->model->setDsd($identifyQueryResult["dsd"]);
+        }
+
     }
 
 
@@ -79,6 +83,7 @@ class BabbageModelResult extends SparqlModel
 
     public function load($name){
         if(Cache::has($name)){
+
             $this->model =  Cache::get($name);
             return;
         }
@@ -350,9 +355,13 @@ class BabbageModelResult extends SparqlModel
     }
 
     public function preferLabel($labels){
-        if(isset($labels["en"]))
-            return $labels["en"];
-        else return $labels["el"];
+        $preferredLanguages = config("sparql.languagesOrder", ["en"]);
+        if(count($labels)<1) return "";
+        foreach ($preferredLanguages as $preferredLanguage) {
+            if(isset($labels[$preferredLanguage])) return $labels[$preferredLanguage];
+        }
+        return reset($labels);
+
     }
 
     protected function convertCurrency($value)

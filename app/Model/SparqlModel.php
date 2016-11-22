@@ -172,12 +172,15 @@ class SparqlModel
                     else continue;
 
                     if ($value instanceof EasyRdf_Literal ) {
+
                         /** @var EasyRdf_Literal $value */
                         $val  = $value->getValue();
-                        if($value instanceof EasyRdf_Literal_Decimal)
+
+                        if($value instanceof EasyRdf_Literal_Decimal || $value->getDatatype()=="xsd:float" || $value->getDatatype()=="xsd:decimal" )
                             $val = floatval($val);
-                        elseif($value instanceof EasyRdf_Literal_Integer)
+                        elseif($value instanceof EasyRdf_Literal_Integer || $value->getDatatype()=="xsd:integer" )
                             $val = intval($val);
+                        if(is_nan($val)) $val = 0;
 
 
                     } else {
