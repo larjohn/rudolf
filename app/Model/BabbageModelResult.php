@@ -70,10 +70,10 @@ class BabbageModelResult extends SparqlModel
         if($identifyQueryResult->count()>0){
 
             $identifyQueryResult = $this->rdfResultsToArray($identifyQueryResult);
-            $this->model->setTitles($this->resolveLabels($identifyQueryResult["titles"]));
-            $this->model->setDataset($identifyQueryResult["dataset"]);
+            $this->model->setTitles($this->resolveLabels($identifyQueryResult[0]["titles"]));
+            $this->model->setDataset($identifyQueryResult[0]["dataset"]);
             $this->model->setTitle($this->preferLabel($this->model->getTitles()));
-            $this->model->setDsd($identifyQueryResult["dsd"]);
+            $this->model->setDsd($identifyQueryResult[0]["dsd"]);
         }
 
     }
