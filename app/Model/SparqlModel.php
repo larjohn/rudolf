@@ -180,7 +180,7 @@ class SparqlModel
                             $val = floatval($val);
                         elseif($value instanceof EasyRdf_Literal_Integer || $value->getDatatype()=="xsd:integer" )
                             $val = intval($val);
-                        if(is_nan($val)) $val = 0;
+                        if(!is_numeric($val) || is_nan($val) ) $val = 0;
 
 
                     } else {

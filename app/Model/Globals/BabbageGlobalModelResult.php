@@ -47,22 +47,19 @@ class BabbageGlobalModelResult extends BabbageModelResult
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
-            ->selectDistinct('?attribute', '(MAX(?_label) AS ?label)', '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "(MAX(?_datasetName) AS ?datasetName)", "?dataset", "(SAMPLE(?_datasetLabel) AS ?datasetLabel)", "?currency", "?year"/*, "(count(distinct ?value) AS ?cardinality)"*/)
+            ->selectDistinct('?attribute', '(MAX(?_label) AS ?label)', '?attachment',  "?shortName", "(MAX(?_datasetName) AS ?datasetName)", "?dataset", "(SAMPLE(?_datasetLabel) AS ?datasetLabel)", "?currency", "?year"/*, "(count(distinct ?value) AS ?cardinality)"*/)
             ->where("?dsd", 'qb:component', '?component')
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset", "qb:structure", "?dsd")
             ->optional("?dataset", "<http://data.openbudgets.eu/ontology/dsd/attribute/currency>", "?currency")
-            ->optional("?dataset", "rdfs:label", "?_datasetLabel")
+            ->where("?dataset", "rdfs:label", "?_datasetLabel")
             ->where('?component', '?componentProperty', '?attribute')
             ->where('?componentProperty', 'rdfs:subPropertyOf', 'qb:componentProperty')
-            ->optional('?attribute', 'rdfs:label', '?_label')
+            ->where('?attribute', 'rdfs:label', '?_label')
             ->bind("REPLACE(str(?attribute), '^.*(#|/)', \"\") AS ?shortName")
             ->optional('?component', 'qb:componentAttachment', '?attachment')
             ->optional("?dataset", "<http://data.openbudgets.eu/ontology/dsd/dimension/fiscalYear>", "?year")
-            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?_datasetName")
-            ->optional($queryBuilder->newSubgraph()
-                ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in ( qb:MeasureProperty, qb:DimensionProperty, qb:CodedProperty)"))
-            ->groupBy('?attribute', "?shortName", "?attachment", "?dataset", "?currency", "?year");;
+            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?_datasetName")->groupBy('?attribute', "?shortName", "?attachment", "?dataset", "?currency", "?year");;
 
         //   echo $queryBuilder->format();die;
         /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
@@ -75,6 +72,19 @@ class BabbageGlobalModelResult extends BabbageModelResult
         //echo(json_encode($propertiesSparqlResult));die;
 
         foreach ($propertiesSparqlResult as $property) {
+
+            $propertyTypeQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
+            $propertyTypeQueryBuilder->select("(SAMPLE(?_propertyType) AS ?propertyType)")
+                ->optional($propertyTypeQueryBuilder->newSubgraph()
+                    ->where("<{$property['attribute']}>", "a", "?_propertyType")->filter("?_propertyType in ( qb:MeasureProperty, qb:DimensionProperty, qb:CodedProperty)"));
+
+            $propertyTypeSparqlResult = $this->sparql->query(
+                $propertyTypeQueryBuilder->getSPARQL()
+            );
+            /** @var EasyRdf_Sparql_Result $result */
+            $propertyTypeSparqlResult = $this->rdfResultsToArray($propertyTypeSparqlResult);
+            $property["propertyType"] = $propertyTypeSparqlResult[0]["propertyType"];
+
             if (!isset($property["attribute"]) || !isset($property["propertyType"])) continue;
 
             $attribute = $property["attribute"];
