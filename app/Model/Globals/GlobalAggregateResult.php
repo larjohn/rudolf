@@ -1071,7 +1071,7 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
 
-            $queryBuilder->where($optional);
+           // $queryBuilder->where($optional);
 
         }
 
