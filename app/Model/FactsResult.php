@@ -91,8 +91,6 @@ class FactsResult extends SparqlModel
                 $fields[] = $measure->ref;
             }
 
-
-
         }
 
         $selectedPatterns = $this->modelFieldsToPatterns($model,$fields);
@@ -184,8 +182,14 @@ class FactsResult extends SparqlModel
             if($dimension instanceof Dimension){
                 $dimensionPatterns = &$selectedPatterns[$attribute];
                 foreach ($dimensionPatterns as $patternName=>$dimensionPattern){
+                    $actualAttribute = array_filter($dimension->attributes, function ($attribute)use($patternName){return $attribute->getUri()==$patternName;});
+
                     $attributes[$attribute][$patternName] = $attributes[$attribute]["uri"]."_". substr(md5($patternName),0,5) ;
-                    $bindings[] = $bindings[$attribute]."_". substr(md5($patternName),0,5) ;
+                    $childBinding = $bindings[$attribute]."_". substr(md5($patternName),0,5) ;
+                    $bindings[] = $childBinding;
+
+                    $this->bindingsToLanguages[$childBinding] = reset($actualAttribute)->getLanguages();
+
                     if(isset($sorterMap[$attribute][$patternName])){
                         $sorterMap[$attribute][$patternName]->binding = $bindings[$attribute]."_". substr(md5($patternName),0,5) ;
                         $finalSorters[] =  $sorterMap[$attribute][$patternName] ;
@@ -260,7 +264,6 @@ class FactsResult extends SparqlModel
             ->orderBy("?observation");
         Log::info($queryBuilder->format());
 
-//echo  $queryBuilder->format(); die;
 //
      //   dd($bindings);
       //   die;
@@ -292,7 +295,16 @@ class FactsResult extends SparqlModel
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
         foreach ($dimensionPatterns as $dimensionPattern) {
+
+
             if($dimensionPattern instanceof TriplePattern || ($dimensionPattern instanceof SubPattern && !$dimensionPattern->isOptional)){
+                if ($dimensionPattern->predicate == "skos:prefLabel") {
+
+                    $queryBuilder->filter($this->buildLanguageFilterExpression($dimensionPattern->object))->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
+
+
+                }
+
                 if($dimensionPattern->isOptional){
                     $queryBuilder->where($dimensionPattern->subject,  self::expand($dimensionPattern->predicate), $dimensionPattern->object);
                 }
@@ -301,11 +313,15 @@ class FactsResult extends SparqlModel
                 }
             }
             elseif($dimensionPattern instanceof SubPattern){
-                $subGraph = $queryBuilder->newSubgraph();
 
                 foreach($dimensionPattern->patterns as $pattern){
                     $queryBuilder->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                    if ($pattern->predicate == "skos:prefLabel") {
 
+                        $queryBuilder->filter( $this->buildLanguageFilterExpression($pattern->object) )->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+
+
+                    }
                 }
 
 
@@ -343,7 +359,6 @@ class FactsResult extends SparqlModel
             ->select($bindings)
 
         ;
-
 
         return $queryBuilder;
 
