@@ -56,6 +56,7 @@ class PackageResult extends SparqlModel
         }
         $this->name = $name;
         $this->title = $model->getTitle();
+        $this->countryCode = $model->getCountryCode();
 
 
         

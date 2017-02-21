@@ -61,7 +61,7 @@ class GlobalMembersResult extends SparqlModel
     {
 
         if (Cache::has("members/global/$attributeShortName/$page/$page_size")) {
-              $this->data = Cache::get("members/global/$attributeShortName/$page/$page_size");
+             $this->data = Cache::get("members/global/$attributeShortName/$page/$page_size");
                return;
         }
 
@@ -328,7 +328,6 @@ class GlobalMembersResult extends SparqlModel
         $allSelectedFields = array_unique(array_flatten($drilldownBindings));
         $flatDimensionPatterns = new Collection();
         $outerSelectedFields = [];
-
         foreach (new Collection($dimensionPatterns) as $dataSet => $patternsOfDimension) {
 
             foreach ($patternsOfDimension as $pattern => $patternsArray) {
@@ -355,8 +354,8 @@ class GlobalMembersResult extends SparqlModel
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $basicQueryBuilder = $queryBuilder->newSubquery();
-        $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
-        $basicQueryBuilder->where("?observation", "a", "qb:Observation");
+       // $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+        //$basicQueryBuilder->where("?observation", "a", "qb:Observation");
 
         $tripleAntiRepeatHashes = [];
         $outsiderFilteredLabels = [];
@@ -431,6 +430,7 @@ class GlobalMembersResult extends SparqlModel
             } else {
                 foreach ($dimensionPatternsCollections as $dimensionPatternsCollection) {
                     foreach ($dimensionPatternsCollection as $pattern) {
+
                         if ($pattern instanceof TriplePattern) {
                             if (in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes)) continue;
 
@@ -454,7 +454,8 @@ class GlobalMembersResult extends SparqlModel
                         } elseif ($pattern instanceof SubPattern) {
 
                             foreach ($pattern->patterns as $subPattern) {
-                                if ($subPattern->onlySubGraphTriples) continue;
+
+                               // if ($subPattern->onlySubGraphTriples) continue;
 
                                 if ($subPattern->predicate == "skos:prefLabel") {
                                     $outsiderFilteredLabels[] = $subPattern->object;
@@ -513,6 +514,7 @@ class GlobalMembersResult extends SparqlModel
         $basicQueryBuilder->orderBy("COUNT(?observation)");
         $queryBuilder->subquery($basicQueryBuilder);
         $queryBuilder->select(array_unique(array_merge($selections,  array_flatten($parentDrilldownBindings))));
+       // echo $queryBuilder->format();die;
         //$queryBuilder->limit(10);
         return $queryBuilder;
 
@@ -551,8 +553,8 @@ class GlobalMembersResult extends SparqlModel
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $basicQueryBuilder = $queryBuilder->newSubquery();
-        $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
-        $basicQueryBuilder->where("?observation", "a", "qb:Observation");
+        //$basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
+       // $basicQueryBuilder->where("?observation", "a", "qb:Observation");
 
         $tripleAntiRepeatHashes = [];
         $outsiderFilteredLabels = [];
@@ -728,7 +730,7 @@ class GlobalMembersResult extends SparqlModel
         $attachmentTriple->onlySubGraphTriples = true;
 
         return new SubPattern([
-            $observationTypePattern,
+            //$observationTypePattern,
             $sliceTypePattern,
             $attachmentTriple,
 

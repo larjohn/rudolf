@@ -66,7 +66,7 @@ class SearchResult extends SparqlModel
             $packages[$datasetURI] = $model;
             $packages[$datasetURI]->id = $dataSetName ;
             $packages[$datasetURI]->name = $dataSetName;
-            $packages[$datasetURI]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$model->getModel()->getTitle(), "countryCode"=>"EU"];
+            $packages[$datasetURI]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$model->getModel()->getTitle(), "countryCode"=>$model->getModel()->getCountryCode()];
 
 
 

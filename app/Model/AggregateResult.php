@@ -69,7 +69,7 @@ class AggregateResult extends SparqlModel
             $this->cells[] = ["operator" => ":", "ref" => $newFilter->property, "value" => $newFilter->value];
 
         }
-        $this->attributes = $drilldown;
+        $this->attributes = array_filter($drilldown, function($item){return $item!="";});
 
         $this->aggregates = $aggregates;
         $this->load($name, $aggregates, $drilldown, $sorters, $filters);
@@ -508,10 +508,15 @@ class AggregateResult extends SparqlModel
             }
         }
 
+        $alreadyFiltered = [];
+
         foreach ($filterMap as $filter) {
+            if(isset($alreadyFiltered[$filter->binding]))continue;
+            $alreadyFiltered[$filter->binding] = $filter;
             if (!$filter->isCardinal) {
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
+
 
                 $this->doFilter($basicQueryBuilder, $filter->binding, $filter->value);
             } else {
@@ -551,13 +556,13 @@ class AggregateResult extends SparqlModel
 
         $interMediateQuery
             ->select(array_merge($agBindings, $innerSelectedFields));
-        if (count($drilldownBindings) > 0) {
+        if (count($drilldownBindings) > 0 && count($innerSelectedFields)>0)  {
             $interMediateQuery->groupBy(array_unique(array_merge($innerSelectedFields)));
         }
 
 
         $outerSelections = $outsiderFilteredLabels+$innerSelectedFields;
-        $queryBuilder->groupBy($outerSelections);
+        if(!empty($outerSelections))$queryBuilder->groupBy($outerSelections);
 
         $outerSelections[] = "?_count";
 
@@ -568,7 +573,7 @@ class AggregateResult extends SparqlModel
         $queryBuilder->subquery($interMediateQuery);
         $queryBuilder->select($outerSelections);
 
-
+//echo  $queryBuilder->format() ; die;
         return $queryBuilder;
 
     }
@@ -603,7 +608,12 @@ class AggregateResult extends SparqlModel
             }
         }
 
+        $alreadyFiltered = [];
+
         foreach ($filterMap as $filter) {
+            if(isset($alreadyFiltered[$filter->binding]))continue;
+            $alreadyFiltered[$filter->binding] = $filter;
+
             if (!$filter->isCardinal) {
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
@@ -677,14 +687,18 @@ class AggregateResult extends SparqlModel
 
             }
         }
+                $alreadyFiltered = [];
         foreach ($filterMap as $filter) {
+
+            if(isset($alreadyFiltered[$filter->binding]))continue;
+            $alreadyFiltered[$filter->binding] = $filter;
+
             if (!$filter->isCardinal) {
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
 
                 $this->doFilter($subQuery, $filter->binding, $filter->value);
             } else {
-
                 $values = [];
                 foreach ($filter->values as $value) {
                     $binding = ltrim($filter->binding, "?");
@@ -701,7 +715,6 @@ class AggregateResult extends SparqlModel
             }
         }
 
-
         $drldnBindings = [];
 
         foreach (array_keys($parentDrilldownBindings) as $binding) {
@@ -711,11 +724,10 @@ class AggregateResult extends SparqlModel
 //dd(array_unique(array_keys($parentDrilldownBindings)));
         $subQuery
             ->select(array_unique(array_keys($parentDrilldownBindings)));
-        $subQuery->groupBy(array_unique(array_keys($parentDrilldownBindings)));
+        if(!empty($parentDrilldownBindings))$subQuery->groupBy(array_unique(array_keys($parentDrilldownBindings)));
 
         $queryBuilder->subquery($subQuery);
         $queryBuilder->select("(count(*) AS ?_count)");
-
         return $queryBuilder;
 
     }
@@ -726,7 +738,10 @@ class AggregateResult extends SparqlModel
             return $queryBuilder->filter("STR({$binding})='{$value}'");
         }
         else{
-            return $queryBuilder->where($binding, "bif:contains", '"'.$value.'"');
+            if (URL::isValidUrl($value)) {
+                return $queryBuilder->filter("$binding = <{$value}>");
+            }
+            else return $queryBuilder->where($binding, "bif:contains", '"\''.$value.'\'"');
         }
     }
 

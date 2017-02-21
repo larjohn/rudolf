@@ -50,13 +50,17 @@ class BabbageModelResult extends SparqlModel
     public function identify($name){
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
-            ->selectDistinct('?dataset', '?dsd',   "(GROUP_CONCAT(distinct ?titles; separator='||') AS ?titles)")
+            ->selectDistinct('?dataset', '?dsd',   "(GROUP_CONCAT(distinct ?titles; separator='||') AS ?titles)", "?country_code")
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset","qb:structure", "?dsd" )
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
             ->where("?dataset","<http://purl.org/dc/terms/title>" ,"?title")
             ->bind("CONCAT(LANG(?title),'=',?title) AS ?titles")
-
+            ->optional($queryBuilder->newSubgraph()
+                ->where("?dataset", "<http://data.openbudgets.eu/ontology/dsd/dimension/organization>", "?org")
+                ->where("?org", "<http://www.geonames.org/ontology#country>", "?country")
+                ->where("?country", "skos:notation", "?country_code")
+            )
             ->filter("?name = '$name'")
         ;
 
@@ -74,6 +78,7 @@ class BabbageModelResult extends SparqlModel
             $this->model->setDataset($identifyQueryResult[0]["dataset"]);
             $this->model->setTitle($this->preferLabel($this->model->getTitles()));
             $this->model->setDsd($identifyQueryResult[0]["dsd"]);
+            $this->model->setCountryCode(isset($identifyQueryResult[0]["country_code"])?$identifyQueryResult[0]["country_code"]:"EU");
         }
 
     }
@@ -84,8 +89,8 @@ class BabbageModelResult extends SparqlModel
     public function load($name){
         if(Cache::has($name)){
 
-            $this->model =  Cache::get($name);
-            return;
+           // $this->model =  Cache::get($name);
+           // return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
@@ -169,8 +174,6 @@ class BabbageModelResult extends SparqlModel
                     $this->model->aggregates[$newAggregate->ref] = $newAggregate;
 
                 }
-
-
 
             }
             else{

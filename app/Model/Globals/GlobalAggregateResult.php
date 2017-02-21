@@ -704,7 +704,7 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 //dd($selectedAggregates);
-        //echo $queryBuilder->format(); die;
+       // echo $queryBuilder->format(); die;
         //die;
         //   die;
         /* $queryBuilder
@@ -844,7 +844,7 @@ class GlobalAggregateResult extends AggregateResult
                                     $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                                 }
                                 $outsiderFilteredLabels[] = $pattern->object;
-                                $langTriplesArray[$pattern->object][$pattern->object] = $pattern;
+                              //  $langTriplesArray[$pattern->object][$pattern->object] = $pattern;
                                 $langTriplesArray[$pattern->object]["{$pattern->object}__filter"] = new FilterPattern("LANG({$pattern->object}) = 'en' || LANG({$pattern->object}) = ''");
 
 
@@ -871,7 +871,7 @@ class GlobalAggregateResult extends AggregateResult
 
                                     $outsiderFilteredLabels[] = $subPattern->object;
 
-                                    $langTriplesArray[$subPattern->object][$subPattern->object] = $subPattern;
+                                   // $langTriplesArray[$subPattern->object][$subPattern->object] = $subPattern;
                                     $langTriplesArray[$subPattern->object]["{$subPattern->object}__filter"] = new FilterPattern("LANG({$subPattern->object}) = 'en' || LANG({$subPattern->object}) = ''");
 
 
@@ -920,7 +920,7 @@ class GlobalAggregateResult extends AggregateResult
                                 }
 
                                 $outsiderFilteredLabels[] = $pattern->object;
-                                $langTriplesArray[$pattern->object][$pattern->object] = $pattern;
+                             //   $langTriplesArray[$pattern->object][$pattern->object] = $pattern;
                                 $langTriplesArray[$pattern->object]["{$pattern->object}__filter"] = new FilterPattern("LANG({$pattern->object}) = 'en' || LANG({$pattern->object}) = ''");
 
 
@@ -946,7 +946,7 @@ class GlobalAggregateResult extends AggregateResult
                                     }
 
                                     $outsiderFilteredLabels[] = $subPattern->object;
-                                    $langTriplesArray[$subPattern->object][$subPattern->object] = $subPattern;
+                                 //   $langTriplesArray[$subPattern->object][$subPattern->object] = $subPattern;
                                     $langTriplesArray[$subPattern->object]["{$subPattern->object}__filter"] = new FilterPattern("LANG({$subPattern->object}) = 'en' || LANG({$subPattern->object}) = ''");
 
 
@@ -1018,15 +1018,15 @@ class GlobalAggregateResult extends AggregateResult
         //dump(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
         //echo $innerGraph->format();
         $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
-        $innerGraph->select(array_unique(array_merge($aggregateBindings, $outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings, ["?observation"])));
+        $innerGraph->select(array_unique(array_merge($aggregateBindings, $outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings, $outsiderFilteredLabels, ["?observation"])));
         $innerGraph->groupBy("?observation");
         // dd(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
         if (count($dimensionPatterns) > 0) {
             $interMediateQuery
-                ->select(array_unique(array_merge($agBindings, $outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings)));
+                ->select(array_unique(array_merge($agBindings, $outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings, $outsiderFilteredLabels)));
             if (count($drilldownBindings) > 0) {
 
-                $interMediateQuery->groupBy(array_unique(array_merge($outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings)));
+                $interMediateQuery->groupBy(array_unique(array_merge($outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings, $outsiderFilteredLabels)));
             }
 
 
@@ -1064,14 +1064,14 @@ class GlobalAggregateResult extends AggregateResult
 
             foreach ($group as $triple) {
                 if ($triple instanceof FilterPattern) {
-                    $optional->filter($triple->expression);
+                    $queryBuilder->filter($triple->expression);
 
                 } else {
-                    $optional->where($triple->subject, self::expand($triple->predicate, $triple->transitivity), $triple->object);
+                    $queryBuilder->where($triple->subject, self::expand($triple->predicate, $triple->transitivity), $triple->object);
                 }
             }
 
-            $queryBuilder->optional($optional);
+            $queryBuilder->where($optional);
 
         }
 

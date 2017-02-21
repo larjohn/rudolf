@@ -102,6 +102,7 @@ class BabbageModel
     private $fiscalYear;
 
     private $title;
+    private $countryCode;
 
     /**
      * @return mixed
@@ -169,6 +170,22 @@ class BabbageModel
     public function setTitles(array $titles)
     {
         $this->titles = $titles;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getCountryCode()
+    {
+        return $this->countryCode;
+    }
+
+    /**
+     * @param mixed $countryCode
+     */
+    public function setCountryCode($countryCode)
+    {
+        $this->countryCode = $countryCode;
     }
 
 }
