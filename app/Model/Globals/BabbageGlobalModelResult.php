@@ -21,6 +21,7 @@ use Asparagus\QueryBuilder;
 use Asparagus\Tests\Integration\QueryBuilderTest;
 use Cache;
 use EasyRdf_Sparql_Result;
+use Illuminate\Support\Facades\Log;
 
 class BabbageGlobalModelResult extends BabbageModelResult
 {
@@ -151,11 +152,15 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     $subQuery->where("?value", "?extensionProperty", "?extension");
                     $subQuery->subquery($subSubQuery);
                     $subQuery->selectDistinct("?extensionProperty", "?extension");
-                    $queryBuilder->selectDistinct("?extensionProperty", "?shortName", "?dataType", "?label")
+
+                    $queryBuilder->selectDistinct("?extensionProperty", "(MAX(?shortName) AS ?shortName)", "(MAX(?dataType) AS ?dataType)", "(MAX(?label) AS ?label)", "(GROUP_CONCAT(distinct ?attLang  ; separator = \"|\") AS ?attLang)")
                         ->subquery($subQuery)
                         ->where("?extensionProperty", "rdfs:label", "?label")
                         ->bind("datatype(?extension) AS ?dataType")
-                        ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
+                        ->bind("LANG(?extension) AS ?attLang")
+                        ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName")
+                        ->groupBy("?extensionProperty")
+                    ;
 
 
 
@@ -192,6 +197,8 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $newAttribute->datatype = isset($subResult["dataType"]) ? $this->flatten_data_type($subResult["dataType"]) : "string";
                         $newAttribute->setUri($subResult["extensionProperty"]);
                         $newAttribute->label = $subResult["label"];
+                        if(isset($subResult["attLang"]))$newAttribute->setLanguages( explode("||", $subResult["attLang"]));
+
                         $newAttribute->orig_attribute = /*$property["shortName"].".".*/
                             $subResult["shortName"];
                         //var_dump($newAttribute);
@@ -277,7 +284,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
             //dd($globalsResults);
 
 
-                foreach ($globalsResults as $globalTuple) {
+            foreach ($globalsResults as $globalTuple) {
                 //dd($this->model->dimensions);
 
                 if (!isset($this->model->dimensions[$globalTuple["shortName"]])) continue; //need dimensions not measures
@@ -400,19 +407,24 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         $subSubQuery->where("<$dataset>", "<$attr>", "?value");
                         $subSubQuery->select("?value");
                         $subQuery->where("?value", "?extensionProperty", "?extension");
+
                         $subQuery->subquery($subSubQuery);
                         $subQuery->selectDistinct("?extensionProperty", "?extension");
-                        $queryBuilder->select("?extensionProperty", "?shortName", "?dataType", "?label")
+                        $queryBuilder->select("?extensionProperty", "(MAX(?shortName) AS ?shortName)", "(MAX(?dataType) AS ?dataType)", "(MAX(?label) AS ?label)", "(GROUP_CONCAT(distinct ?attLang  ; separator = \"|\") AS ?attLang)")
                             ->subquery($subQuery)
                             ->where("?extensionProperty", "rdfs:label", "?label")
                             ->bind("datatype(?extension) AS ?dataType")
-                            ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName");
-                        //echo                             $queryBuilder->format();
+                            ->bind("LANG(?extension) AS ?attLang")
+                            ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName")
+                            ->groupBy("?extensionProperty")
+                        ;
+
 
                         $subResult = $this->sparql->query(
                             $queryBuilder->getSPARQL()
                         );
                         $subResults = $this->rdfResultsToArray($subResult);
+
 
                         foreach ($subResults as $subResult) {
 
@@ -432,6 +444,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                             $newAttribute->column = $subResult["shortName"];
                             $newAttribute->datatype = isset($subResult["dataType"]) ? $this->flatten_data_type($subResult["dataType"]) : "string";
                             $newAttribute->setUri($subResult["extensionProperty"]);
+                            if(isset($subResult["attLang"]))$newAttribute->setLanguages( explode("||", $subResult["attLang"]));
                             $newAttribute->label = $subResult["label"];
                             $newAttribute->orig_attribute = $subResult["shortName"];
                             $innerDimension->attributes[$subResult["shortName"]] = $newAttribute;
@@ -455,12 +468,13 @@ class BabbageGlobalModelResult extends BabbageModelResult
                     //dump($innerDimensionAttributes);
                     $attributes = [];
                     $candidate_attributes = call_user_func_array("array_merge", $innerDimensionAttributes);
-                //    dump($candidate_attributes);
+                   //dump($candidate_attributes);
 
                     foreach ($candidate_attributes as $att_key => &$attribute) {
                         /** @var Attribute $attribute */
                         $glob_att = clone $attribute;
                         $glob_att->ref = $key . '.' . $attribute->orig_attribute;
+                        $glob_att->setLanguages(array_merge($glob_att->getLanguages()));
                         $attributes[$att_key] = $glob_att;
                     }
                     if (empty($attributes)) {

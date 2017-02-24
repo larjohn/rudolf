@@ -11,6 +11,7 @@ namespace App\Model\Globals;
 
 use App\Model\Aggregate;
 use App\Model\AggregateResult;
+use App\Model\Attribute;
 use App\Model\CurrencyService;
 use App\Model\Dimension;
 use App\Model\FilterDefinition;
@@ -130,6 +131,9 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
         }
+
+
+
 //dd($datasetAggregates);
         $offset = $this->page_size * $this->page;
         $sliceSubGraphs = [];
@@ -292,7 +296,7 @@ class GlobalAggregateResult extends AggregateResult
                 }
             }
         }
-
+        //dd($model->dimensions["global__administrativeClassification__854d0"]->getInnerDimensions()["budget-thessaloniki-expenditure-2014__3e171__administrativeClassification"]);
 
         //**************************************************************************************
 
@@ -479,7 +483,7 @@ class GlobalAggregateResult extends AggregateResult
                     $dataSetSubGraph = $this->initDataSet();
                 }
                 $needsDataSetSubGraph = false;
-                /** @var Dimension $dimension */
+                /** @var GlobalDimension $dimension */
                 $attribute = $innerDimension->getUri();
                 $attachment = $innerDimension->getAttachment();
                 if (isset($attachment) && $attachment == "qb:Slice") {
@@ -532,7 +536,20 @@ class GlobalAggregateResult extends AggregateResult
                 }
                 $dimensionPatterns = &$selectedDrilldowns[$datasetURI][$attribute];
                 foreach ($dimensionPatterns as $patternName => $dimensionPattern) {
+
+                    $languages = [];
+
+                    foreach ($dimension->getInnerDimensions() as $innerDimension) {
+                        /** @var Attribute $actualAttribute */
+                        $actualAttribute = array_filter($innerDimension->attributes, function ($attribute)use($patternName){return $attribute->getUri()==$patternName;});
+//dump($actualAttribute);
+                        if($actualAttribute)$languages = array_merge($languages, reset($actualAttribute)->getLanguages());
+                    }
+
                     $childBinding = $drilldownBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
+
+                    $this->bindingsToLanguages[$childBinding] = array_filter(array_unique($languages), function($value) { return $value !== ''; });
+
                     $parentDrilldownBindings[$drilldownBindings[$datasetURI][$attribute]][$childBinding] = $childBinding;
                     $attributes[$datasetURI][$attribute][$patternName] = $attributes[$datasetURI][$attribute]["uri"] . "_" . substr(md5($patternName), 0, 5);
                     $drilldownBindings[$datasetURI][] = $drilldownBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
@@ -840,12 +857,13 @@ class GlobalAggregateResult extends AggregateResult
 
 
                             if ($pattern->predicate == "skos:prefLabel") {
-                                if (in_array($pattern->object, $allFilteredFields)) {
+                              //  if (in_array($pattern->object, $allFilteredFields)) {
                                     $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
-                                }
+                                    $selections[$pattern->object] = $pattern->object;
+                                    //  }
                                 $outsiderFilteredLabels[] = $pattern->object;
                               //  $langTriplesArray[$pattern->object][$pattern->object] = $pattern;
-                                $langTriplesArray[$pattern->object]["{$pattern->object}__filter"] = new FilterPattern("LANG({$pattern->object}) = 'en' || LANG({$pattern->object}) = ''");
+                                $langTriplesArray[$pattern->object]["{$pattern->object}__filter"] = new FilterPattern($this->buildLanguageFilterExpression($pattern->object));
 
 
                             } else {
@@ -865,14 +883,16 @@ class GlobalAggregateResult extends AggregateResult
 
 
                                 if ($subPattern->predicate == "skos:prefLabel") {
-                                    if (in_array($subPattern->object, $allFilteredFields)) {
+                                   // if (in_array($subPattern->object, $allFilteredFields)) {
                                         $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
-                                    }
+                                    $selections[$subPattern->object] = $subPattern->object;
+
+                                    //  }
 
                                     $outsiderFilteredLabels[] = $subPattern->object;
 
                                    // $langTriplesArray[$subPattern->object][$subPattern->object] = $subPattern;
-                                    $langTriplesArray[$subPattern->object]["{$subPattern->object}__filter"] = new FilterPattern("LANG({$subPattern->object}) = 'en' || LANG({$subPattern->object}) = ''");
+                                    $langTriplesArray[$subPattern->object]["{$subPattern->object}__filter"] = new FilterPattern($this->buildLanguageFilterExpression($subPattern->object));
 
 
                                 } else {
@@ -915,13 +935,13 @@ class GlobalAggregateResult extends AggregateResult
 
                             if (in_array(md5(json_encode($pattern)), $tripleAntiRepeatHashes)) continue;
                             if ($pattern->predicate == "skos:prefLabel") {
-                                if (in_array($pattern->object, $allFilteredFields)) {
+                               // if (in_array($pattern->object, $allFilteredFields)) {
                                     $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
-                                }
+                               // }
 
                                 $outsiderFilteredLabels[] = $pattern->object;
                              //   $langTriplesArray[$pattern->object][$pattern->object] = $pattern;
-                                $langTriplesArray[$pattern->object]["{$pattern->object}__filter"] = new FilterPattern("LANG({$pattern->object}) = 'en' || LANG({$pattern->object}) = ''");
+                                $langTriplesArray[$pattern->object]["{$pattern->object}__filter"] = new FilterPattern($this->buildLanguageFilterExpression($pattern->object));
 
 
                             } else {
@@ -941,13 +961,13 @@ class GlobalAggregateResult extends AggregateResult
 
                                 if (in_array(md5(json_encode($subPattern)), $tripleAntiRepeatHashes)) continue;
                                 if ($subPattern->predicate == "skos:prefLabel") {
-                                    if (in_array($subPattern->object, $allFilteredFields)) {
+                                 //   if (in_array($subPattern->object, $allFilteredFields)) {
                                         $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
-                                    }
+                                 //   }
 
                                     $outsiderFilteredLabels[] = $subPattern->object;
                                  //   $langTriplesArray[$subPattern->object][$subPattern->object] = $subPattern;
-                                    $langTriplesArray[$subPattern->object]["{$subPattern->object}__filter"] = new FilterPattern("LANG({$subPattern->object}) = 'en' || LANG({$subPattern->object}) = ''");
+                                    $langTriplesArray[$subPattern->object]["{$subPattern->object}__filter"] = new FilterPattern($this->buildLanguageFilterExpression($subPattern->object));
 
 
                                 } else {
@@ -1018,6 +1038,8 @@ class GlobalAggregateResult extends AggregateResult
         //dump(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
         //echo $innerGraph->format();
         $flatParentBindings = array_unique(array_keys($parentDrilldownBindings));
+       // dd(array_unique(array_merge($aggregateBindings, $outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings, $outsiderFilteredLabels, ["?observation"])))
+        //echo $innerGraph->format(); die;
         $innerGraph->select(array_unique(array_merge($aggregateBindings, $outerSelectedFields, array_flatten($sorterBindings), $flatParentBindings, $outsiderFilteredLabels, ["?observation"])));
         $innerGraph->groupBy("?observation");
         // dd(array_unique(array_merge($agBindings, $allSelectedFields, array_flatten($sorterBindings))));
@@ -1060,7 +1082,7 @@ class GlobalAggregateResult extends AggregateResult
 
 
         foreach ($langTriplesArray as $group) {
-            $optional = $queryBuilder->newSubgraph();
+           // $optional = $queryBuilder->newSubgraph();
 
             foreach ($group as $triple) {
                 if ($triple instanceof FilterPattern) {
@@ -1087,7 +1109,8 @@ class GlobalAggregateResult extends AggregateResult
         if (!empty($outerGroupings))
             $queryBuilder->groupBy(array_unique(array_merge($outerGroupings, array_flatten($sorterBindings), ["?count"])));
         $queryBuilder->select(array_unique($outerSelections));
-        //echo $queryBuilder->format(); die;
+        //dd($this->bindingsToLanguages);
+       // echo $queryBuilder->format(); die;
 
         return $queryBuilder;
 

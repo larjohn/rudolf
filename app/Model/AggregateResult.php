@@ -80,7 +80,7 @@ class AggregateResult extends SparqlModel
     private function load($name, $aggregates, $drilldowns, $sorters, $filters)
     {
         $model = (new BabbageModelResult($name))->model;
-
+dd($model);
 //dd($aggregates);
         if (count($aggregates) < 1 || $aggregates[0] == "") {
             foreach ($model->aggregates as $agg) {
