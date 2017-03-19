@@ -240,7 +240,6 @@ class FactsResult extends SparqlModel
         $queryBuilderC = $this->build(["(COUNT(?observation) AS ?_count)"], $patterns,$finalFilters );
         /** @var EasyRdf_Sparql_Result $countResult */
 
-//echo $queryBuilderC->format();
 
         $countResult = $this->sparql->query(
             $queryBuilderC->getSPARQL()
@@ -264,6 +263,7 @@ class FactsResult extends SparqlModel
             ->orderBy("?observation");
         Log::info($queryBuilder->format());
 
+        //echo $queryBuilder->format();die;
 //
      //   dd($bindings);
       //   die;

@@ -17,10 +17,16 @@ use Log;
 
 class SearchResult extends SparqlModel
 {
+    private $query = "";
+    private $size = 10000;
 
-    public function __construct()
+    public function __construct($query="", $size=10000)
     {
         parent::__construct();
+
+        $this->query =trim($query, '"');
+        //dd(empty($this->query));
+        $this->size = $size;
 
         $this->load();
 
@@ -31,12 +37,12 @@ class SearchResult extends SparqlModel
 
     public function load(){
 
-        if(Cache::has("search")){
-            $this->packages = Cache::get("search");
+        if(Cache::has("search/{$this->query}/{$this->size}")){
+            $this->packages = Cache::get("search/{$this->query}/{$this->size}");
            return;
         }
 
-        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
         $queryBuilder
             ->select("?datasetName", "?dataset"/*, "(count(distinct ?value) AS ?cardinality)"*/)
 
@@ -45,18 +51,21 @@ class SearchResult extends SparqlModel
             ->where("?dataset","<http://purl.org/dc/terms/title>" ,"?title")
 
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?datasetName")
+            ->limit($this->size)
             ->groupBy("?datasetName", "?dataset")
             ;
-
+        if(!empty($this->query)) $queryBuilder->where("?title", "bif:contains", '"\''.$this->query.'\'"');
         $dataSetsResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
 
 
+
         /** @var EasyRdf_Sparql_Result $result */
 
         $dataSetsResult = $this->rdfResultsToArray($dataSetsResult);
-        //dd($propertiesSparqlResult);
+       //echo      $queryBuilder->format();die;
+
         $packages = [];
 
         foreach ($dataSetsResult as $dataSetResult) {
@@ -68,10 +77,6 @@ class SearchResult extends SparqlModel
             $packages[$datasetURI]->name = $dataSetName;
             $packages[$datasetURI]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$model->getModel()->getTitle(), "countryCode"=>$model->getModel()->getCountryCode()];
 
-
-
-
-            //dd($dataSetResult["datasetName"]);
         }
 
 
@@ -103,10 +108,10 @@ class SearchResult extends SparqlModel
         $globalModel = new BabbageGlobalModelResult();
         $globalModel->id = "global";
         $globalModel->load2();
-        $globalModel->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>"Global: The mother of all Cubes", "countryCode"=>"EU"];
+        $globalModel->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>"Global dataset: All datasets combined", "countryCode"=>"EU"];
 
         $this->packages[] = $globalModel;
-        Cache::forever("search", $this->packages);
+        Cache::forever("search/{$this->query}/{$this->size}", $this->packages);
         // dd($this->model->dimensions);
 
 
