@@ -39,7 +39,7 @@ class SearchResult extends SparqlModel
 
         if(Cache::has("search/{$this->query}/{$this->size}")){
             $this->packages = Cache::get("search/{$this->query}/{$this->size}");
-           return;
+            return;
         }
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
@@ -64,7 +64,7 @@ class SearchResult extends SparqlModel
         /** @var EasyRdf_Sparql_Result $result */
 
         $dataSetsResult = $this->rdfResultsToArray($dataSetsResult);
-       //echo      $queryBuilder->format();die;
+     //  echo      $queryBuilder->format();die;
 
         $packages = [];
 
@@ -109,8 +109,8 @@ class SearchResult extends SparqlModel
         $globalModel->id = "global";
         $globalModel->load2();
         $globalModel->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>"Global dataset: All datasets combined", "countryCode"=>"EU"];
-
-        $this->packages[] = $globalModel;
+        if(empty($this->query) || str_contains($this->query, ["global", "Global"]))
+            $this->packages[] = $globalModel;
         Cache::forever("search/{$this->query}/{$this->size}", $this->packages);
         // dd($this->model->dimensions);
 
