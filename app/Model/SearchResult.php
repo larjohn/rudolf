@@ -39,7 +39,7 @@ class SearchResult extends SparqlModel
 
         if(Cache::has("search/{$this->query}/{$this->size}")){
             $this->packages = Cache::get("search/{$this->query}/{$this->size}");
-          //  return;
+            return;
         }
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
