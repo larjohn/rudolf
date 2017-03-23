@@ -39,7 +39,7 @@ class SearchResult extends SparqlModel
 
         if(Cache::has("search/{$this->query}/{$this->size}")){
             $this->packages = Cache::get("search/{$this->query}/{$this->size}");
-            return;
+          //  return;
         }
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
@@ -54,7 +54,29 @@ class SearchResult extends SparqlModel
             ->limit($this->size)
             ->groupBy("?datasetName", "?dataset")
             ;
-        if(!empty($this->query)) $queryBuilder->where("?title", "bif:contains", '"\''.$this->query.'\'"');
+        if(!empty($this->query)) {
+            if(strlen($this->query)>3) $object = '"\''.$this->query.'*\'"';
+            else $object = '"\''.$this->query.'\'"';
+
+
+            $queryBuilder
+                ->union([
+                    $queryBuilder->newSubgraph()
+                        ->where("?dataset", "a", "qb:DataSet")
+
+                    ->where("?dataset","<http://purl.org/dc/terms/title>" ,"?title")
+                    ->where("?title", "bif:contains", $object),
+                    $queryBuilder->newSubgraph()
+                        ->where("?dataset", "a", "qb:DataSet")
+
+                    ->where("?dataset","<http://www.w3.org/2000/01/rdf-schema#label>" ,"?label")
+                    ->where("?label", "bif:contains", $object),
+
+                    ]
+            );
+
+        }
+
         $dataSetsResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
@@ -64,7 +86,7 @@ class SearchResult extends SparqlModel
         /** @var EasyRdf_Sparql_Result $result */
 
         $dataSetsResult = $this->rdfResultsToArray($dataSetsResult);
-     //  echo      $queryBuilder->format();die;
+      // echo      $queryBuilder->format();die;
 
         $packages = [];
 
