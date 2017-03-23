@@ -97,7 +97,7 @@ class SearchResult extends SparqlModel
             $packages[$datasetURI] = $model;
             $packages[$datasetURI]->id = $dataSetName ;
             $packages[$datasetURI]->name = $dataSetName;
-            $packages[$datasetURI]->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>$model->getModel()->getTitle(), "countryCode"=>$model->getModel()->getCountryCode()];
+            $packages[$datasetURI]->package = ["author"=>config("sparql.defaultAuthor"), "title"=>$model->getModel()->getTitle(), "countryCode"=>$model->getModel()->getCountryCode()];
 
         }
 
@@ -130,7 +130,7 @@ class SearchResult extends SparqlModel
         $globalModel = new BabbageGlobalModelResult();
         $globalModel->id = "global";
         $globalModel->load2();
-        $globalModel->package = ["author"=>"Place Holder <place.holder@not.shown>", "title"=>"Global dataset: All datasets combined", "countryCode"=>"EU"];
+        $globalModel->package = ["author"=>config("sparql.defaultAuthor"), "title"=>"Global dataset: All datasets combined", "countryCode"=>"EU"];
         if(empty($this->query) || str_contains($this->query, ["global", "Global"]))
             $this->packages[] = $globalModel;
         Cache::forever("search/{$this->query}/{$this->size}", $this->packages);

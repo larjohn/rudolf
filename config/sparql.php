@@ -21,6 +21,7 @@ return [
     "virtuoso" => true,
     "languagesOrder" => [
        "en", "de", "fr", "el", "es", "cs"
-    ]
+    ],
+    "defaultAuthor" => "OpenBudgets.eu <info@openbudgets.eu>"
 
 ];
