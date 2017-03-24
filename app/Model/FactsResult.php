@@ -263,7 +263,7 @@ class FactsResult extends SparqlModel
             ->orderBy("?observation");
         Log::info($queryBuilder->format());
 
-        echo $queryBuilder->format();die;
+        //echo $queryBuilder->format();die;
 //
      //   dd($bindings);
       //   die;
