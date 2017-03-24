@@ -142,7 +142,7 @@ class SearchResult extends SparqlModel
         $globalModel->id = "global";
         $globalModel->load2();
         $globalModel->package = ["author"=>config("sparql.defaultAuthor"), "title"=>"Global dataset: All datasets combined", "countryCode"=>"EU"];
-        if((empty($this->id) && empty($this->query)) || $this->id = "global" || str_contains($this->query, ["global", "Global"]))
+        if((empty($this->id) && empty($this->query)) || $this->id == "global" || str_contains($this->query, ["global", "Global"]))
             $this->packages[] = $globalModel;
 
         if(!empty($this->id)) Cache::forever("search/{$this->id}", $this->packages);
