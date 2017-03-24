@@ -11,11 +11,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Controllers\Controller;
 use App\Model\SearchResult;
+use Illuminate\Support\Facades\Input;
 
 class SearchController extends Controller
 {
     public function index(){
-        dd(request()->query("q"));
+        dd(Input::get("q"));
         return response()->json((new SearchResult(request()->query("q"), intval(request()->query("size", 10000))))->packages);
 
     }
