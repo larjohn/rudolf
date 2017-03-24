@@ -40,9 +40,9 @@ class SearchResult extends SparqlModel
 
         if(!empty($this->id) && Cache::has("search/{$this->id}")){
             $this->packages = Cache::get("search/{$this->id}");
-            return;
+            //return;
         }
-        if(Cache::has("search/{$this->query}/{$this->size}")){
+        if(empty($this->id) && Cache::has("search/{$this->query}/{$this->size}")){
             $this->packages = Cache::get("search/{$this->query}/{$this->size}");
             return;
         }
@@ -97,7 +97,7 @@ class SearchResult extends SparqlModel
         /** @var EasyRdf_Sparql_Result $result */
 
         $dataSetsResult = $this->rdfResultsToArray($dataSetsResult);
-     //  echo      $queryBuilder->format();die;
+      echo      $queryBuilder->format();die;
 
         $packages = [];
 
