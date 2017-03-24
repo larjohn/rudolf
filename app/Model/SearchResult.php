@@ -97,7 +97,7 @@ class SearchResult extends SparqlModel
         /** @var EasyRdf_Sparql_Result $result */
 
         $dataSetsResult = $this->rdfResultsToArray($dataSetsResult);
-      echo      $queryBuilder->format();die;
+     // echo      $queryBuilder->format();die;
 
         $packages = [];
 
@@ -117,7 +117,7 @@ class SearchResult extends SparqlModel
 
 
         $this->packages = array_values($packages);
-       // dd($this->packages);
+       dd($this->packages);
 
         foreach ($this->packages as $packageName=>$package) {
             foreach ($package->model->dimensions as $dimension) {
