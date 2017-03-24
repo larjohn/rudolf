@@ -40,7 +40,7 @@ class SearchResult extends SparqlModel
 
         if(!empty($this->id) && Cache::has("search/{$this->id}")){
             $this->packages = Cache::get("search/{$this->id}");
-            //return;
+            return;
         }
         if(empty($this->id) && Cache::has("search/{$this->query}/{$this->size}")){
             $this->packages = Cache::get("search/{$this->query}/{$this->size}");
