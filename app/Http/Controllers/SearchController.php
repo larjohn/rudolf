@@ -15,8 +15,8 @@ use App\Model\SearchResult;
 class SearchController extends Controller
 {
     public function index(){
-        
-        return response()->json((new SearchResult(request()->query("q"), intval(request()->query("size", 10000))))->packages);
+
+        return response()->json((new SearchResult(request()->query("id",""),request()->query("q",""), intval(request()->query("size", 10000))))->packages);
 
     }
 

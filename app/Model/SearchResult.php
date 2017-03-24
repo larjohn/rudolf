@@ -20,13 +20,14 @@ class SearchResult extends SparqlModel
     private $query = "";
     private $size = 10000;
 
-    public function __construct($query="", $size=10000)
+    public function __construct($id="", $query="", $size=10000)
     {
         parent::__construct();
 
         $this->query =trim($query, '"');
         //dd(empty($this->query));
         $this->size = $size;
+        $this->id = trim($id, '"');;
 
         $this->load();
 
@@ -37,6 +38,10 @@ class SearchResult extends SparqlModel
 
     public function load(){
 
+        if(!empty($this->id) && Cache::has("search/{$this->id}")){
+            $this->packages = Cache::get("search/{$this->id}");
+            return;
+        }
         if(Cache::has("search/{$this->query}/{$this->size}")){
             $this->packages = Cache::get("search/{$this->query}/{$this->size}");
             return;
@@ -54,7 +59,11 @@ class SearchResult extends SparqlModel
             ->limit($this->size)
             ->groupBy("?datasetName", "?dataset")
             ;
-        if(!empty($this->query)) {
+        if(!empty($this->id)){
+            $queryBuilder->filter("?datasetName = '{$this->id}'");
+        }
+
+        if(empty($this->id) && !empty($this->query)) {
             if(strlen($this->query)>3) $object = '"\''.$this->query.'*\'"';
             else $object = '"\''.$this->query.'\'"';
 
@@ -77,6 +86,8 @@ class SearchResult extends SparqlModel
 
         }
 
+
+
         $dataSetsResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );
@@ -86,7 +97,7 @@ class SearchResult extends SparqlModel
         /** @var EasyRdf_Sparql_Result $result */
 
         $dataSetsResult = $this->rdfResultsToArray($dataSetsResult);
-       //echo      $queryBuilder->format();die;
+     //  echo      $queryBuilder->format();die;
 
         $packages = [];
 
@@ -131,9 +142,11 @@ class SearchResult extends SparqlModel
         $globalModel->id = "global";
         $globalModel->load2();
         $globalModel->package = ["author"=>config("sparql.defaultAuthor"), "title"=>"Global dataset: All datasets combined", "countryCode"=>"EU"];
-        if( str_contains($this->query, ["global", "Global"]))
+        if((empty($this->id) && empty($this->query)) || $this->id = "global" || str_contains($this->query, ["global", "Global"]))
             $this->packages[] = $globalModel;
-        Cache::forever("search/{$this->query}/{$this->size}", $this->packages);
+
+        if(!empty($this->id)) Cache::forever("search/{$this->id}", $this->packages);
+            else    Cache::forever("search/{$this->query}/{$this->size}", $this->packages);
         // dd($this->model->dimensions);
 
 
