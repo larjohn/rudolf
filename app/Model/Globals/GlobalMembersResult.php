@@ -382,7 +382,7 @@ class GlobalMembersResult extends SparqlModel
                                 if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
 
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                    $newQuery->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+                                    $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
                                 } else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
 
                             }
@@ -406,7 +406,7 @@ class GlobalMembersResult extends SparqlModel
                                     if (in_array($subPattern->object, $allSelectedFields)) $outerSelectedFields[$subPattern->object] = $subPattern->object;
 
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $newQuery->values($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+                                        $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
                                     } else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
 
@@ -444,7 +444,7 @@ class GlobalMembersResult extends SparqlModel
                                 if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
 
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                    $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+                                    $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
                                 } else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
 
@@ -467,7 +467,7 @@ class GlobalMembersResult extends SparqlModel
                                     if (in_array($subPattern->object, $allSelectedFields)) $outerSelectedFields[$subPattern->object] = $subPattern->object;
 
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+                                        $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
                                     } else $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
                                 $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
@@ -581,7 +581,7 @@ class GlobalMembersResult extends SparqlModel
                                 if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
 
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                    $newQuery->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+                                    $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
                                 } else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
 
                             }
@@ -605,7 +605,7 @@ class GlobalMembersResult extends SparqlModel
                                     if (in_array($subPattern->object, $allSelectedFields)) $outerSelectedFields[$subPattern->object] = $subPattern->object;
 
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $newQuery->values($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+                                        $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
                                     } else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
 
@@ -642,7 +642,7 @@ class GlobalMembersResult extends SparqlModel
                                 if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
 
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                    $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+                                    $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
                                 } else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
 
@@ -664,7 +664,7 @@ class GlobalMembersResult extends SparqlModel
                                     if (in_array($subPattern->object, $allSelectedFields)) $outerSelectedFields[$subPattern->object] = $subPattern->object;
 
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+                                        $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
                                     } else $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
                                 $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));

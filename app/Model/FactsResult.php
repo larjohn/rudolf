@@ -351,7 +351,7 @@ class FactsResult extends SparqlModel
 
                     $values[]=[$binding=>"$val"];
                 }
-                $queryBuilder->values($values);
+                $queryBuilder->values_multi($values);
             }
         }
 

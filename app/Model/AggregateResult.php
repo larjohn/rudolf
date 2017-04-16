@@ -533,7 +533,7 @@ class AggregateResult extends SparqlModel
 
                     $values[] = [$binding => "$val"];
                 }
-                $queryBuilder->values($values);
+                $queryBuilder->values_multi($values);
             }
         }
         $basicQueryBuilder->select(array_merge($aggregateBindings,array_diff($drilldownBindings, $outsiderFilteredLabels),["?observation"]));
@@ -633,7 +633,7 @@ class AggregateResult extends SparqlModel
 
                     $values[] = [$binding => "$val"];
                 }
-                $basicQueryBuilder->values($values);
+                $basicQueryBuilder->values_multi($values);
             }
         }
 
@@ -711,7 +711,7 @@ class AggregateResult extends SparqlModel
 
                     $values[] = [$binding => "$val"];
                 }
-                $subQuery->values($values);
+                $subQuery->values_multi($values);
             }
         }
 

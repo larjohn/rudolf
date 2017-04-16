@@ -517,7 +517,7 @@ class GlobalFactsResult extends FactsResult
         });
 
 
-        //$basicQueryBuilder->values($rateTuples);
+        //$basicQueryBuilder->values_multi($rateTuples);
 
         $basicQueryBuilder->where("?observation", "qb:dataSet", "?dataSet");
 //dd($flatDimensionPatterns);
@@ -535,7 +535,7 @@ class GlobalFactsResult extends FactsResult
                                // $newQuery->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                           //  } else {
                             if($pattern->predicate == "rdfs:subPropertyOf"){
-                                $newQuery->values($this->subPropertiesAcceleration[ltrim($pattern->subject,"?")]);
+                                $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject,"?")]);
                             }else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                            // }
                         } elseif ($pattern instanceof SubPattern) {
@@ -546,13 +546,13 @@ class GlobalFactsResult extends FactsResult
                                   //  $newQuery->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                // } else {
                                 if($subPattern->predicate == "rdfs:subPropertyOf"){
-                                    $newQuery->values($this->subPropertiesAcceleration[ltrim($subPattern->subject,"?")]);
+                                    $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject,"?")]);
                                 }else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                               //  }
                             }
 
                         } else if ($pattern instanceof BindPattern) {
-                           // $newQuery->values($rateTuples);
+                           // $newQuery->values_multi($rateTuples);
                            // if (in_array($pattern->getVariable(), $allSelectedFields)) $selections[$pattern->getVariable()] = $pattern->getVariable();
                             //dd($pattern->getVariable());
                             //$newQuery->bind($pattern->expression);
@@ -585,7 +585,7 @@ class GlobalFactsResult extends FactsResult
                                 $basicQueryBuilder->optional($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             } else {
                                 if($pattern->predicate == "rdfs:subPropertyOf"){
-                                    $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($pattern->subject,"?")]);
+                                    $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject,"?")]);
                                 }else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
                         } elseif ($pattern instanceof SubPattern) {
@@ -597,7 +597,7 @@ class GlobalFactsResult extends FactsResult
                                     $basicQueryBuilder->optional($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 } else {
                                     if($subPattern->predicate == "rdfs:subPropertyOf"){
-                                        $basicQueryBuilder->values($this->subPropertiesAcceleration[ltrim($subPattern->subject,"?")]);
+                                        $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject,"?")]);
                                     }else $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
                             }
@@ -636,7 +636,7 @@ class GlobalFactsResult extends FactsResult
 
                     $values[]=[$binding=>"$val"];
                 }
-                $basicQueryBuilder->values($values);
+                $basicQueryBuilder->values_multi($values);
             }
         }
 

@@ -245,7 +245,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
             $globalsQueryBuilder->where("?dsd", "qb:component", "?component");
             $globalsQueryBuilder->where("?component", "?componentProperty", "?attribute");
             $globalsQueryBuilder->where("?attribute", "rdfs:label", "?label");
-            $globalsQueryBuilder->values([["componentProperty"=>"qb:dimension"],["componentProperty"=>"qb:measure"],["componentProperty"=>"qb:attribute"]]);
+            $globalsQueryBuilder->values_multi([["componentProperty"=>"qb:dimension"],["componentProperty"=>"qb:measure"],["componentProperty"=>"qb:attribute"]]);
             $globalsQueryBuilder->filter('LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")');
             $globalsQueryBuilder->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5), '__', REPLACE(str(?attribute), '^.*(#|/)', \"\")) AS ?shortName");
             $globalsQueryBuilder->bind("REPLACE(str(?dataset), '^.*(#|/)', \"\") AS ?originalName");
