@@ -293,33 +293,42 @@ class FactsResult extends SparqlModel
      */
     private function build(array $bindings, array $dimensionPatterns, array $filterMap =[]){
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $filterExpressions = [];
+        $patternExpressions = [];
 
         foreach ($dimensionPatterns as $dimensionPattern) {
 
 
             if($dimensionPattern instanceof TriplePattern || ($dimensionPattern instanceof SubPattern && !$dimensionPattern->isOptional)){
                 if ($dimensionPattern->predicate == "skos:prefLabel") {
+                    $expression = $this->buildLanguageFilterExpression($dimensionPattern->object);
+                    if(!isset($filterExpressions[$expression])) {
+                       $queryBuilder->filter($this->buildLanguageFilterExpression($dimensionPattern->object));
+                        $filterExpressions[$expression] = $expression;
 
-                    $queryBuilder->filter($this->buildLanguageFilterExpression($dimensionPattern->object))->where($dimensionPattern->subject, self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
-
-
+                    }
+                }
+                if(!isset($patternExpressions[$dimensionPattern->object])){
+                    $queryBuilder->where($dimensionPattern->subject,  self::expand($dimensionPattern->predicate, $dimensionPattern->transitivity), $dimensionPattern->object);
+                    $patternExpressions[$dimensionPattern->object] = $dimensionPattern->object;
                 }
 
-                if($dimensionPattern->isOptional){
-                    $queryBuilder->where($dimensionPattern->subject,  self::expand($dimensionPattern->predicate), $dimensionPattern->object);
-                }
-                else{
-                    $queryBuilder->where($dimensionPattern->subject,  self::expand($dimensionPattern->predicate), $dimensionPattern->object);
-                }
             }
             elseif($dimensionPattern instanceof SubPattern){
 
                 foreach($dimensionPattern->patterns as $pattern){
-                    $queryBuilder->where($pattern->subject, self::expand($pattern->predicate), $pattern->object);
+                    if(!isset($patternExpressions[$pattern->object])){
+                        $queryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
+                        $patternExpressions[$pattern->object] = $pattern->object;
+                    }
                     if ($pattern->predicate == "skos:prefLabel") {
+                        $expression = $this->buildLanguageFilterExpression($pattern->object);
+                        if(!isset($filterExpressions[$expression])) {
+                            $queryBuilder->filter($this->buildLanguageFilterExpression($pattern->object));
+                            $filterExpressions[$expression] = $expression;
 
-                        $queryBuilder->filter( $this->buildLanguageFilterExpression($pattern->object) )->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
 
+                        }
 
                     }
                 }
@@ -333,8 +342,13 @@ class FactsResult extends SparqlModel
             if(!$filter->isCardinal){
                 $filter->value = trim($filter->value, '"');
                 $filter->value = trim($filter->value, "'");
+                $expression = "str({$filter->binding})='{$filter->value}'";
+                if(!isset($filterExpressions[$expression])){
+                    $queryBuilder->filter($expression);
+                    $filterExpressions[$expression] = $expression;
+                }
 
-                $queryBuilder->filter("str({$filter->binding})='{$filter->value}'");
+
             }
             else{
 
@@ -354,7 +368,6 @@ class FactsResult extends SparqlModel
                 $queryBuilder->values_multi($values);
             }
         }
-
         $queryBuilder
             ->select($bindings)
 

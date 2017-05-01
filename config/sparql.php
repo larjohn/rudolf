@@ -17,7 +17,7 @@ return [
     "excusedPrefixes" => [
         'bif' => 'http://www.openlinksw.com/schemas/bif#'
     ],
-    "endpoint" =>'http://data.openbudgets.eu/sparql',
+    "endpoint" =>'http://localhost:8890/sparql',
     "virtuoso" => true,
     "languagesOrder" => [
        "en", "de", "fr", "el", "es", "cs"

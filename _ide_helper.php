@@ -1,7 +1,7 @@
 <?php
 /**
  * A helper file for Laravel 5, to provide autocomplete information to your IDE
- * Generated for Laravel 5.2.45 on 2017-04-16.
+ * Generated for Laravel 5.2.45 on 2017-04-23.
  *
  * @author Barry vd. Heuvel <barryvdh@gmail.com>
  * @see https://github.com/barryvdh/laravel-ide-helper
@@ -1773,18 +1773,6 @@ namespace Illuminate\Support\Facades {
         /**
          * Determine if the current user is authenticated.
          *
-         * @return \App\User 
-         * @throws \Illuminate\Auth\AuthenticationException
-         * @static 
-         */
-        public static function authenticate()
-        {
-            return \Illuminate\Auth\SessionGuard::authenticate();
-        }
-        
-        /**
-         * Determine if the current user is authenticated.
-         *
          * @return bool 
          * @static 
          */
@@ -1802,6 +1790,18 @@ namespace Illuminate\Support\Facades {
         public static function guest()
         {
             return \Illuminate\Auth\SessionGuard::guest();
+        }
+        
+        /**
+         * Determine if the current user is authenticated.
+         *
+         * @return \App\User 
+         * @throws \Illuminate\Auth\AuthenticationException
+         * @static 
+         */
+        public static function authenticate()
+        {
+            return \Illuminate\Auth\SessionGuard::authenticate();
         }
         
     }         
@@ -2729,6 +2729,49 @@ namespace Illuminate\Support\Facades {
         public static function getQueuedCookies()
         {
             return \Illuminate\Cookie\CookieJar::getQueuedCookies();
+        }
+        
+    }         
+
+    class Crypt {
+        
+        /**
+         * Determine if the given key and cipher combination is valid.
+         *
+         * @param string $key
+         * @param string $cipher
+         * @return bool 
+         * @static 
+         */
+        public static function supported($key, $cipher)
+        {
+            return \Illuminate\Encryption\Encrypter::supported($key, $cipher);
+        }
+        
+        /**
+         * Encrypt the given value.
+         *
+         * @param string $value
+         * @return string 
+         * @throws \Illuminate\Contracts\Encryption\EncryptException
+         * @static 
+         */
+        public static function encrypt($value)
+        {
+            return \Illuminate\Encryption\Encrypter::encrypt($value);
+        }
+        
+        /**
+         * Decrypt the given value.
+         *
+         * @param string $payload
+         * @return string 
+         * @throws \Illuminate\Contracts\Encryption\DecryptException
+         * @static 
+         */
+        public static function decrypt($payload)
+        {
+            return \Illuminate\Encryption\Encrypter::decrypt($payload);
         }
         
     }         
@@ -5357,6 +5400,134 @@ namespace Illuminate\Support\Facades {
         public static function isDownForMaintenance()
         {
             return \Illuminate\Queue\QueueManager::isDownForMaintenance();
+        }
+        
+        /**
+         * Push a new job onto the queue.
+         *
+         * @param string $job
+         * @param mixed $data
+         * @param string $queue
+         * @return mixed 
+         * @throws \Exception|\Throwable
+         * @static 
+         */
+        public static function push($job, $data = '', $queue = null)
+        {
+            return \Illuminate\Queue\SyncQueue::push($job, $data, $queue);
+        }
+        
+        /**
+         * Push a raw payload onto the queue.
+         *
+         * @param string $payload
+         * @param string $queue
+         * @param array $options
+         * @return mixed 
+         * @static 
+         */
+        public static function pushRaw($payload, $queue = null, $options = array())
+        {
+            return \Illuminate\Queue\SyncQueue::pushRaw($payload, $queue, $options);
+        }
+        
+        /**
+         * Push a new job onto the queue after a delay.
+         *
+         * @param \DateTime|int $delay
+         * @param string $job
+         * @param mixed $data
+         * @param string $queue
+         * @return mixed 
+         * @static 
+         */
+        public static function later($delay, $job, $data = '', $queue = null)
+        {
+            return \Illuminate\Queue\SyncQueue::later($delay, $job, $data, $queue);
+        }
+        
+        /**
+         * Pop the next job off of the queue.
+         *
+         * @param string $queue
+         * @return \Illuminate\Contracts\Queue\Job|null 
+         * @static 
+         */
+        public static function pop($queue = null)
+        {
+            return \Illuminate\Queue\SyncQueue::pop($queue);
+        }
+        
+        /**
+         * Push a new job onto the queue.
+         *
+         * @param string $queue
+         * @param string $job
+         * @param mixed $data
+         * @return mixed 
+         * @static 
+         */
+        public static function pushOn($queue, $job, $data = '')
+        {
+            //Method inherited from \Illuminate\Queue\Queue            
+            return \Illuminate\Queue\SyncQueue::pushOn($queue, $job, $data);
+        }
+        
+        /**
+         * Push a new job onto the queue after a delay.
+         *
+         * @param string $queue
+         * @param \DateTime|int $delay
+         * @param string $job
+         * @param mixed $data
+         * @return mixed 
+         * @static 
+         */
+        public static function laterOn($queue, $delay, $job, $data = '')
+        {
+            //Method inherited from \Illuminate\Queue\Queue            
+            return \Illuminate\Queue\SyncQueue::laterOn($queue, $delay, $job, $data);
+        }
+        
+        /**
+         * Push an array of jobs onto the queue.
+         *
+         * @param array $jobs
+         * @param mixed $data
+         * @param string $queue
+         * @return mixed 
+         * @static 
+         */
+        public static function bulk($jobs, $data = '', $queue = null)
+        {
+            //Method inherited from \Illuminate\Queue\Queue            
+            return \Illuminate\Queue\SyncQueue::bulk($jobs, $data, $queue);
+        }
+        
+        /**
+         * Set the IoC container instance.
+         *
+         * @param \Illuminate\Container\Container $container
+         * @return void 
+         * @static 
+         */
+        public static function setContainer($container)
+        {
+            //Method inherited from \Illuminate\Queue\Queue            
+            \Illuminate\Queue\SyncQueue::setContainer($container);
+        }
+        
+        /**
+         * Set the encrypter implementation.
+         *
+         * @param \Illuminate\Contracts\Encryption\Encrypter $encrypter
+         * @return void 
+         * @static 
+         */
+        public static function setEncrypter($encrypter)
+        {
+            //Method inherited from \Illuminate\Queue\Queue            
+            \Illuminate\Queue\SyncQueue::setEncrypter($encrypter);
         }
         
     }         
@@ -10294,6 +10465,8 @@ namespace {
     class Config extends \Illuminate\Support\Facades\Config {}
     
     class Cookie extends \Illuminate\Support\Facades\Cookie {}
+    
+    class Crypt extends \Illuminate\Support\Facades\Crypt {}
     
     class DB extends \Illuminate\Support\Facades\DB {}
     
