@@ -9,17 +9,15 @@
 namespace App\Http\Controllers;
 
 
-use App\Http\Controllers\Controller;
 use App\Model\SearchResult;
 
 class SearchController extends Controller
 {
-    public function index(){
-
-        return response()->json((new SearchResult(request()->query("id",""),request()->query("q",""), intval(request()->query("size", 10000))))->packages);
+    public function index()
+    {
+        return response()->json((new SearchResult(request()->query("id", ""), request()->query("q", ""), intval(request()->query("size", 10000)), intval(request()->query("from", 0))))->packages);
 
     }
 
 
-  
 }

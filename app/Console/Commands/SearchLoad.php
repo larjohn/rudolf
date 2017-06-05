@@ -38,6 +38,16 @@ class SearchLoad extends Command
      */
     public function handle()
     {
-        return new SearchResult();
+        $all  = new SearchResult();
+
+        $count = count($all->packages);
+        $pageSize = config("sparql.search.pageSize", 50);
+        $lastPage = intval($count/$pageSize);
+
+        for($i=0;$i<$lastPage;$i++){
+            new SearchResult(null,"", $pageSize, $i*$pageSize);
+        }
+
+        return $all;
     }
 }

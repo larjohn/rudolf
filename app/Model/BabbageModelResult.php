@@ -72,8 +72,8 @@ class BabbageModelResult extends SparqlModel
         /** @var EasyRdf_Sparql_Result $result */
 //dd($identifyQueryResult);
         if($identifyQueryResult->count()>0){
-
             $identifyQueryResult = $this->rdfResultsToArray($identifyQueryResult);
+
             $this->model->setTitles($this->resolveLabels($identifyQueryResult[0]["titles"]));
             $this->model->setDataset($identifyQueryResult[0]["dataset"]);
             $this->model->setTitle($this->preferLabel($this->model->getTitles()));
@@ -90,7 +90,7 @@ class BabbageModelResult extends SparqlModel
         if(Cache::has($name)){
 
            $this->model =  Cache::get($name);
-            return;
+           return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
@@ -160,7 +160,10 @@ class BabbageModelResult extends SparqlModel
 
                 $newMeasure->ref = $property["shortName"];
                 $newMeasure->column = $property["shortName"];// $attribute;
-                $newMeasure->setLabels($this->resolveLabels($property["labels"]));
+                $resolvedLabels = $this->resolveLabels($property["labels"]);
+
+                if(isset($resolvedLabels[""]) && $resolvedLabels[""]==="")$newMeasure->setLabels([""=>$property['shortName']]);
+                else   $newMeasure->setLabels($resolvedLabels);
                 $newMeasure->label = $this->preferLabel($newMeasure->getLabels());
                 $newMeasure->orig_measure = $property["shortName"];// $attribute;
                 $this->model->measures[$property["shortName"]] = $newMeasure;
@@ -290,8 +293,8 @@ class BabbageModelResult extends SparqlModel
             ->where("?dataset", "?attribute", "?value")
             ->filter("?name = '$name'")
             ->optional($queryBuilder->newSubgraph()
-                ->where("?attribute", "a", "?propertyType")->filter("?propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"))
-            ->groupBy('?attribute', '?value', "?shortName");
+                ->where("?attribute", "a", "?propertyType")->filter("?propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"));
+        //->groupBy('?attribute', '?value', "?shortName");
         $dimensionsResult = $this->sparql->query(
             $datasetDimensionsQueryBuilder->getSPARQL()
         );
@@ -349,7 +352,7 @@ class BabbageModelResult extends SparqlModel
 
     public function resolveLabels($concat){
 
-        $re = '/(\w{1,6})=([[:punct:]\w\s]*)(\|\||$)/uU';
+        $re = '/(\w{1,6})?=([[:punct:]\w\s]*)(\|\||$)/uU';
         $matches = [];
         preg_match_all($re, $concat, $matches);
         $dictionary = array_combine($matches[1], $matches[2]);

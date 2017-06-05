@@ -19,14 +19,16 @@ class SearchResult extends SparqlModel
 {
     private $query = "";
     private $size = 10000;
+    private $from = 0;
 
-    public function __construct($id="", $query="", $size=10000)
+    public function __construct($id="", $query="", $size=10000, $from=0)
     {
         parent::__construct();
 
         $this->query =trim($query, '"');
         //dd(empty($this->query));
         $this->size = $size;
+        $this->from = $from;
         $this->id = trim($id, '"');;
 
         $this->load();
@@ -42,8 +44,8 @@ class SearchResult extends SparqlModel
            $this->packages = Cache::get("search/{$this->id}");
            return;
         }
-        if(empty($this->id) && Cache::has("search/{$this->query}/{$this->size}")){
-            $this->packages = Cache::get("search/{$this->query}/{$this->size}");
+        if(empty($this->id) && Cache::has("search/{$this->query}/{$this->size}/{$this->from}")){
+            $this->packages = Cache::get("search/{$this->query}/{$this->size}/{$this->from}");
             return;
         }
 
@@ -57,6 +59,7 @@ class SearchResult extends SparqlModel
 
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?datasetName")
             ->limit($this->size)
+            ->offset($this->from)
             ->groupBy("?datasetName", "?dataset")
             ;
         if(!empty($this->id)){
@@ -97,7 +100,7 @@ class SearchResult extends SparqlModel
         /** @var EasyRdf_Sparql_Result $result */
 
         $dataSetsResult = $this->rdfResultsToArray($dataSetsResult);
-    //  echo      $queryBuilder->format();die;
+     // echo      $queryBuilder->format();die;
 
         $packages = [];
 
@@ -146,7 +149,7 @@ class SearchResult extends SparqlModel
             $this->packages[] = $globalModel;
 
         if(!empty($this->id)) Cache::forever("search/{$this->id}", $this->packages);
-            else    Cache::forever("search/{$this->query}/{$this->size}", $this->packages);
+            else    Cache::forever("search/{$this->query}/{$this->size}/{$this->from}", $this->packages);
         // dd($this->model->dimensions);
 
 
