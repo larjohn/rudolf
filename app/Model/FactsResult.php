@@ -80,7 +80,7 @@ class FactsResult extends SparqlModel
         if (count($fields) < 1 || $fields[0] == "") {
             $fields = [];
             foreach ($model->dimensions as $dimension) {
-                if($dimension->getAttachment()!="qb:DataSet")
+               // if($dimension->getAttachment()!="qb:DataSet")
                 $fields[] = $dimension->label_ref;
 
 
@@ -92,7 +92,6 @@ class FactsResult extends SparqlModel
             }
 
         }
-
         $selectedPatterns = $this->modelFieldsToPatterns($model,$fields);
         $offset = $page_size * $page ;
 
