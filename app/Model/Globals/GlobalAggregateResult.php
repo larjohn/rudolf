@@ -871,7 +871,11 @@ class GlobalAggregateResult extends AggregateResult
                                 if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
 
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                    $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+
+                                    $indx = ltrim($pattern->subject, "?");
+                                    $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                    $newQuery->values($valArray);
+
                                 } else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
 
@@ -900,7 +904,10 @@ class GlobalAggregateResult extends AggregateResult
                                     if (in_array($subPattern->object, $allSelectedFields)) $outerSelectedFields[$subPattern->object] = $subPattern->object;
 
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+                                        $indx = ltrim($subPattern->subject, "?");
+                                        $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                        $newQuery->values($valArray);
+
                                     } else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
 
                                 }
@@ -947,7 +954,11 @@ class GlobalAggregateResult extends AggregateResult
                             } else {
                                 if (in_array($pattern->object, $allSelectedFields)) $outerSelectedFields[$pattern->object] = $pattern->object;
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                    $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+
+                                    $indx = ltrim($pattern->subject, "?");
+                                    $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                    $basicQueryBuilder->values($valArray);
+
                                 } else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
 
@@ -973,7 +984,12 @@ class GlobalAggregateResult extends AggregateResult
                                 } else {
                                     if (in_array($subPattern->object, $allSelectedFields)) $outerSelectedFields[$subPattern->object] = $subPattern->object;
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+
+                                        $indx = ltrim($subPattern->subject, "?");
+                                        $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                        $basicQueryBuilder->values($valArray);
+
+
                                     } else $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
 
@@ -1177,7 +1193,12 @@ class GlobalAggregateResult extends AggregateResult
                                 // $newQuery->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
                             } else {
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                    $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+
+                                    $indx = ltrim($pattern->subject, "?");
+                                    $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                    $newQuery->values($valArray);
+
+
                                 } else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
 
@@ -1196,7 +1217,11 @@ class GlobalAggregateResult extends AggregateResult
                                     // $newQuery->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
                                 } else {
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+
+                                        $indx = ltrim($subPattern->subject, "?");
+                                        $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                        $newQuery->values($valArray);
+
                                     } else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
 
@@ -1240,7 +1265,11 @@ class GlobalAggregateResult extends AggregateResult
 
                             } else {
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                    $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+
+                                    $indx = ltrim($pattern->subject, "?");
+                                    $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                    $basicQueryBuilder->values($valArray);
+
                                 } else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
 
@@ -1260,7 +1289,11 @@ class GlobalAggregateResult extends AggregateResult
                                     //  $basicQueryBuilder->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
                                 } else {
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+
+                                        $indx = ltrim($subPattern->subject, "?");
+                                        $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                        $basicQueryBuilder->values($valArray);
+
                                     } else $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                     $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
                                 }
@@ -1408,7 +1441,11 @@ class GlobalAggregateResult extends AggregateResult
                                     // $newQuery->filter("LANG($pattern->object) = '' || LANGMATCHES(LANG($pattern->object), 'en')");
                                 }
                                 if ($pattern->predicate == "rdfs:subPropertyOf") {
-                                    $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+
+                                    $indx = ltrim($pattern->subject, "?");
+                                    $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                    $newQuery->values($valArray);
+
                                 } else $newQuery->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             }
                         } elseif ($pattern instanceof SubPattern) {
@@ -1425,7 +1462,13 @@ class GlobalAggregateResult extends AggregateResult
                                     }
                                     //dd($this->subPropertiesAcceleration);
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $newQuery->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+
+
+                                        $indx = ltrim($subPattern->subject, "?");
+                                        $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                        $newQuery->values($valArray);
+
+
                                     } else $newQuery->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                 }
                             }
@@ -1461,7 +1504,11 @@ class GlobalAggregateResult extends AggregateResult
                             }
                             if ($pattern->predicate == "rdfs:subPropertyOf") {
 
-                                $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($pattern->subject, "?")]);
+
+                                $indx = ltrim($pattern->subject, "?");
+                                $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                $basicQueryBuilder->values($valArray);
+
                             } else $basicQueryBuilder->where($pattern->subject, self::expand($pattern->predicate, $pattern->transitivity), $pattern->object);
                             $tripleAntiRepeatHashes[] = md5(json_encode($pattern));
 
@@ -1478,7 +1525,11 @@ class GlobalAggregateResult extends AggregateResult
                                         //   $basicQueryBuilder->filter("LANG($subPattern->object) = '' || LANGMATCHES(LANG($subPattern->object), 'en')");
                                     }
                                     if ($subPattern->predicate == "rdfs:subPropertyOf") {
-                                        $basicQueryBuilder->values_multi($this->subPropertiesAcceleration[ltrim($subPattern->subject, "?")]);
+
+                                        $indx = ltrim($subPattern->subject, "?");
+                                        $valArray = ["?{$indx}"=> array_map(function($value) use ($indx) {return ($value[$indx]);}, $this->subPropertiesAcceleration[$indx])];
+                                        $basicQueryBuilder->values($valArray);
+
                                     } else $basicQueryBuilder->where($subPattern->subject, self::expand($subPattern->predicate, $subPattern->transitivity), $subPattern->object);
                                     $tripleAntiRepeatHashes[] = md5(json_encode($subPattern));
 
