@@ -131,7 +131,7 @@ class BabbageModelResult extends SparqlModel
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
             $subQuery = $queryBuilder->newSubquery();
             $subSubQuery = $subQuery->newSubquery();
-            $subSubQuery->select("?value");
+            $subSubQuery->selectDistinct("?value");
             $subSubQuery->limit(20);
 
             if(isset($property["attachment"]) &&  $property["attachment"]=="qb:Slice"){

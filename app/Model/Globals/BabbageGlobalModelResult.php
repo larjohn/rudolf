@@ -92,7 +92,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
             $subQuery = $queryBuilder->newSubquery();
             $subSubQuery = $subQuery->newSubquery();
-            $subSubQuery->select("?value");
+            $subSubQuery->selectDistinct("?value");
             $subSubQuery->limit(1);
             if (isset($property["attachment"]) && $property["attachment"] == "qb:Slice") {
                 $subSubQuery->where('?observation', 'a', 'qb:Observation');
