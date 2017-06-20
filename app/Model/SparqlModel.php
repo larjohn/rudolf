@@ -419,7 +419,8 @@ class SparqlModel
     protected $bindingsToLanguages = [];
 
     public function buildLanguageFilterExpression($binding){
-        if(!isset($this->bindingsToLanguages[$binding]))return "true";
+
+        if(!isset($this->bindingsToLanguages[$binding]))return null;
         $language = $this->resolveLanguages($this->bindingsToLanguages[$binding]);
         return "LANG({$binding}) = '$language' || LANG({$binding}) = ''";
     }

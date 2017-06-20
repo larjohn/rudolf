@@ -274,6 +274,19 @@ class GlobalAggregateResult extends AggregateResult
                     }
 
                     foreach ($dimensionPatterns as $patternName => $dimensionPattern) {
+
+                        // dd($patternPredicate);
+                        $childBinding = $sorterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
+                        $languages = [];
+
+                        foreach ($dimension->getInnerDimensions() as $innerDimension) {
+                            /** @var Attribute $actualAttribute */
+                            $actualAttribute = array_filter($innerDimension->attributes, function ($attribute)use($patternName){return $attribute->getUri()==$patternName;});
+//dump($actualAttribute);
+                            if($actualAttribute)$languages = array_merge($languages, reset($actualAttribute)->getLanguages());
+                        }
+                        $this->bindingsToLanguages[$childBinding] = array_filter(array_unique($languages), function($value) { return $value !== ''; });
+
                         $attributes[$datasetURI][$attribute][$patternName] = $attributes[$datasetURI][$attribute]["uri"] . "_" . substr(md5($patternName), 0, 5);
                         $sorterBindings[$datasetURI][] = $sorterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
                         $sorterMap[$datasetURI][$attribute][$patternName]->binding = $sorterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
@@ -391,6 +404,16 @@ class GlobalAggregateResult extends AggregateResult
                         } else $transitivity = null;
 
                         // dd($patternPredicate);
+                        $childBinding = $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
+                        $languages = [];
+
+                        foreach ($dimension->getInnerDimensions() as $innerDimension) {
+                            /** @var Attribute $actualAttribute */
+                            $actualAttribute = array_filter($innerDimension->attributes, function ($attribute)use($patternName){return $attribute->getUri()==$patternName;});
+//dump($actualAttribute);
+                            if($actualAttribute)$languages = array_merge($languages, reset($actualAttribute)->getLanguages());
+                        }
+                        $this->bindingsToLanguages[$childBinding] = array_filter(array_unique($languages), function($value) { return $value !== ''; });
 
                         $attributes[$datasetURI][$attribute][$patternName] = $attributes[$datasetURI][$attribute]["uri"] . "_" . substr(md5($patternName), 0, 5);
                         $filterBindings[$datasetURI][] = $filterBindings[$datasetURI][$attribute] . "_" . substr(md5($patternName), 0, 5);
@@ -535,6 +558,7 @@ class GlobalAggregateResult extends AggregateResult
                     // $patterns[$datasetURI][$foundDimension->getUri()][] = new TriplePattern("?observation", $attribute, $drilldownBindings[$datasetURI][$attribute], false);
                 }
                 $dimensionPatterns = &$selectedDrilldowns[$datasetURI][$attribute];
+
                 foreach ($dimensionPatterns as $patternName => $dimensionPattern) {
 
                     $languages = [];
@@ -1096,10 +1120,8 @@ class GlobalAggregateResult extends AggregateResult
             }
         }
 
-
         foreach ($langTriplesArray as $group) {
            // $optional = $queryBuilder->newSubgraph();
-
             foreach ($group as $triple) {
                 if ($triple instanceof FilterPattern) {
                     $queryBuilder->filter($triple->expression);
