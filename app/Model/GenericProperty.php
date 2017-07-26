@@ -9,9 +9,10 @@
 namespace App\Model;
 
 
-class GenericProperty
+abstract class GenericProperty
 {
     protected $attachment;
+    public $ref;
 
     /**
      * @param mixed $attachment
@@ -66,6 +67,9 @@ class GenericProperty
     {
         $this->labels = $labels;
     }
+
+
+    public abstract function getBinding();
 
 
 }

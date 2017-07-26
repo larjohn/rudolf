@@ -58,5 +58,9 @@ class Measure extends GenericProperty
     }
 
 
+    public function getBinding()
+    {
+        // TODO: Implement getBinding() method.
+    }
 }
 

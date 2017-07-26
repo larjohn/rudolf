@@ -76,4 +76,13 @@ class Attribute extends GenericProperty
         $this->languages = $languages;
     }
 
+    /**
+     * @var Dimension
+     */
+    protected $dimension;
+
+    public function getBinding()
+    {
+        // TODO: Implement getBinding() method.
+    }
 }

@@ -113,7 +113,7 @@ class BabbageModelResult extends SparqlModel
             ->groupBy('?attribute',   "?shortName", "?attachment", "?dataset");
         ;
 
-        //echo($queryBuilder->format());die;
+       // echo($queryBuilder->format());die;
         /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
         $propertiesSparqlResult = $this->sparql->query(
             $queryBuilder->getSPARQL()

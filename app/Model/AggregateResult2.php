@@ -93,9 +93,9 @@ class AggregateResult extends SparqlModel
         $this->aggregates[] = "_count";
 
         // return $facts;
-        $selectedAggregates = $this->modelFieldsToPatterns($model, $aggregates);
-        //$this->modelFieldsToPatterns2($model, $drilldowns);
-        $selectedDrilldowns = $this->modelFieldsToPatterns($model, $drilldowns);
+       // $selectedAggregates = $this->modelFieldsToPatterns($model, $aggregates);
+        $selectedAggregates2 = $this->modelFieldsToPatterns2($model, $drilldowns);
+       // $selectedDrilldowns = $this->modelFieldsToPatterns($model, $drilldowns);
 
         $offset = $this->page_size * $this->page;
 

@@ -88,6 +88,33 @@ class Dimension extends GenericProperty
         $this->dataSet = $dataSet;
     }
 
+    /**
+     * @var boolean
+     */
+    protected $generated = false;
 
+    /**
+     * @return bool
+     */
+    public function isGenerated(): bool
+    {
+        return $this->generated;
+    }
 
+    /**
+     * @param bool $generated
+     */
+    public function setGenerated(bool $generated)
+    {
+        $this->generated = $generated;
+    }
+
+    public function addAttribute(Attribute $attribute){
+
+    }
+
+    public function getBinding()
+    {
+        // TODO: Implement getBinding() method.
+    }
 }

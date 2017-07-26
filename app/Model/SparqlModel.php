@@ -137,6 +137,47 @@ class SparqlModel
 
         return ($selectedDimensions);
     }
+    protected function modelFieldsToPatterns2(BabbageModel $model, $fields){
+        //dd($model);
+        $patternForest = new PatternForest();
+        foreach ($fields as $field) {
+            $fieldNames = explode(".", $field);
+
+
+            foreach ($model->measures as $name => $measure) {
+                if($fieldNames[0] == $name){
+                    $tree = new PatternTree($measure);
+                    $patternForest->merge($tree);
+                }
+            }
+            foreach ($model->dimensions as $name =>$dimension) {
+                //var_dump($fieldNames);
+                if($fieldNames[0] == $name){
+                    $tree = $patternForest->get($dimension);
+                    for ($i=1;$i<count($fieldNames);$i++){
+                        foreach ($dimension->attributes as $attributeName=> $attribute) {
+                            //dd($model);
+                            /*   var_dump($innerAttributeName);
+                               var_dump($innerAttribute->getVirtual());*/
+                            if($attribute->getVirtual())continue;
+                            if($fieldNames[$i]==$fieldNames[$i-1])continue;
+
+                            if($fieldNames[$i]==$attributeName) {
+                                $tree->add(new PatternBranch($attribute));
+                                break;
+
+                            }
+                        }
+                    }
+
+                }
+
+            }
+
+        }
+dd($patternForest);
+        return $patternForest;
+    }
 
     private $nameCache = [];
 
@@ -240,6 +281,7 @@ class SparqlModel
                                     $val = floatval($val);
                                 elseif($value instanceof EasyRdf_Literal_Integer)
                                     $val = intval($val);
+                                if(!is_numeric($val) || is_nan($val) ) $val = 0;
 
 
                             } else {
