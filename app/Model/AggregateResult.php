@@ -411,7 +411,7 @@ class AggregateResult extends SparqlModel
                 continue;
             }
             if (in_array($sorter->property, $aggregates)) {
-                $queryBuilder = $queryBuilder->orderBy($sorter->binding . "__", strtoupper($sorter->direction));
+                $queryBuilder = $queryBuilder->orderBy($sorter->binding , strtoupper($sorter->direction));
 
             } else {
                 $queryBuilder = $queryBuilder->orderBy($sorter->binding, strtoupper($sorter->direction));
@@ -537,13 +537,23 @@ class AggregateResult extends SparqlModel
                 $queryBuilder->values_multi($values);
             }
         }
-        $basicQueryBuilder->select(array_merge($aggregateBindings,array_diff($drilldownBindings, $outsiderFilteredLabels),["?observation"]));
+
+        $innerAggregateBindings = array_merge($aggregateBindings,array_diff($drilldownBindings, $outsiderFilteredLabels));
+        $aggregatedInnerAggregateBindings = [];
+        foreach ($innerAggregateBindings as $binding) {
+            $aggregatedInnerAggregateBindings [] = "(MAX($binding) AS {$binding})";
+        }
+
+
+        $basicQueryBuilder->select(array_merge($aggregatedInnerAggregateBindings,["?observation"]));
+
+
         $basicQueryBuilder->groupBy("?observation");
         $interMediateQuery->subquery($basicQueryBuilder);
 
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
-            $agBindings [] = "(SUM($binding) AS {$binding}__)";
+            $agBindings [] = "(SUM({$binding}) AS {$binding}__)";
         }
         $agBindings[] = "(COUNT(?observation) AS ?_count)";
 
@@ -565,10 +575,10 @@ class AggregateResult extends SparqlModel
         $outerSelections = $outsiderFilteredLabels+$innerSelectedFields;
         if(!empty($outerSelections))$queryBuilder->groupBy($outerSelections);
 
-        $outerSelections[] = "?_count";
+        $outerSelections[] = "(MAX(?_count) AS ?_count)";
 
         foreach ($aggregateBindings as $aggregateBinding) {
-            $outerSelections[] = "{$aggregateBinding}__";
+            $outerSelections[] = "(MAX({$aggregateBinding}__) AS {$aggregateBinding})";
         }
 
         $queryBuilder->subquery($interMediateQuery);
