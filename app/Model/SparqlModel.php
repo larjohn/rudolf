@@ -277,11 +277,16 @@ dd($patternForest);
                             if ($value instanceof EasyRdf_Literal ) {
                                 /** @var EasyRdf_Literal $value */
                                 $val  = $value->getValue();
-                                if($value instanceof EasyRdf_Literal_Decimal)
+                                if($value instanceof EasyRdf_Literal_Decimal){
                                     $val = floatval($val);
-                                elseif($value instanceof EasyRdf_Literal_Integer)
+                                    if(!is_numeric($val) || is_nan($val) ) $val = 0;
+
+                                }
+                                elseif($value instanceof EasyRdf_Literal_Integer){
                                     $val = intval($val);
-                                if(!is_numeric($val) || is_nan($val) ) $val = 0;
+                                    if(!is_numeric($val) || is_nan($val) ) $val = 0;
+
+                                }
 
 
                             } else {
