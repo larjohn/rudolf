@@ -95,7 +95,6 @@ class SparqlModel
     }
 
     protected function modelFieldsToPatterns(BabbageModel $model, $fields){
-        //dd($model);
         $selectedDimensions = [];
         foreach ($fields as $field) {
             $fieldNames = explode(".", $field);

@@ -38,6 +38,9 @@ class BabbageModel
     /**
      * @var string
      */
+
+    private $distributionURL;
+
     private $dataset;
 
     /**
@@ -186,6 +189,22 @@ class BabbageModel
     public function setCountryCode($countryCode)
     {
         $this->countryCode = $countryCode;
+    }
+
+    /**
+     * @return string
+     */
+    public function getDistributionURL()
+    {
+        return $this->distributionURL;
+    }
+
+    /**
+     * @param string $distributionURL
+     */
+    public function setDistributionURL($distributionURL)
+    {
+        $this->distributionURL = $distributionURL;
     }
 
 }

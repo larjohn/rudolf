@@ -50,7 +50,7 @@ class BabbageModelResult extends SparqlModel
     public function identify($name){
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
-            ->selectDistinct('?dataset', '?dsd',   "(GROUP_CONCAT(distinct ?titles; separator='||') AS ?titles)", "?country_code")
+            ->selectDistinct('?dataset', '?dsd', "?distributionURL",  "(GROUP_CONCAT(distinct ?titles; separator='||') AS ?titles)", "?country_code")
             ->where("?dataset", "a", "qb:DataSet")
             ->where("?dataset","qb:structure", "?dsd" )
             ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
@@ -60,6 +60,10 @@ class BabbageModelResult extends SparqlModel
                 ->where("?dataset", "<http://data.openbudgets.eu/ontology/dsd/dimension/organization>", "?org")
                 ->where("?org", "<http://www.geonames.org/ontology#country>", "?country")
                 ->where("?country", "skos:notation", "?country_code")
+            )
+            ->optional($queryBuilder->newSubgraph()
+                ->where("?dataset", "<http://www.w3.org/ns/dcat#distribution>", "?dist")
+                ->where("?dist", "<http://www.w3.org/ns/dcat#downloadURL>", "?distributionURL")
             )
             ->filter("?name = '$name'")
         ;
@@ -79,6 +83,7 @@ class BabbageModelResult extends SparqlModel
             $this->model->setTitle($this->preferLabel($this->model->getTitles()));
             $this->model->setDsd($identifyQueryResult[0]["dsd"]);
             $this->model->setCountryCode(isset($identifyQueryResult[0]["country_code"])?$identifyQueryResult[0]["country_code"]:"EU");
+            $this->model->setDistributionURL(isset($identifyQueryResult[0]["distributionURL"])?$identifyQueryResult[0]["distributionURL"]:"http://apps.openbudgets.eu/dumps");
         }
 
     }
@@ -89,8 +94,8 @@ class BabbageModelResult extends SparqlModel
     public function load($name){
         if(Cache::has($name)){
 
-           $this->model =  Cache::get($name);
-           return;
+          $this->model =  Cache::get($name);
+          return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
@@ -113,7 +118,7 @@ class BabbageModelResult extends SparqlModel
             ->groupBy('?attribute',   "?shortName", "?attachment", "?dataset");
         ;
 
-       // echo($queryBuilder->format());die;
+//echo($queryBuilder->format());die;
         /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
         $propertiesSparqlResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
@@ -199,7 +204,9 @@ class BabbageModelResult extends SparqlModel
                // var_dump($property);
 
                 $newDimension = new Dimension();
-                $newDimension->setLabels($this->resolveLabels($property["labels"]));
+                $resolvedLabels = $this->resolveLabels($property["labels"]);
+                if(isset($resolvedLabels[""]) && $resolvedLabels[""]==="")$newDimension->setLabels([""=>$property['shortName']]);
+                else   $newDimension->setLabels($resolvedLabels);
 
                 $newDimension->label =  $this->preferLabel($newDimension->getLabels());
                 $newDimension->cardinality_class = "";// $this->getCardinality($property["cardinality"]);
@@ -375,10 +382,6 @@ class BabbageModelResult extends SparqlModel
         $value = str_replace("http://data.openbudgets.eu/resource/codelist/currency/", "", $value );
         return str_replace("http://data.openbudgets.eu/codelist/currency/", "", $value );
 
-        switch ($value){
-            case "http://data.openbudgets.eu/resource/codelist/currency/EUR":
-                return "EUR";
-        }
     }
 
 }

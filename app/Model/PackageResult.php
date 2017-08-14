@@ -14,12 +14,11 @@ class PackageResult extends SparqlModel
 {
 
 
-    public $origin_url;
 
     public $author;
 
     public $countryCode = "EU";
-
+    public $__origin_url = "http://apps.openbudgets.eu/dumps";
     public $model = [];
     public $name;
     public $title;
@@ -57,6 +56,9 @@ class PackageResult extends SparqlModel
         $this->name = $name;
         $this->title = $model->getTitle();
         $this->countryCode = $model->getCountryCode();
+        $this->__origin_url = $model->getDistributionURL();
+        //TODO: $this->cityCode =
+       // $this->origin_url =
 
 
         

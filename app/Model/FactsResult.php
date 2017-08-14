@@ -82,17 +82,14 @@ class FactsResult extends SparqlModel
             foreach ($model->dimensions as $dimension) {
                // if($dimension->getAttachment()!="qb:DataSet")
                 $fields[] = $dimension->label_ref;
-
-
             }
-
             foreach ($model->measures as $measure) {
-
                 $fields[] = $measure->ref;
             }
-
         }
+
         $selectedPatterns = $this->modelFieldsToPatterns($model,$fields);
+        //dd($selectedPatterns);
         $offset = $page_size * $page ;
 
         $dimensions = $model->dimensions;
