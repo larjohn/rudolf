@@ -6,6 +6,7 @@ use App\Console\Commands\CubeModelClear;
 use App\Console\Commands\CubeModelLoad;
 use App\Console\Commands\ModelDimensionClear;
 use App\Console\Commands\SearchLoad;
+use App\Console\Commands\SoftCacheClear;
 use Illuminate\Console\Scheduling\Schedule;
 use Illuminate\Foundation\Console\Kernel as ConsoleKernel;
 
@@ -21,6 +22,7 @@ class Kernel extends ConsoleKernel
         CubeModelLoad::class,
         ModelDimensionClear::class,
         SearchLoad::class,
+        SoftCacheClear::class
         // Commands\Inspire::class,
     ];
 

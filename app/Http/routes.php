@@ -44,3 +44,4 @@ Route::get("sparql", ["as"=>"sparql.get", "uses"=>"SparqlProxyController@index"]
 Route::post("sparql", ["as"=>"sparql.post", "uses"=>"SparqlProxyController@index"]);
 Route::get("user/lib", "PermitController@lib" );
 Route::get("search/package", "SearchController@index" );
+Route::get("soft/{name}", "SoftClearController@clear");

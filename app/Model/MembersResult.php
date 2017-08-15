@@ -43,8 +43,8 @@ class MembersResult extends SparqlModel
     private function load($name, $attributeShortName,  $page, $page_size, $order)
     {
 
-        if(Cache::has($name.'/'.$attributeShortName.'/'.$page.'/'.$page.'/'.implode('$',$this->order))){
-           $this->data =  Cache::get($name.'/'.$attributeShortName);
+        if(Cache::has($name.'/'.$attributeShortName.'/'.$page.'/'.$page_size.'/'.implode('$',$this->order))){
+           $this->data =  Cache::get($name.'/'.$attributeShortName.'/'.$page.'/'.$page_size.'/'.implode('$',$this->order));
            return;
         }
 
@@ -199,7 +199,7 @@ class MembersResult extends SparqlModel
             $this->data = $results;
         else $this->data = [];
 
-
+        Cache::forever($name.'/'.$attributeShortName.'/'.$page.'/'.$page_size.'/'.implode('$',$this->order), $this->data);
     }
 
 

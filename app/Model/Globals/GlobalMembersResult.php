@@ -14,6 +14,7 @@ use App\Model\Sparql\FilterPattern;
 use App\Model\Sparql\SubPattern;
 use App\Model\Sparql\TriplePattern;
 use App\Model\SparqlModel;
+use App\Model\VolatileCacheManager;
 use Asparagus\QueryBuilder;
 use Cache;
 use Illuminate\Database\Eloquent\Collection;
@@ -277,6 +278,7 @@ class GlobalMembersResult extends SparqlModel
 
 
         Cache::forever("members/global/$attributeShortName/$page/$page_size", $this->data);
+        VolatileCacheManager::addKey("members/global/$attributeShortName/$page/$page_size");
 
     }
 

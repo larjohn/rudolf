@@ -26,7 +26,7 @@ class FactsController extends Controller
             $cuts = explode('|', request('cut'));
         else
             $cuts = [];
-        return response()->json(new FactsResult($name, intval(request("page")), intval(request("pagesize",100)), $fields, $orders, $cuts));
+        return response()->json(new FactsResult($name, intval(request("page")), intval(request("pagesize",10000)), $fields, $orders, $cuts));
     }
 
     public function global($ver){
@@ -40,6 +40,6 @@ class FactsController extends Controller
             $cuts = explode('|', request('cut'));
         else
             $cuts = [];
-        return response()->json(new GlobalFactsResult(intval(request("page")), intval(request("pagesize",100)), $fields, $orders, $cuts));
+        return response()->json(new GlobalFactsResult(intval(request("page")), intval(request("pagesize",10000)), $fields, $orders, $cuts));
     }
 }

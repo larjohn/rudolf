@@ -9,9 +9,11 @@
 namespace App\Model;
 
 
+use App;
 use Asparagus\QueryBuilder;
 use Cache;
 use EasyRdf_Sparql_Result;
+use InvalidArgumentException;
 use Log;
 
 class BabbageModelResult extends SparqlModel
@@ -84,6 +86,9 @@ class BabbageModelResult extends SparqlModel
             $this->model->setDsd($identifyQueryResult[0]["dsd"]);
             $this->model->setCountryCode(isset($identifyQueryResult[0]["country_code"])?$identifyQueryResult[0]["country_code"]:"EU");
             $this->model->setDistributionURL(isset($identifyQueryResult[0]["distributionURL"])?$identifyQueryResult[0]["distributionURL"]:"http://apps.openbudgets.eu/dumps");
+        }
+        else{
+            throw new InvalidArgumentException("There is no model named {$name} in the triple store.");
         }
 
     }
