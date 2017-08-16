@@ -22,6 +22,7 @@ class PackageResult extends SparqlModel
     public $model = [];
     public $name;
     public $title;
+    public $resources = [];
 
     public function __construct($name)
     {
@@ -57,6 +58,10 @@ class PackageResult extends SparqlModel
         $this->title = $model->getTitle();
         $this->countryCode = $model->getCountryCode();
         $this->__origin_url = $model->getDistributionURL();
+        $this->resources = [
+            "url" => $this->__origin_url,
+            "name" => $this->name,
+        ];
         //TODO: $this->cityCode =
        // $this->origin_url =
 
