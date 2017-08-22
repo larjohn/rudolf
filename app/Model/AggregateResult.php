@@ -553,7 +553,7 @@ class AggregateResult extends SparqlModel
 
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
-            $agBindings [] = "(SUM({$binding}) AS {$binding}__)";
+            $agBindings [] = "(SUM(ABS({$binding})) AS {$binding}__)";
         }
         $agBindings[] = "(COUNT(?observation) AS ?_count)";
 
@@ -650,7 +650,7 @@ class AggregateResult extends SparqlModel
 
         $agBindings = [];
         foreach ($aggregateBindings as $binding) {
-            $agBindings [] = "(SUM($binding) AS {$binding}__)";
+            $agBindings [] = "(SUM(ABS($binding)) AS {$binding}__)";
         }
         $agBindings[] = "(COUNT(?observation) AS ?_count)";
 

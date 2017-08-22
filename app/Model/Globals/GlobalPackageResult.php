@@ -16,6 +16,7 @@ class GlobalPackageResult extends SparqlModel
 
     public $model;
     public $countryCode;
+    public $cityCode;
 
     public function __construct()
     {

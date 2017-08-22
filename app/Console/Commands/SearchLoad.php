@@ -2,6 +2,7 @@
 
 namespace App\Console\Commands;
 
+use App;
 use App\Model\SearchResult;
 use Illuminate\Console\Command;
 
@@ -45,7 +46,13 @@ class SearchLoad extends Command
         $lastPage = intval($count/$pageSize);
 
         for($i=0;$i<$lastPage;$i++){
-            new SearchResult(null,"", $pageSize, $i*$pageSize);
+            try{
+                new SearchResult(null,"", $pageSize, $i*$pageSize);
+
+            }
+            catch (\Exception $exception){
+                App::abort("500", $exception->getTraceAsString());
+            }
         }
 
         return $all;

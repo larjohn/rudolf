@@ -41,8 +41,13 @@ class BabbageModel
 
     private $distributionURL;
 
+    private $contactName;
+
+    private $contactEmail;
+
     private $dataset;
 
+    private $author;
     /**
      * @var string
      */
@@ -106,6 +111,8 @@ class BabbageModel
 
     private $title;
     private $countryCode;
+
+    private $cityCode;
 
     /**
      * @return mixed
@@ -205,6 +212,67 @@ class BabbageModel
     public function setDistributionURL($distributionURL)
     {
         $this->distributionURL = $distributionURL;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getCityCode()
+    {
+        return $this->cityCode;
+    }
+
+    /**
+     * @param mixed $cityCode
+     */
+    public function setCityCode($cityCode)
+    {
+        $this->cityCode = $cityCode;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getContactName()
+    {
+        return $this->contactName;
+    }
+
+    /**
+     * @param mixed $contactName
+     */
+    public function setContactName($contactName)
+    {
+        $this->contactName = $contactName;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getContactEmail()
+    {
+        return $this->contactEmail;
+    }
+
+    /**
+     * @param mixed $contactEmail
+     */
+    public function setContactEmail($contactEmail)
+    {
+        $this->contactEmail = $contactEmail;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getAuthor()
+    {
+        if(isset($this->contactName)){
+            return "{$this->contactName} <{$this->contactEmail}>";
+        }else{
+            return config("sparql.defaultAuthor");
+        }
+
     }
 
 }

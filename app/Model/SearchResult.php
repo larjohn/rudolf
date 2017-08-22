@@ -13,7 +13,6 @@ use App\Model\Globals\BabbageGlobalModelResult;
 use Asparagus\QueryBuilder;
 use Cache;
 use EasyRdf_Sparql_Result;
-use Illuminate\Cache\CacheManager;
 
 class SearchResult extends SparqlModel
 {
@@ -42,7 +41,7 @@ class SearchResult extends SparqlModel
     {
 
         if (!empty($this->id) && Cache::has("search/{$this->id}")) {
-            $this->packages = Cache::get("search/{$this->id}");
+           $this->packages = Cache::get("search/{$this->id}");
             return;
         }
         if (empty($this->id) && Cache::has("search/{$this->query}/{$this->size}/{$this->from}")) {
@@ -105,7 +104,12 @@ class SearchResult extends SparqlModel
             $packages[$datasetURI] = $model;
             $packages[$datasetURI]->id = $dataSetName;
             $packages[$datasetURI]->name = $dataSetName;
-            $packages[$datasetURI]->package = ["author" => config("sparql.defaultAuthor"), "title" => $model->getModel()->getTitle(), "countryCode" => $model->getModel()->getCountryCode()];
+            $packages[$datasetURI]->package = [
+                "author" => $model->model->getAuthor(),
+                "title" => $model->getModel()->getTitle(),
+                "countryCode" => $model->getModel()->getCountryCode(),
+                "cityCode" => $model->model->getCityCode()
+            ];
 
         }
 
@@ -135,7 +139,7 @@ class SearchResult extends SparqlModel
         $globalModel = new BabbageGlobalModelResult();
         $globalModel->id = "global";
         $globalModel->load2();
-        $globalModel->package = ["author" => config("sparql.defaultAuthor"), "title" => "Global dataset: All datasets combined", "countryCode" => "EU"];
+        $globalModel->package = ["author" => config("sparql.defaultAuthor"), "title" => "Global dataset: All datasets combined", "countryCode" => config("sparql.defaultCountryCode")];
         if ((empty($this->id) && empty($this->query)) || $this->id == "global" || str_contains($this->query, ["global", "Global"]))
             $this->packages[] = $globalModel;
 

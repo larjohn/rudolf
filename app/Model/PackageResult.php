@@ -17,7 +17,9 @@ class PackageResult extends SparqlModel
 
     public $author;
 
-    public $countryCode = "EU";
+    public $countryCode = null;
+    public $cityCode = "";
+
     public $__origin_url = "http://apps.openbudgets.eu/dumps";
     public $model = [];
     public $name;
@@ -57,6 +59,7 @@ class PackageResult extends SparqlModel
         $this->name = $name;
         $this->title = $model->getTitle();
         $this->countryCode = $model->getCountryCode();
+        $this->cityCode = $model->getCityCode();
         $this->__origin_url = $model->getDistributionURL();
         $this->resources = [
             "url" => $this->__origin_url,
@@ -70,6 +73,17 @@ class PackageResult extends SparqlModel
         
         
 
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getCountryCode()
+    {
+        if(!isset($this->countryCode)){
+            return config("sparql.defaultCountryCode");
+        }
+        return $this->countryCode;
     }
 
 
