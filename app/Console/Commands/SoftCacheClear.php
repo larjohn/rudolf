@@ -45,9 +45,8 @@ class SoftCacheClear extends Command
         if(Cache::has($name)){
             throw new InvalidArgumentException("Model {$name} is already cached. No need to rebuild the cache.");
         }
-
         try{
-           new  BabbageModelResult($name);
+            new  BabbageModelResult($name);
 
         }
         catch (InvalidArgumentException $ex){

@@ -40,13 +40,16 @@ class SearchResult extends SparqlModel
     public function load()
     {
 
+        //dump("search/{$this->query}/{$this->size}/{$this->from}");
+      //  dd( Cache::has("search/{$this->query}/{$this->size}/{$this->from}"));
+
         if (!empty($this->id) && Cache::has("search/{$this->id}")) {
            $this->packages = Cache::get("search/{$this->id}");
             return;
         }
         if (empty($this->id) && Cache::has("search/{$this->query}/{$this->size}/{$this->from}")) {
             $this->packages = Cache::get("search/{$this->query}/{$this->size}/{$this->from}");
-            return;
+           return;
         }
 
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"), config("sparql.excusedPrefixes"));
@@ -64,8 +67,10 @@ class SearchResult extends SparqlModel
         }
 
         if (empty($this->id) && !empty($this->query)) {
-            if (strlen($this->query) > 3) $object = '"\'' . $this->query . '*\'"';
-            else $object = '"\'' . $this->query . '\'"';
+       /*     if (strlen($this->query) > 3) $object = '"\'' . $this->query . '*\'"';
+            else $object = '"\'' . $this->query . '\'"';*/
+
+       $object = $this->query;
 
 
             $queryBuilder
@@ -73,11 +78,13 @@ class SearchResult extends SparqlModel
                         $queryBuilder->newSubgraph()
                             ->where("?dataset", "a", "qb:DataSet")
                             ->where("?dataset", "<http://purl.org/dc/terms/title>", "?title")
-                            ->where("?title", "bif:contains", $object),
+                            ->filter("regex(str(?title), '$object', 'i')"),
+                           // ->where("?title", "bif:contains", $object),
                         $queryBuilder->newSubgraph()
                             ->where("?dataset", "a", "qb:DataSet")
                             ->where("?dataset", "<http://www.w3.org/2000/01/rdf-schema#label>", "?label")
-                            ->where("?label", "bif:contains", $object),
+                            ->filter("regex(str(?label), '$object', 'i')"),
+                            //->where("?label", "bif:contains", $object),
 
                     ]
                 );

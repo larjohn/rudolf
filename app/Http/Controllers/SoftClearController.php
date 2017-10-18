@@ -14,7 +14,7 @@ use Artisan;
 class SoftClearController extends Controller
 {
     public function clear($name){
-        return    Artisan::call('soft:clear', [
+        return   Artisan::call('soft:clear', [
             'name' => $name
         ]);
 

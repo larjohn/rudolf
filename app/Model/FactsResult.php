@@ -244,7 +244,7 @@ class FactsResult extends SparqlModel
         $queryBuilder = $this->build($bindings, $patterns, $finalFilters );
 
 
-
+//echo  $queryBuilder->format();die;
 
         $queryBuilder
 
@@ -368,7 +368,7 @@ class FactsResult extends SparqlModel
             ->select($bindings)
 
         ;
-
+//echo $queryBuilder->format();die;
         return $queryBuilder;
 
     }

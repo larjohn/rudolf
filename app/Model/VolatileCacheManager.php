@@ -46,9 +46,9 @@ class VolatileCacheManager
     }
 
     public static function reset(){
-        Cache::forget("global");
+       // Cache::forget("global");
         self::clear();
-        $model = (new BabbageGlobalModelResult())->model;
+       // $model = (new BabbageGlobalModelResult())->model;
 
     }
 }
