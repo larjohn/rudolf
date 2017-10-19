@@ -278,7 +278,6 @@ class FactsResult extends SparqlModel
         $this->total_fact_count = $count;
         $this->fields = $fields;
 
-
     }
 
     /**

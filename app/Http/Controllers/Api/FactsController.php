@@ -40,6 +40,6 @@ class FactsController extends Controller
             $cuts = explode('|', request('cut'));
         else
             $cuts = [];
-        return response()->json(new GlobalFactsResult(intval(request("page")), intval(request("pagesize",10000)), $fields, $orders, $cuts));
+        return response()->json(new GlobalFactsResult(intval(request("page")), intval(request("pagesize",10000)), $fields, $orders, $cuts),200, [], JSON_ERROR_INF_OR_NAN );
     }
 }
