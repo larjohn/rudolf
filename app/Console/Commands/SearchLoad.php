@@ -3,6 +3,7 @@
 namespace App\Console\Commands;
 
 use App;
+use App\Model\Globals\BabbageGlobalModelResult;
 use App\Model\SearchResult;
 use Illuminate\Console\Command;
 

@@ -41,10 +41,9 @@ class BabbageGlobalModelResult extends BabbageModelResult
 
     public function load2()
     {
-
         if (Cache::has("global")) {
            $this->model = Cache::get("global");
-          return;
+           return;
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
         $queryBuilder
@@ -159,10 +158,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
                         ->bind("datatype(?extension) AS ?dataType")
                         ->bind("LANG(?extension) AS ?attLang")
                         ->bind("REPLACE(str(?extensionProperty), '^.*(#|/)', \"\") AS ?shortName")
-                        ->groupBy("?extensionProperty")
-                    ;
-
-
+                        ->groupBy("?extensionProperty");
 
                     $subResult = $this->sparql->query(
                         $queryBuilder->getSPARQL()
@@ -235,8 +231,6 @@ class BabbageGlobalModelResult extends BabbageModelResult
             }
         }
 
-        //dd($this->model->dimensions);
-
         {
             $globalsQueryBuilder = new QueryBuilder(config("sparql.prefixes"));
             $globalsQueryBuilder->where("?dataset", "qb:structure", "?dsd");
@@ -245,7 +239,7 @@ class BabbageGlobalModelResult extends BabbageModelResult
             $globalsQueryBuilder->where("?dsd", "qb:component", "?component");
             $globalsQueryBuilder->where("?component", "?componentProperty", "?attribute");
             $globalsQueryBuilder->where("?attribute", "rdfs:label", "?label");
-            $globalsQueryBuilder->values_multi([["componentProperty"=>"qb:dimension"],["componentProperty"=>"qb:measure"],["componentProperty"=>"qb:attribute"]]);
+            $globalsQueryBuilder->values(["?componentProperty"=>["qb:dimension", "qb:measure", "qb:attribute"]]);
             $globalsQueryBuilder->filter('LANG(?label) = "" || LANGMATCHES(LANG(?label), "en")');
             $globalsQueryBuilder->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5), '__', REPLACE(str(?attribute), '^.*(#|/)', \"\")) AS ?shortName");
             $globalsQueryBuilder->bind("REPLACE(str(?dataset), '^.*(#|/)', \"\") AS ?originalName");
