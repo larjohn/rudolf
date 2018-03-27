@@ -43,7 +43,8 @@ class CubesResult extends SparqlModel
         );
 
         $results = $this->rdfResultsToArray($result);
-        $results[] = ["name"=>"global"];
+        if(config("sparql.global"))
+            $results[] = ["name"=>"global"];
         $this->data = $results;
         $this->status = "ok";
     }

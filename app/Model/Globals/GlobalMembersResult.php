@@ -242,7 +242,6 @@ class GlobalMembersResult extends SparqlModel
 
         /** @var QueryBuilder $subQueryBuilder */
         $queryBuilder = $this->build2($bindings, $patterns, $parentDrilldownBindings);
-            //echo $queryBuilder->format();    die;
         $result = $this->sparql->query(
             $queryBuilder->getSPARQL()
         );

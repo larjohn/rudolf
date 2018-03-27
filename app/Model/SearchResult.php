@@ -142,13 +142,16 @@ class SearchResult extends SparqlModel
             $package->origin_url = "http://openbudgets.eu";
         }
 
+        if(config("sparql.global")){
+            $globalModel = new BabbageGlobalModelResult();
+            $globalModel->id = "global";
+            $globalModel->load2();
+            $globalModel->package = ["author" => config("sparql.defaultAuthor"), "title" => "Global dataset: All datasets combined", "countryCode" => config("sparql.defaultCountryCode")];
 
-        $globalModel = new BabbageGlobalModelResult();
-        $globalModel->id = "global";
-        $globalModel->load2();
-        $globalModel->package = ["author" => config("sparql.defaultAuthor"), "title" => "Global dataset: All datasets combined", "countryCode" => config("sparql.defaultCountryCode")];
-        if ((empty($this->id) && empty($this->query)) || $this->id == "global" || str_contains($this->query, ["global", "Global"]))
-            $this->packages[] = $globalModel;
+            if ((empty($this->id) && empty($this->query)) || $this->id == "global" || str_contains($this->query, ["global", "Global"]))
+                $this->packages[] = $globalModel;
+
+        }
 
         if (!empty($this->id)) {
             Cache::forever("search/{$this->id}", $this->packages);
