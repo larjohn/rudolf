@@ -259,6 +259,25 @@ class BabbageModelResult extends SparqlModel
 
     }
 
+    private function getAttributeLabels($attribute){
+        $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
+        $queryBuilder
+            ->selectDistinct( "(GROUP_CONCAT(distinct ?labels; separator='||') AS ?labels)")
+
+            ->optional("<{$attribute}>", 'rdfs:label', '?label')
+
+            ->bind("CONCAT(LANG(?label),'=',?label) AS ?labels")
+
+        ;
+        $labelsResult = $this->sparql->query(
+            $queryBuilder->getSPARQL()
+        );
+        /** @var EasyRdf_Sparql_Result $result */
+
+        $labelsResult = $this->rdfResultsToArray($labelsResult);
+        return ($labelsResult[0]["labels"]);
+    }
+
 
 
     public function load($name){
@@ -269,26 +288,26 @@ class BabbageModelResult extends SparqlModel
         }
         $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
 
+
+
+        $dataset = $this->model->getDataset();
+        $dsd = $this->model->getDsd();
+
         $queryBuilder
-            ->selectDistinct('?attribute', "(GROUP_CONCAT(distinct ?labels; separator='||') AS ?labels)", '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)", "?shortName", "?dataset")
-            ->where("?dsd", 'qb:component', '?component')
-            ->where("?dataset", "a", "qb:DataSet")
-            ->where("?dataset","qb:structure", "?dsd" )
+            ->selectDistinct('?attribute',  '?attachment', "(SAMPLE(?_propertyType) AS ?propertyType)")
+            ->where("<{$dsd}>", 'qb:component', '?component')
             ->where('?component', '?componentProperty', '?attribute')
             ->where('?componentProperty', 'rdfs:subPropertyOf', 'qb:componentProperty')
-            ->optional('?attribute', 'rdfs:label', '?label')
+
             ->bind("REPLACE(str(?attribute), '^.*(#|/)', \"\") AS ?shortName")
             ->optional('?component', 'qb:componentAttachment', '?attachment')
-            ->bind("CONCAT(REPLACE(str(?dataset), '^.*(#|/)', \"\"), '__', SUBSTR(MD5(STR(?dataset)),1,5)) AS ?name")
-            ->filter("?name = '$name'")
-            ->bind("CONCAT(LANG(?label),'=',?label) AS ?labels")
+
             ->optional($queryBuilder->newSubgraph()
                 ->where("?attribute", "a", "?_propertyType")->filter("?_propertyType in (qb:CodedProperty, qb:MeasureProperty, qb:DimensionProperty)"))
 /*            ->filterNotExists('?component', 'qb:componentAttachment', 'qb:DataSet')*/
-            ->groupBy('?attribute',   "?shortName", "?attachment", "?dataset");
+            ->groupBy('?attribute', "?attachment");
         ;
 
-//echo($queryBuilder->format());die;
         /** @var EasyRdf_Sparql_Result $propertiesSparqlResult */
         $propertiesSparqlResult = $this->sparql->query(
             $queryBuilder->getSPARQL()
@@ -298,32 +317,37 @@ class BabbageModelResult extends SparqlModel
 
         $propertiesSparqlResult = $this->rdfResultsToArray($propertiesSparqlResult);
 
+
         foreach ($propertiesSparqlResult as $property) {
             $newMeasure = new Measure();
             if(!isset($property["attribute"])||!isset($property["propertyType"]))continue;
             //var_dump($property);
             $attribute = $property["attribute"];
+            $labels = $this->getAttributeLabels($attribute);
+            $property["labels"] = $labels;
             $queryBuilder = new QueryBuilder(config("sparql.prefixes"));
             $subQuery = $queryBuilder->newSubquery();
             $subSubQuery = $subQuery->newSubquery();
             $subSubQuery->select("?value");
             $subSubQuery->limit(20);
+            $shortName = preg_replace("/^[^\n\r]*(#|\/)/", "", $attribute);
+            $property["shortName"] = $shortName;
 
             if(isset($property["attachment"]) &&  $property["attachment"]=="qb:Slice"){
                 $subSubQuery
                     ->where('?observation', 'a', 'qb:Observation')
                     ->where("?slice", "qb:observation", "?observation")
-                    ->where("?observation", "qb:dataSet", "<{$property['dataset']}>")
+                    ->where("?observation", "qb:dataSet", "<{$dataset}>")
                     ->where("?slice",  "<$attribute>", "?value");
             }
             elseif(isset($property["attachment"]) &&  $property["attachment"]=="qb:DataSet"){
                 $subSubQuery
-                    ->where("<{$property['dataset']}>", "<$attribute>", "?value");
+                    ->where("<{$dataset}>", "<$attribute>", "?value");
                 
             }
             else{
                 $subSubQuery
-                    ->where("?observation", "qb:dataSet", "<{$property['dataset']}>")
+                    ->where("?observation", "qb:dataSet", "<{$dataset}>")
                     ->where("?observation", "<$attribute>" ,"?value")->where('?observation', 'a', 'qb:Observation')
                 ;
             }
