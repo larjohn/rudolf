@@ -33,7 +33,7 @@ class SparqlModel
 
     /**
      * @var EasyRdf_Sparql_Client
-     */
+d    *d
     protected $sparql;
 
 
@@ -228,10 +228,6 @@ dd($patternForest);
                         $val = $value->dumpValue('text');
                     }
                     $finalName = $this->getAttributeRef($model, [$selectedFieldName]).$aggregateSuffix;
-                    if (!is_numeric($val))
-                    {
-                        $val = str_replace('http://apps.openbudgets.eu/', 'http://openbudget.kdvz-frechen.de/', $val);
-                    }
                     $added[$finalName] = $val;
 
                 }
@@ -246,17 +242,17 @@ dd($patternForest);
                         if(is_array($altName)){
                             foreach ($altName as $item) {
                                 if(isset($row->$alternativeBinding))
-                                    $added[$item] = str_replace('http://apps.openbudgets.eu/', 'http://openbudget.kdvz-frechen.de/', $row->$alternativeBinding->dumpValue('text'));
+                                    $added[$item] = $row->$alternativeBinding->dumpValue('text');
                                 if(isset($row->$alternativeBinding2))
-                                    $added[$item] = str_replace('http://apps.openbudgets.eu/', 'http://openbudget.kdvz-frechen.de/', $row->$alternativeBinding2->dumpValue('text'));
+                                    $added[$item] = $row->$alternativeBinding2->dumpValue('text');
 
                             }
                         }
                         else{
                             if(isset($row->$alternativeBinding))
-                                $added[$altName] = str_replace('http://apps.openbudgets.eu/', 'http://openbudget.kdvz-frechen.de/', $row->$alternativeBinding->dumpValue('text'));
+                                $added[$altName] = $row->$alternativeBinding->dumpValue('text');
                             if(isset($row->$alternativeBinding2))
-                                $added[$altName] = str_replace('http://apps.openbudgets.eu/', 'http://openbudget.kdvz-frechen.de/', $row->$alternativeBinding2->dumpValue('text'));
+                                $added[$altName] = $row->$alternativeBinding2->dumpValue('text');
 
                         }
                     }
@@ -297,10 +293,6 @@ dd($patternForest);
                                 $val = $value->dumpValue('text');
                             }
 
-                        }
-                        if (!is_numeric($val))
-                        {
-                            $val = str_replace('http://apps.openbudgets.eu/', 'http://openbudget.kdvz-frechen.de/', $val);
                         }
                         $added[$finalName] = $val;
 

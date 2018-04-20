@@ -196,7 +196,13 @@ class MembersResult extends SparqlModel
         //dd($result);
 
         if($results!=null)
-        {
+        {  
+            foreach($results as &$result)
+            {  
+                $v = current((array)$result);
+                $k = key((array)$result);
+                $result[$k] = str_replace('http://apps.openbudgets.eu/', 'http://openbudget.kdvz-frechen.de', $v);
+            }
             $this->data = $results;
         }
         else $this->data = [];
