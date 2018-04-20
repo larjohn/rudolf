@@ -33,7 +33,7 @@ class SparqlModel
 
     /**
      * @var EasyRdf_Sparql_Client
-d    *d
+     */
     protected $sparql;
 
 
