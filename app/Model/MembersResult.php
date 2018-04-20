@@ -196,7 +196,13 @@ class MembersResult extends SparqlModel
         //dd($result);
 
         if($results!=null)
+        {
+            foreach($results as $key => $value)
+            {
+                $results[$key] = str_replace('http://apps.openbudgets.eu/', 'http://openbudget.kdvz-frechen.de', $value);
+            }
             $this->data = $results;
+        }
         else $this->data = [];
 
         Cache::forever($name.'/'.$attributeShortName.'/'.$page.'/'.$page_size.'/'.implode('$',$this->order), $this->data);
