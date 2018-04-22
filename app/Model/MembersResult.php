@@ -196,12 +196,12 @@ class MembersResult extends SparqlModel
         //dd($result);
 
         if($results!=null)
-        {  
+        {   
+	    $key = $model->dimensions[$dimensionShortName]->key_ref;
             foreach($results as &$result)
-            {  
-                $v = current((array)$result);
-                $k = key((array)$result);
-                $result[$k] = str_replace('http://apps.openbudgets.eu/', 'http://openbudget.kdvz-frechen.de', $v);
+            {   
+		$value = explode('/', $result[$key]);
+		$result[$key] = end($value);
             }
             $this->data = $results;
         }
