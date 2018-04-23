@@ -276,7 +276,7 @@ class FactsResult extends SparqlModel
 	{  
 	    foreach($result as $key => $value){
 	        $value = explode('/', $value);
-	        $result[$key] = end($value); 
+	        $result[$key] = urldecode(end($value)); 
 	    }
 	}
         $this->data = $results;

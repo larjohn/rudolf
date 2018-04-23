@@ -442,10 +442,10 @@ class AggregateResult extends SparqlModel
 	    foreach($result as $key => $value)
 	    {
 		$value = explode('/', $value);
-	        $result[$key] = end($value); 
+	        $result[$key] = urldecode(end($value)); 
 	    }
 	}
-        $this->cells = [] ;
+        $this->cells = $results;
         $this->total_cell_count = $count;
 
     }

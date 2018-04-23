@@ -201,7 +201,7 @@ class MembersResult extends SparqlModel
             foreach($results as &$result)
             {   
 		$value = explode('/', $result[$key]);
-		$result[$key] = end($value);
+		$result[$key] =urldecode(end($value));
             }
             $this->data = $results;
         }

@@ -767,7 +767,7 @@ class GlobalAggregateResult extends AggregateResult
 	    foreach($result as $key => $value)
 	    {
 		$value = explode('/', $value);
-		$result[$key] = end($value);
+		$result[$key] =urldecode(end($value));
 	    }
 	}
         $this->cells = $results;
