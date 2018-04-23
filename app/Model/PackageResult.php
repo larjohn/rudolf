@@ -20,7 +20,7 @@ class PackageResult extends SparqlModel
     public $countryCode = null;
     public $cityCode = "";
 
-    public $__origin_url = "http://apps.openbudgets.eu/dumps";
+    public $__origin_url = "http://openbudget.kdvz-frechen.de/dumps";
     public $model = [];
     public $name;
     public $title;
