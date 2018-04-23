@@ -437,6 +437,14 @@ class AggregateResult extends SparqlModel
         // dd( array_merge($selectedAggregates,$selectedDrilldowns));
         $results = $this->rdfResultsToArray3($result, $attributes, $model, array_merge($selectedAggregates, $selectedDrilldowns));
 //dd($results);
+        foreach($results as &$result)
+        {  
+	    foreach($result as $key => $value)
+	    {
+	        $value = explode('/', $value);
+	        $result[$key] = end($value); 
+	    }
+        }
         $this->cells = $results;
         $this->total_cell_count = $count;
 

@@ -762,6 +762,14 @@ class GlobalAggregateResult extends AggregateResult
         //  dd($model);
         /// dd(array_merge( $mergedDrilldowns, $selectedAggregates ));
         $results = $this->rdfResultsToArray3($result, $mergedAttributes, $model, array_merge($mergedDrilldowns, $selectedAggregates));
+	foreach($results as &$result)
+	{  
+	    foreach($result as $key => $value)
+	    {
+		$value = explode('/', $value);
+		$result[$key] = end($value);
+	    }
+	}
         $this->cells = $results;
         $this->total_cell_count = max($count, count($results));
 
