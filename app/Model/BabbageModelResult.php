@@ -94,7 +94,13 @@ class BabbageModelResult extends SparqlModel
             $this->model->setDataset($identifyQueryResult[0]["dataset"]);
             $this->model->setTitle($this->preferLabel($this->model->getTitles()));
             $this->model->setDsd($identifyQueryResult[0]["dsd"]);
-            $this->model->setDistributionURL(isset($identifyQueryResult[0]["distributionURL"])?$identifyQueryResult[0]["distributionURL"]:"http://apps.openbudgets.eu/dumps");
+	    $dumpURL = "http://openbudget.kdvz-frechen.de/dumps/fromfdp/";
+	    if(isset($identifyQueryResult[0]["distributionURL"])){
+	        $value = explode('/', $identifyQueryResult[0]["distributionURL"]);
+	        $dumpURL = $dumpURL . end($value);
+	    }
+	    $this->model->setDistributionURL($dumpURL);
+
             if(isset($identifyQueryResult[0]["org"])){
                 $place = $this->recognizePlace($identifyQueryResult[0]["org"], $name);
                 $this->model->setCountryCode($place["country"]);
